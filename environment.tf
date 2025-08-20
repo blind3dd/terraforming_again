@@ -346,8 +346,8 @@ resource "aws_security_group" "instance_sg" {
   name = "${var.environment}-${var.service_name}-instance-sg"
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 8088
+    to_port     = 8088
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -356,7 +356,7 @@ resource "aws_security_group" "instance_sg" {
     Name = "${var.environment}-${var.service_name}-instance-sg"
     Environment = var.environment
     Service = var.service_name
-    CreatedBy = "Pawel Bek"
+    CreatedBy = var.infra_builder
   }
 }
 
