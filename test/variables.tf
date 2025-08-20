@@ -10,10 +10,10 @@ variable region {
 
 variable "environment" {
   type = string
-  default = "development"
+  default = "test"
   description = "The environment to deploy to"
   validation {
-    condition = contains(["development", "production"], var.environment)
+    condition = contains(["dev", "test"], var.environment)
     error_message = "Environment must be either development or production"
   }
 }
@@ -86,8 +86,19 @@ variable "key_bits_size" {
 
 variable "db_password_param" {
   type = string
-  default = "/opt/go-mysql-api/db/password"
+  default = "/opt/go-mysql-api/${var.environment}/username"
+  description = "The parameter name of the db username"
+}
+variable "db_password_param" {
+  type = string
+  default = "/opt/go-mysql-api/${var.environment}/password"
   description = "The parameter name of the db password"
+}
+
+variable "db_host_param" {
+  type = string
+  default = "/opt/go-mysql-api/${var.environment}/host"
+  description = "The parameter name of the db host"
 }
 
 variable "associate_public_ip_address" {

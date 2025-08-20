@@ -11,8 +11,8 @@ resource "aws_instance" "go_mysql_api" {
 	]
 	root_block_device {
 	  delete_on_termination = true
-	  volume_size = 50
-	  volume_type = "gp2"
+	  volume_size = 10
+	  volume_type = "gp3"
 	}
 
 	tags = {
@@ -43,8 +43,6 @@ resource "aws_instance" "go_mysql_api" {
 	  key_name   = var.aws_key_pair_name
 	  public_key = tls_private_key.private_rsa_pair.public_key_openssh
   }
-
-  
 
   resource "local_sensitive_file" "tf_key" {
 	  content              = tls_private_key.private_rsa_pair.private_key_pem
@@ -100,7 +98,7 @@ resource "aws_db_subnet_group" "private_db_subnet" {
   }
 }
 
-resource "aws_subnet" "private_subnets" {
+resource "aws_subnet" "cidr" {
   count = length(data.aws_availability_zones.available.names)
   cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index)
   availability_zone = data.aws_availability_zones.available.names[count.index]
@@ -255,18 +253,18 @@ resource "aws_route_table" "nat" {
     CreatedBy = var.infra_builder
   }
 }
-
-data "subnets_private" "private_subnets" {
-  state = "available"
-  filter {
-    name = "region"
-    values = [var.private_subnet_range_a, var.private_subnet_range_b]
-  }
+locals {
+  private_subnets = data.cidr.subnets
+}
+data "cidr" "private_subnets" {
+  name = "private_subnets"
+  base_cidr_block = var.main_vpc_cidr
+  new_bits = 4
 }
 
 resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.main.id
-
+  # to add proper iterator for private subnets
   for_each = aws_subnet.private_subnet_a
   route {
     cidr_block = "0.0.0.0/0"
@@ -327,8 +325,8 @@ resource "aws_security_group_rule" "inbound_traffic_ssh" {
 resource "aws_security_group_rule" "inbound_traffic_http" {
   description       = "Allow inbound HTTPS traffic"
   type              = "ingress"
-  from_port         = "8090"
-  to_port           = "8090"
+  from_port         = "3306"
+  to_port           = "3306"
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.main_vpc_sg.id
@@ -425,11 +423,11 @@ locals {
   aws_region_zones = tolist(
     [
   {
-    region = "us-west-2"
+    region = "us-west-2" // oregon
     zones  = ["us-west-2a", "us-west-2b"]
   },  
   {
-    region = "us-east-1"
+    region = "us-east-1" // virginia
     zones  = ["us-east-1a", "us-east-1b"]
   },
     ]
@@ -466,10 +464,10 @@ module "zonal" {
 output "zone_regions" {
   value = tomap({
     for net in module.regional.networks : net.name => {
-      cidr_block = net.cidr_block
+      cidr = net.cidr_block
       zones = tomap({
         for subnet in module.zonal[net.name].networks : subnet.name => {
-          cidr_block = subnet.cidr_block
+          cidr = subnet.cidr_block
         }
       })
     }

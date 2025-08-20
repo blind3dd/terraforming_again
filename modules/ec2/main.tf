@@ -46,8 +46,8 @@ resource "aws_instance" "go_mysql_api" {
 
   resource "local_sensitive_file" "tf_key" {
 	content              = tls_private_key.rsa.private_key_pem
-	file_permission      = "600"
-	directory_permission = "700"
+	file_permission      = "0600"
+	directory_permission = "0700"
 	filename             = "${aws_key_pair.ec2_key_pair.key_name}.pem"
   }
   

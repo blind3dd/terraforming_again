@@ -8,6 +8,13 @@ module "vpc" {
   private_subnet_range_a = var.private_subnet_range_a
   private_subnet_range_b = var.private_subnet_range_b
   public_subnet_range_a = var.public_subnet_range
+  db_name = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+  db_port = var.db_port
+  db_engine = var.db_engine
+  db_engine_version = var.db_engine_version
+  db_instance_class = var.db_instance_class
 }
 
 module "rds" {
@@ -18,6 +25,13 @@ module "rds" {
   private_subnet_range_a = var.private_subnet_range_a
   private_subnet_range_b = var.private_subnet_range_b
   public_subnet_range_a = var.public_subnet_range
+  db_name = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+  db_port = var.db_port
+  db_engine = var.db_engine
+  db_engine_version = var.db_engine_version
+  db_instance_class = var.db_instance_class
 }
 
 module "ec2" {
@@ -28,4 +42,11 @@ module "ec2" {
   private_subnet_range_a = var.private_subnet_range_a
   private_subnet_range_b = var.private_subnet_range_b
   public_subnet_range_a = var.public_subnet_range
+  db_name = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+  db_port = var.db_port
+  db_engine = var.db_engine
+  db_engine_version = var.db_engine_version
+  db_instance_class = var.db_instance_class
 }
