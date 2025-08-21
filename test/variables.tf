@@ -20,7 +20,7 @@ variable "environment" {
 
 variable "main_vpc_cidr" {
   type = string
-  default = "10.0.0.0/16"
+  default = "10.0.0.0/28"
   description = "The CIDR block for the main VPC"
 }
 
@@ -158,21 +158,6 @@ variable "subnet_type" {
   }
 }
 
-variable "aws_region_zones" {
-  type = list(object({
-    region = string
-    zones = list(object({
-      name = string
-    }))
-  }))
-}
-
-variable "aws_region_zones_count" {
-  type = number
-  default = 1
-  description = "The number of regions in the AWS region"
-}
-
 variable "aws_region_zones_count" {
   type = number
   default = 1
@@ -186,10 +171,4 @@ variable "aws_region_zones" {
       name = string
     }))
   }))
-}
-
-variable "aws_region_zones_count" {
-  type = number
-  default = 1
-  description = "The number of regions in the AWS region"
 }
