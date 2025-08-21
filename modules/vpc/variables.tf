@@ -19,3 +19,22 @@ variable "environment" {
     error_message = "Environment must be either test or test-canary"
   }
 }
+
+variable "subnet_type" {
+  type = string
+  default = "regional"
+  description = "The type of subnet"
+  validation {
+    condition = contains(["regional", "zonal"], var.subnet_type)
+    error_message = "Subnet type must be either regional or zonal"
+  }
+}
+
+variable "aws_region_zones" {
+  type = list(object({
+    region = string
+    zones = list(object({
+      name = string
+    }))
+  }))
+}

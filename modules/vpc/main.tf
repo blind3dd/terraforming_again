@@ -173,4 +173,10 @@ module "vpc" {
   private_subnet_range_a = var.private_subnet_range_a
   private_subnet_range_b = var.private_subnet_range_b
   public_subnet_range_a = var.public_subnet_range
+  service_name = var.service_name     
+}
+
+module "cidr" {
+  source = "./cidr"  
+
 }

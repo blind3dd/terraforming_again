@@ -30,13 +30,12 @@ aws ssm put-parameter \\
     export PATH=$PATH:$PATH:/usr/sbin
     export PATH=$PATH:$PATH:/sbin
 
-
-    [ ! -d /opt/go-mysql-api ] && mkdir -p /opt/go-mysql-api
+    [ ! -d /opt/go-mysql-api ] && mkdir -p /opt/go-mysql-api;
     
     find . -type d -exec chmod 755 {} \;
     find . -type f -exec chmod 644 {} \;
 
     DB_PASSWORD=$(aws ssm get-parameter --name ${DB_PASSWORD_PARAM} --region ${var.region} --with-decryption --output text --query Parameter.Value)
     # mysql -h ${DB_HOST} -u ${DB_USER} ${DB_NAME} -p$DB_PASSWORD
-    cd /home/ec2-user/go-api/ && sudo go build -buildvcs=false -o go-api
+    cd /app/go-mysql-api && sudo go build -buildvcs=false -o go-api
     MYSQL_USER=${DB_USER} MYSQL_PASSWORD=$DB_PASSWORD MYSQL_HOST=${DB_HOST} MYSQL_PORT=${DB_PORT} MYSQL_DATABASE=${DB_NAME} ./go-api

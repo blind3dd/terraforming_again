@@ -84,22 +84,22 @@ variable "key_bits_size" {
   description = "The size of the key pair"
 }
 
-variable "db_password_param" {
-  type = string
-  default = "/opt/go-mysql-api/${var.environment}/username"
-  description = "The parameter name of the db username"
-}
-variable "db_password_param" {
-  type = string
-  default = "/opt/go-mysql-api/${var.environment}/password"
-  description = "The parameter name of the db password"
-}
+# variable "db_password_param_user" {
+#   type = string
+#   default = "/opt/go-mysql-api/${var.environment}/username"
+#   description = "The parameter name of the db username"
+# }
+# variable "db_password_param_pass" {
+#   type = string
+#   default = "/opt/go-mysql-api/${var.environment}/password"
+#   description = "The parameter name of the db password"
+# }
 
-variable "db_host_param" {
-  type = string
-  default = "/opt/go-mysql-api/${var.environment}/host"
-  description = "The parameter name of the db host"
-}
+# variable "db_host_param" {
+#   type = string
+#   default = "/opt/go-mysql-api/${var.environment}/host"
+#   description = "The parameter name of the db host"
+# }
 
 variable "associate_public_ip_address" {
   type = bool
@@ -140,4 +140,56 @@ variable "ec2_instance_profile_name" {
   type = string
   default = "ec2-instance-profile"
   description = "The name of the instance profile"
+}
+
+variable "go_mysql_api_path" {
+  type = string
+  default = "/app/go-mysql-api"
+  description = "The path to the go mysql api"
+}
+
+variable "subnet_type" {
+  type = string
+  default = "regional"
+  description = "The type of subnet"
+  validation {
+    condition = contains(["regional", "zonal"], var.subnet_type)
+    error_message = "Subnet type must be either regional or zonal"
+  }
+}
+
+variable "aws_region_zones" {
+  type = list(object({
+    region = string
+    zones = list(object({
+      name = string
+    }))
+  }))
+}
+
+variable "aws_region_zones_count" {
+  type = number
+  default = 1
+  description = "The number of regions in the AWS region"
+}
+
+variable "aws_region_zones_count" {
+  type = number
+  default = 1
+  description = "The number of regions in the AWS region"
+}
+
+variable "aws_region_zones" {
+  type = list(object({
+    region = string
+    zones = list(object({
+      name = string
+    }))
+  }))
+}
+
+variable "aws_region_zones_count" {
+  type = number
+  default = 1
+  description = "The number of regions in the AWS region"
 }

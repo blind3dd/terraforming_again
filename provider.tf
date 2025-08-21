@@ -1,44 +1,77 @@
-provider "local" {
-}
-    
-
-  provider "subnets" {
-    required_providers {
-      cidr = {
-        source = "hashicorp/subnets"
-        version = ">= 1.0.0"
-      }
-    }
-}
-
 
 terraform {
-  required_providers {
-    subnets = {
-      source = "hashicorp/subnets"
-      version = ">= 2.0.0"
+    required_providers {
+
+           regional = { 
+            source = "regional/subnets"
+            
+                       # configuration_aliases = ["hashicorp/regional/subnets/cidr"]
+
+        }
+         zonal = {  
+            source = "zonal/subnets"
+            
+            #configuration_aliases = ["hashicorp/zonal/subnets/cidr"]
+    
+ 
+
+        }
+        local = {
+            source = "local"
+            version = ">= 1.0.0"
+        }
+ 
+        # cidr = {
+        #     source = "cidr"
+        #     version = ">= 1.0.0"
+        # }
+        null = {
+            source = "null"
+            version = ">= 1.0.0"
+        }
+        random = {
+            source = "random"
+            version = ">= 1.0.0"
+        }
+        tls = {
+            source = "tls"
+            version = ">= 1.0.0"
+        }
+        aws = {
+            source = "aws"
+            version = ">= 1.0.0"
+        }
     }
-    # cidr = {
-    #   source = "hashicorp/subnets/cidr"
-    #   version = ">= 1.0.0"
-    # }
-    # cidr = {
-    #   source = "hashicorp/cidr"
-    #   version = ">= 1.0.0"
-    # }
-    tls = {
-      source = "hashicorp/tls"
-    }
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 4.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = ">= 3.0"
-    }
-  }
-}
+
+
+ 
+        }
+# provider "local" {
+# }
+
+
+# provider "cidrsubnets" {
+# }
+
+# provider "cidr" {
+
+# }
+
+# provider "subnets" {
+# }
+
+# provider "tls" {
+# }
+
+
+# provider "aws" {
+      
+      
+#     }
+# provider "random" {
+      
+#     }
+  
 
 #   source = "local" {}
 #   source = "null" {}
@@ -46,8 +79,4 @@ terraform {
 #   source = "tls" {}
 #   source = "subnets" {}
  
-
- 
-    
- 
-
+   

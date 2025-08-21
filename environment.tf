@@ -1,3 +1,7 @@
+
+
+
+
 resource "aws_instance" "go_mysql_api" {
 	ami                         = var.instance_ami
 	instance_type               = var.instance_type
@@ -253,11 +257,11 @@ resource "aws_route_table" "nat" {
     CreatedBy = var.infra_builder
   }
 }
-locals {
-  private_subnets = data.cidr.subnets
+data "subnets" "subnets" { 
+  cidr = data.cidr.cidrsubnets
 }
-data "cidr" "private_subnets" {
-  name = "private_subnets"
+data "cidr" "cidrsubnets" { 
+  name = "cidrsubnets"
   base_cidr_block = var.main_vpc_cidr
   new_bits = 4
 }
@@ -420,26 +424,44 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  aws_region_zones = tolist(
-    [
+  aws_region_zones = tolist([
   {
     region = "us-west-2" // oregon
-    zones  = ["us-west-2a", "us-west-2b"]
+    zones  = ["us-west-2a", "us-west-2b", "us-west-2c"]
   },  
   {
     region = "us-east-1" // virginia
-    zones  = ["us-east-1a", "us-east-1b"]
-  },
-    ]
-  )
+    zones  = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  },],)
 }
-
+locals {
+  regional = {
+    name = "regional"
+    base_cidr_block = var.main_vpc_cidr
+    networks = [
+      for r in var.aws_region_zones[length(local.aws_region_zones) - 1].region : {
+        name     = element(r.region, count.index % length(r.region))
+        new_bits = 8
+      }
+    ]
+  }
+  zonal = {
+    name = "zonal"
+    base_cidr_block = var.main_vpc_cidr
+    networks = [
+      for zone in var.aws_region_zones[length(local.aws_region_zones) - 1] : {
+        name     = element(zone.zones[*].name, count.index % length(zone.zones[*].name).name)
+        new_bits = 8
+      }
+    ]
+  }
+}
 module "regional" {
-  source = "hashicorp/subnets/cidr"
-
+  source   = "../../modules/vpc"
+  name = "regional"
   base_cidr_block = var.main_vpc_cidr
   networks = [
-    for regional in local.aws_region_zones : {
+    for regional in var.aws_region_zones[var.aws_region_zones_count - 1] : {
       name     = regional.region
       new_bits = 8
     }
@@ -447,16 +469,17 @@ module "regional" {
 }
 
 module "zonal" {
-  source   = "hashicorp/subnets/cidr"
+  source   = "../../modules/vpc" 
+  name = "zonal"
   for_each = {
-    for net in module.regional.networks : net.name => net
+    for net in local.zonal.networks : net.name => net
   }
 
   base_cidr_block = each.value.cidr_block
   networks = [
-    for zone in local.aws_region_zones[each.key].zones : {
-      name     = regional.region
-      new_bits = 5
+    for zone in var.aws_region_zones[each.key].zones : {
+      name     = zone
+      new_bits = 8
     }
   ]
 }
@@ -467,7 +490,7 @@ output "zone_regions" {
       cidr = net.cidr_block
       zones = tomap({
         for subnet in module.zonal[net.name].networks : subnet.name => {
-          cidr = subnet.cidr_block
+          cidr = subnet
         }
       })
     }

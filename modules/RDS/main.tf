@@ -1,15 +1,19 @@
 # RDS Subnet Group
+module "cidr" {
+  source = "../../modules/vpc/cidr"  
 
+}
 module "rds" {
     source = "../../rds"
-    # environment = var.environment
-    # service_name = var.service_name
-    # infra_builder = var.infra_builder
-    # aws_region = var.aws_region
-    # main_vpc_cidr = var.main_vpc_cidr
-    # private_subnet_range_a = var.private_subnet_range_a
-    # private_subnet_range_b = var.private_subnet_range_b
-    # public_subnet_range_a = var.public_subnet_range
+  
+    environment = var.environment
+    service_name = var.service_name
+    infra_builder = var.infra_builder
+    aws_region = var.aws_region
+    main_vpc_cidr = var.main_vpc_cidr
+    private_subnet_range_a = var.private_subnet_range_a
+    private_subnet_range_b = var.private_subnet_range_b
+    public_subnet_range_a = var.public_subnet_range
 }
 
 resource "aws_db_subnet_group" "private_db_subnet" {
