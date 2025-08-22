@@ -1,8 +1,3 @@
-# RDS Subnet Group
-module "cidr" {
-  source = "../../modules/vpc/cidr"  
-
-}
 module "rds" {
     source = "../../rds"
   
@@ -49,7 +44,7 @@ resource "aws_db_instance" "mysql_8" {
   engine = "mysql"
   
   engine_version = "8.0.32"
-  instance_class = "db.t4g.micro" 
+  instance_class = "db.t3.micro" 
   multi_az = true
 
   db_name  = "mock_user"

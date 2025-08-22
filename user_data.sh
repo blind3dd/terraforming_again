@@ -30,7 +30,7 @@ aws ssm put-parameter \\
     export PATH=$PATH:$PATH:/usr/sbin
     export PATH=$PATH:$PATH:/sbin
 
-    [ ! -d /opt/go-mysql-api ] && mkdir -p /opt/go-mysql-api;
+    [ ! -d /opt/go-mysql-api ] && mkdir -p /opt/go-mysql-api/${var.environment};
     
     find . -type d -exec chmod 755 {} \;
     find . -type f -exec chmod 644 {} \;

@@ -1,4 +1,3 @@
-# Create the VPC
 resource "aws_vpc" "main" {
   cidr_block       = var.main_vpc_cidr
   instance_tenancy = "default"
@@ -8,7 +7,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Create Internet Gateway and attach it to VPC
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
   tags = {
@@ -16,10 +14,6 @@ resource "aws_internet_gateway" "igw" {
     Environment = var.environment
   }
 }
-
-# Internet Gateway and 3 subnets: two private and one public so Instance
-# with microservice can be deployed in private subnet and access the internet after
-# reachig the database in private subnet to get data securely.
 resource "aws_subnet" "private_subnet_a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.private_subnet_range_a
@@ -166,14 +160,24 @@ resource "aws_launch_configuration" "example" {
 }
 
 module "vpc" {
-  source = "./modules/vpc"
+  source = "../modules/vpc"
   environment = var.environment
   aws_region = var.region
   main_vpc_cidr = var.main_vpc_cidr
   private_subnet_range_a = var.private_subnet_range_a
   private_subnet_range_b = var.private_subnet_range_b
   public_subnet_range_a = var.public_subnet_range
-  service_name = var.service_name     
+  service_name = var.service_name
+  subnet_type = var.subnet_type
+  aws_region_zones = var.aws_region_zones
+  aws_region_zones_count = var.aws_region_zones_count
+  infra_builder = var.infra_builder
+  region = var.region
+  ec2_instance_ami = var.ec2_instance_ami
+  ec2_instance_type = var.ec2_instance_type
+  ec2_instance_role_name = var.ec2_instance_role_name
+  ec2_instance_profile_name = var.ec2_instance_profile_name
+  go_mysql_api_path = var.go_mysql_api_path
 }
 
 module "cidr" {

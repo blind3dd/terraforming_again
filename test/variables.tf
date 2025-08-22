@@ -20,7 +20,7 @@ variable "environment" {
 
 variable "main_vpc_cidr" {
   type = string
-  default = "10.0.0.0/28"
+  default = "10.0.0.0/16"
   description = "The CIDR block for the main VPC"
 }
 
@@ -39,7 +39,7 @@ variable "private_subnet_range_b" {
 variable "public_subnet_range" {
   type = string
   default = "10.0.3.0/24"
-  description = "The CIDR block for the public subnet A"
+  description = "The CIDR block for the public subnet"
 }
 
 variable "service_name" {
@@ -84,22 +84,22 @@ variable "key_bits_size" {
   description = "The size of the key pair"
 }
 
-# variable "db_password_param_user" {
-#   type = string
-#   default = "/opt/go-mysql-api/${var.environment}/username"
-#   description = "The parameter name of the db username"
-# }
-# variable "db_password_param_pass" {
-#   type = string
-#   default = "/opt/go-mysql-api/${var.environment}/password"
-#   description = "The parameter name of the db password"
-# }
+variable "db_password_param_user" {
+  type = string
+  default = "/opt/go-mysql-api/${var.environment}/username"
+  description = "The parameter name of the db username"
+}
+variable "db_password_param_pass" {
+  type = string
+  default = "/opt/go-mysql-api/${var.environment}/password"
+  description = "The parameter name of the db password"
+}
 
-# variable "db_host_param" {
-#   type = string
-#   default = "/opt/go-mysql-api/${var.environment}/host"
-#   description = "The parameter name of the db host"
-# }
+variable "db_host_param" {
+  type = string
+  default = "/opt/go-mysql-api/${var.environment}/host"
+  description = "The parameter name of the db host"
+}
 
 variable "associate_public_ip_address" {
   type = bool
@@ -158,12 +158,6 @@ variable "subnet_type" {
   }
 }
 
-variable "aws_region_zones_count" {
-  type = number
-  default = 1
-  description = "The number of regions in the AWS region"
-}
-
 variable "aws_region_zones" {
   type = list(object({
     region = string
@@ -171,4 +165,10 @@ variable "aws_region_zones" {
       name = string
     }))
   }))
+}
+
+variable "aws_region_zones_count" {
+  type = number
+  default = 1
+  description = "The number of regions in the AWS region"
 }

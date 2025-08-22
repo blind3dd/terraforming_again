@@ -377,15 +377,26 @@ resource "aws_launch_configuration" "instance_lc" {
   }
 }
 
-
-# module "vpc" {
-#   source = "../../modules/vpc"
+#   module "vpc" {
+#   source = ""
 #   environment = var.environment
 #   aws_region = var.region
 #   main_vpc_cidr = var.main_vpc_cidr
 #   private_subnet_range_a = var.private_subnet_range_a
 #   private_subnet_range_b = var.private_subnet_range_b
 #   public_subnet_range_a = var.public_subnet_range
+#   service_name = var.service_name
+#   subnet_type = var.subnet_type
+#   aws_region_zones = var.aws_region_zones
+#   aws_region_zones_count = var.aws_region_zones_count
+#   infra_builder = var.infra_builder
+#   region = var.region
+#   ec2_instance_ami = var.ec2_instance_ami
+#   ec2_instance_type = var.ec2_instance_type
+#   ec2_instance_role_name = var.ec2_instance_role_name
+#   ec2_instance_profile_name = var.ec2_instance_profile_name
+#   go_mysql_api_path = var.go_mysql_api_path
+
 # }
 
 # module "rds" {
@@ -457,7 +468,7 @@ locals {
   }
 }
 module "regional" {
-  source   = "../../modules/vpc"
+  source   = "./modules/vpc/cidr"
   name = "regional"
   base_cidr_block = var.main_vpc_cidr
   networks = [
@@ -469,15 +480,21 @@ module "regional" {
 }
 
 module "zonal" {
-  source   = "../../modules/vpc" 
+  required_providers = {
+    cidr = {
+      source = "./modules/vpc/cidr"
+      version = ">= 1.0.0"
+    }
+  }
+  source   = "./modules/vpc" 
   name = "zonal"
   for_each = {
-    for net in local.zonal.networks : net.name => net
+    for net in module.regional.networks : net.name => net
   }
 
   base_cidr_block = each.value.cidr_block
   networks = [
-    for zone in var.aws_region_zones[each.key].zones : {
+    for zone in var.aws_region_zones[0].zones : {
       name     = zone
       new_bits = 8
     }
