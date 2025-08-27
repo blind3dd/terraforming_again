@@ -1,15 +1,17 @@
 #!/bin/bash
-
 # Enhanced user data script for Go MySQL API EC2 instance
 # This script sets up the environment, installs dependencies, and starts the application
+# Amazon Linux 2 AMI
+# Go 1.21
+# AWS CLI
+# CloudWatch Agent
 
-set -e  # Exit on any error
+set -eo pipefail
 
-    sudo su root
-    yum update -y && yum upgrade -y
-    yum install golang -y
-    yum install mysql-client-core-8.0 -y
-    yum install awscli -y
+sudo su root
+yum update -y && yum upgrade -y
+yum install golang -y
+yum install awscli -y
 
 log "Installing required packages"
 yum install -y golang mysql-client-core-8.0 awscli amazon-cloudwatch-agent
@@ -114,7 +116,7 @@ log "Database connection successful"
 
 # Build and run the application
 log "Building Go application"
-cd /app/go-mysql-api
+cd /opt/go-mysql-api
 go build -buildvcs=false -o go-api
 
 if [ ! -f go-api ]; then
