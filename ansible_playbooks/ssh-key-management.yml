@@ -1,0 +1,105 @@
+---
+- name: SSH Key Management and User Access Setup
+  hosts: go_mysql_api_instances
+  become: yes
+  vars_files:
+    - database-secrets.enc.yaml
+
+  tasks:
+    - name: Create SSH keys directory
+      file:
+        path: /home/ec2-user/.ssh
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0700'
+
+    - name: Ensure SSH directory permissions
+      file:
+        path: /home/ec2-user/.ssh
+        owner: ec2-user
+        group: ec2-user
+        mode: '0700'
+
+    - name: Get SSH private key from SSM
+      aws_ssm_parameter_info:
+        name: "/{{ environment }}/{{ service_name }}/ssh/private_key"
+        with_decryption: yes
+      register: ssh_private_key_param
+      delegate_to: localhost
+
+    - name: Get SSH public key from SSM
+      aws_ssm_parameter_info:
+        name: "/{{ environment }}/{{ service_name }}/ssh/public_key"
+      register: ssh_public_key_param
+      delegate_to: localhost
+
+    - name: Create SSH private key file
+      copy:
+        dest: /home/ec2-user/.ssh/id_rsa
+        content: "{{ ssh_private_key_param.parameters[0].Value }}"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0600'
+
+    - name: Create SSH public key file
+      copy:
+        dest: /home/ec2-user/.ssh/id_rsa.pub
+        content: "{{ ssh_public_key_param.parameters[0].Value }}"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0644'
+
+    - name: Update authorized_keys with public key
+      authorized_key:
+        user: ec2-user
+        state: present
+        key: "{{ ssh_public_key_param.parameters[0].Value }}"
+
+    - name: Configure SSH client
+      template:
+        src: ssh_config.j2
+        dest: /home/ec2-user/.ssh/config
+        owner: ec2-user
+        group: ec2-user
+        mode: '0600'
+
+    - name: Set SSH key permissions
+      file:
+        path: /home/ec2-user/.ssh/id_rsa
+        owner: ec2-user
+        group: ec2-user
+        mode: '0600'
+
+    - name: Test SSH key functionality
+      command: ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 localhost echo "SSH key test successful"
+      become_user: ec2-user
+      register: ssh_test
+      failed_when: false
+      changed_when: false
+
+    - name: Display SSH test result
+      debug:
+        msg: "SSH key test: {{ 'Success' if ssh_test.rc == 0 else 'Failed' }}"
+
+    - name: Create SSH access script
+      template:
+        src: ssh_access.j2
+        dest: /home/ec2-user/ssh_access.sh
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Display SSH access information
+      debug:
+        msg: |
+          🔑 SSH Access Information:
+          
+          📁 SSH Key Location: /home/ec2-user/.ssh/
+          🔐 Private Key: /home/ec2-user/.ssh/id_rsa
+          🔓 Public Key: /home/ec2-user/.ssh/id_rsa.pub
+          
+          🌐 Connection Command:
+          ssh -i /home/ec2-user/.ssh/id_rsa ec2-user@{{ ansible_host }}
+          
+          📋 Quick Access Script: /home/ec2-user/ssh_access.sh
