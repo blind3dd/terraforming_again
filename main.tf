@@ -22,56 +22,14 @@ resource "aws_subnet" "private_subnets" {
   }
 }
 
-resource "aws_instance" "go_mysql_api" {
-	ami                         = var.instance_ami
-	instance_type               = var.instance_type
-	subnet_id                   = aws_subnet.public_subnet[0].id
-	associate_public_ip_address = var.associate_public_ip_address
-	key_name                    = aws_key_pair.ec2_key_pair.key_name
-	iam_instance_profile        = aws_iam_instance_profile.instance_profile.name
-  
-	vpc_security_group_ids = [
-	  aws_security_group.main_vpc_sg.id
-	]
-	root_block_device {
-	  delete_on_termination = true
-	  volume_size = 10
-	  volume_type = "gp3"
-	}
-
-	tags = {
-	  Name = "${var.environment}-${var.service_name}-instance"
-	  Instance_OS   = var.instance_os
-	  Environment = var.environment
-	  Service = var.service_name
-	  CreatedBy = var.infra_builder
-	}
-  
-	depends_on = [aws_security_group.main_vpc_sg, aws_key_pair.ec2_key_pair]
-  
-	user_data = base64encode(templatefile("user_data.sh", {
-	  DB_USER = aws_db_instance.aws_rds_mysql_8.username
-	  DB_PASSWORD_PARAM = aws_ssm_parameter.db_password.name
-	  DB_HOST = aws_db_instance.aws_rds_mysql_8.address
-	  DB_PORT = aws_security_group_rule.allow_mysql_in.from_port
-	  DB_NAME = aws_db_instance.aws_rds_mysql_8.db_name
-	  var = {
-	    region = var.region
-	    environment = var.environment
-	    service_name = var.service_name
-	  }
-	  }))
-  }
+# EC2 instance is now defined in cloudinit.tf with CloudInit configuration
   
   resource "tls_private_key" "private_rsa_pair" {
 	  algorithm = var.key_algorithm
 	  rsa_bits  = var.key_bits_size
   }
 
-  resource "aws_key_pair" "ec2_key_pair" {
-	  key_name   = var.aws_key_pair_name
-	  public_key = tls_private_key.private_rsa_pair.public_key_openssh
-  }
+# AWS Key Pair is now defined in cloudinit.tf
 
   resource "local_sensitive_file" "tf_key" {
 	  content              = tls_private_key.private_rsa_pair.private_key_pem

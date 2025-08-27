@@ -1,9 +1,7 @@
 # Self-Managed Kubernetes Control Plane with Calico CNI
 # This creates a highly available control plane in public subnets with Calico networking
 
-# Data sources for current AWS account and region
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
+# Data sources are defined in ecr.tf
 
 # IAM Role for Kubernetes Control Plane
 resource "aws_iam_role" "kubernetes_control_plane" {

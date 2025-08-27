@@ -308,8 +308,4 @@ output "eks_node_group_resources" {
   value       = aws_eks_node_group.main.resources
 }
 
-# Data source for current AWS account
-data "aws_caller_identity" "current" {}
-
-# Data source for AWS region
-data "aws_region" "current" {}
+# Data sources are defined in ecr.tf
