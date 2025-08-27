@@ -13,7 +13,7 @@ variable "environment" {
   default = "test"
   description = "The environment to deploy to"
   validation {
-    condition = contains(["dev", "test"], var.environment)
+    condition = contains(["test", "test-canary"], var.environment)
     error_message = "Environment must be either development or production"
   }
 }
@@ -39,7 +39,7 @@ variable "private_subnet_range_b" {
 variable "public_subnet_range" {
   type = string
   default = "10.0.3.0/24"
-  description = "The CIDR block for the public subnet"
+  description = "The CIDR block for the public subnet A"
 }
 
 variable "service_name" {
@@ -50,7 +50,7 @@ variable "service_name" {
 
 variable "instance_os" {
   type = string
-  default = "Ubuntu 22.04"
+  default = "Amazon Linux 1.5"
   description = "The OS of the instance"
 }
 
@@ -84,7 +84,11 @@ variable "key_bits_size" {
   description = "The size of the key pair"
 }
 
-
+variable "db_password_param" {
+  type = string
+  default = "/opt/go-mysql-api/db/password"
+  description = "The parameter name of the db password"
+}
 
 variable "associate_public_ip_address" {
   type = bool
@@ -96,11 +100,6 @@ variable "db_name" {
   type = string
   default = "mock_user"
   description = "The name of the database"
-}
-
-variable "db_username" {
-  type = string
-  default = "mock_pass"
 }
 
 variable "rds_engine_version" {
@@ -127,33 +126,37 @@ variable "ec2_instance_profile_name" {
   description = "The name of the instance profile"
 }
 
-variable "go_mysql_api_path" {
+variable "db_password" {
   type = string
-  default = "/app/go-mysql-api"
-  description = "The path to the go mysql api"
+  default = "password"
+  description = "The password of the database"
 }
 
-variable "subnet_type" {
+variable "db_username" {
   type = string
-  default = "regional"
-  description = "The type of subnet"
-  validation {
-    condition = contains(["regional", "zonal"], var.subnet_type)
-    error_message = "Subnet type must be either regional or zonal"
-  }
+  default = "username"
+  description = "The username of the database"
 }
 
-variable "aws_region_zones" {
-  type = list(object({
-    region = string
-    zones = list(object({
-      name = string
-    }))
-  }))
-}
-
-variable "aws_region_zones_count" {
+variable "db_port" {
   type = number
-  default = 1
-  description = "The number of regions in the AWS region"
+  default = 3306
+  description = "The port of the database"
+}
+
+variable "db_engine" {
+  type = string
+  default = "mysql"
+  description = "The engine of the database"
+}
+
+variable "db_engine_version" {
+  type = string
+  default = "8.0.32" // # 9?
+  description = "The version of the database engine"
+}
+
+variable "db_instance_class" {
+  type = string
+  default = "db.t2.micro"
 }

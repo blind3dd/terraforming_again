@@ -257,14 +257,8 @@ resource "aws_route_table" "nat" {
     CreatedBy = var.infra_builder
   }
 }
-data "subnets" "subnets" { 
-  cidr = data.cidr.cidrsubnets
-}
-data "cidr" "cidrsubnets" { 
-  name = "cidrsubnets"
-  base_cidr_block = var.main_vpc_cidr
-  new_bits = 4
-}
+# Note: Removed non-existent data sources "subnets" and "cidr"
+# These were referencing providers that don't exist
 
 resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.main.id

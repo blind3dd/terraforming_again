@@ -1,11 +1,9 @@
     #!/bin/bash
-aws ssm put-parameter \\
-    --name "dev/goapi/db/password" \\
-    --value "<PASSWORD-HERE>" \\
-    --type String \\
-    --tags [{"Key":"Region","Value":"us-east-1"},{"Key":"Environment", "Value":"Dev"},{"Key":"Service", "Value":"go-api-mysql"}]'
-
-# write is as tf code 
+# aws ssm put-parameter \\
+#     --name "dev/goapi/db/password" \\
+#     --value "<PASSWORD-HERE>" \\
+#     --type String \\
+#     --tags [{"Key":"Region","Value":"us-east-1"},{"Key":"Environment", "Value":"Dev"},{"Key":"Service", "Value":"go-api-mysql"}]'
 
 
 # null resource FTW (SSM)

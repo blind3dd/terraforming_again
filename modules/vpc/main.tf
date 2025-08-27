@@ -159,28 +159,7 @@ resource "aws_launch_configuration" "example" {
   }
 }
 
-module "vpc" {
-  source = "../modules/vpc"
-  environment = var.environment
-  aws_region = var.region
-  main_vpc_cidr = var.main_vpc_cidr
-  private_subnet_range_a = var.private_subnet_range_a
-  private_subnet_range_b = var.private_subnet_range_b
-  public_subnet_range_a = var.public_subnet_range
-  service_name = var.service_name
-  subnet_type = var.subnet_type
-  aws_region_zones = var.aws_region_zones
-  aws_region_zones_count = var.aws_region_zones_count
-  infra_builder = var.infra_builder
-  region = var.region
-  ec2_instance_ami = var.ec2_instance_ami
-  ec2_instance_type = var.ec2_instance_type
-  ec2_instance_role_name = var.ec2_instance_role_name
-  ec2_instance_profile_name = var.ec2_instance_profile_name
-  go_mysql_api_path = var.go_mysql_api_path
-}
+# Note: The module "vpc" call was removed as it was creating a circular dependency
+# The VPC resources are already defined in this file
 
-module "cidr" {
-  source = "./cidr"  
-
-}
+# Note: The module "cidr" call was removed as it was referencing a non-existent module
