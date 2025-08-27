@@ -1,0 +1,30 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+  {{- with .Values.istio.destinationRule.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  host: {{ include "go-mysql-api.fullname" . }}
+  {{- if .Values.istio.destinationRule.trafficPolicy }}
+  trafficPolicy:
+    {{- toYaml .Values.istio.destinationRule.trafficPolicy | nindent 4 }}
+  {{- end }}
+  subsets:
+    {{- if .Values.istio.destinationRule.subsets }}
+    {{- toYaml .Values.istio.destinationRule.subsets | nindent 4 }}
+    {{- else }}
+    - name: v1
+      labels:
+        version: v1
+      {{- if .Values.istio.destinationRule.subsetTrafficPolicy }}
+      trafficPolicy:
+        {{- toYaml .Values.istio.destinationRule.subsetTrafficPolicy | nindent 8 }}
+      {{- end }}
+    {{- end }}
+{{- end }}

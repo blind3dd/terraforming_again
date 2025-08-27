@@ -1,0 +1,472 @@
+# Default values for go-mysql-api
+# This is a YAML-formatted file.
+
+# Application configuration
+app:
+  name: go-mysql-api
+  version: "1.0.0"
+  port: 8088
+  healthCheckPath: "/health"
+
+# Image configuration
+image:
+  repository: ""  # Will be set from ECR URL
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  # Override the image registry and repository
+  # registry: ""
+  # repository: ""
+
+# Image pull secrets for ECR
+imagePullSecrets: []
+# - name: ecr-secret
+#   create: true
+#   registry: "123456789012.dkr.ecr.us-east-1.amazonaws.com"
+#   password: "your-ecr-token"
+#   email: "not-used@example.com"
+#   auth: "QVdTOiRwYXNzd29yZA=="
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  # - key: eks.amazonaws.com/role-arn
+  #   value: arn:aws:iam::123456789012:role/eks-service-role
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1001
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  supplementalGroups: [1001]
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  seccompProfile:
+    type: RuntimeDefault
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8088
+  targetPort: 8088
+  annotations: {}
+  # - key: service.beta.kubernetes.io/aws-load-balancer-type
+  #   value: nlb
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # - key: kubernetes.io/ingress.class
+  #   value: nginx
+  # - key: cert-manager.io/cluster-issuer
+  #   value: letsencrypt-prod
+  hosts:
+    - host: go-mysql-api.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # - secretName: go-mysql-api-tls
+  #   hosts:
+  #     - go-mysql-api.local
+
+# Resources configuration
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8088
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8088
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+# Vault configuration for secure secret management
+vault:
+  enabled: false
+  image:
+    repository: "hashicorp/vault"
+    tag: "1.15.0"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  auth:
+    method: "kubernetes"
+    role: "go-mysql-api"
+  secrets:
+    # Database secrets
+    db_password: "secret/data/go-mysql-api/database"
+    # Application secrets
+    api_key: "secret/data/go-mysql-api/app"
+    # AWS secrets
+    aws_credentials: "secret/data/go-mysql-api/aws"
+
+# Environment variables (fallback when Vault is disabled)
+env:
+  # Database configuration
+  DB_HOST: ""
+  DB_PORT: "3306"
+  DB_NAME: "mock_user"
+  DB_USER: "db_user"
+  DB_PASSWORD: ""
+  
+  # Application configuration
+  APP_PORT: "8088"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  
+  # AWS configuration
+  AWS_REGION: ""
+  AWS_ENDPOINT: ""
+
+# Environment variables from secrets
+envFromSecret: []
+# - name: db-secrets
+#   keys:
+#     - DB_PASSWORD
+
+# Environment variables from config maps
+envFromConfigMap: []
+# - name: app-config
+
+# ConfigMap configuration
+configMap:
+  enabled: false
+  name: ""
+  data: {}
+  # app.conf: |
+  #   [app]
+  #   port = 8088
+  #   log_level = info
+
+# Secret configuration
+secret:
+  enabled: false
+  name: ""
+  data: {}
+  # db_password: base64_encoded_password
+
+# Volume mounts
+volumeMounts: []
+# - name: config-volume
+#   mountPath: /etc/app/config
+#   subPath: app.conf
+
+# Volumes
+volumes: []
+# - name: config-volume
+#   configMap:
+#     name: app-config
+
+# Node selector
+nodeSelector: {}
+# - key: node-role.kubernetes.io/worker
+#   value: "true"
+
+# Tolerations
+tolerations: []
+# - key: "key"
+#   operator: "Equal"
+#   value: "value"
+#   effect: "NoSchedule"
+
+# Affinity
+affinity: {}
+# podAntiAffinity:
+#   preferredDuringSchedulingIgnoredDuringExecution:
+#   - weight: 100
+#     podAffinityTerm:
+#       labelSelector:
+#         matchExpressions:
+#         - key: app
+#           operator: In
+#           values:
+#           - go-mysql-api
+#       topologyKey: kubernetes.io/hostname
+
+# Replica configuration
+replicaCount: 1
+
+# Deployment strategy
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 25%
+
+# Horizontal Pod Autoscaler
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+pdb:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Network policies
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8088
+
+# ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  port: 8088
+
+# Pod annotations
+podAnnotations: {}
+# - key: prometheus.io/scrape
+#   value: "true"
+# - key: prometheus.io/port
+#   value: "8088"
+
+# Pod labels
+podLabels: {}
+# - key: app.kubernetes.io/component
+#   value: api
+
+# Container command and args
+command: []
+# - /opt/go-mysql-api/main
+
+args: []
+# - --config
+# - /etc/app/config/app.conf
+
+# Init containers
+initContainers: []
+# - name: init-db
+#   image: mysql:8.0
+#   command: ['sh', '-c', 'until mysql -h db-host -u user -ppass -e "SELECT 1"; do echo waiting for database; sleep 2; done;']
+
+# Sidecar containers
+sidecarContainers: []
+# - name: sidecar
+#   image: nginx:alpine
+#   ports:
+#     - containerPort: 80
+
+# Lifecycle hooks
+lifecycle: {}
+# preStop:
+#   exec:
+#     command:
+#       - /bin/sh
+#       - -c
+#       - sleep 10
+
+# Termination grace period
+terminationGracePeriodSeconds: 30
+
+# Host aliases
+hostAliases: []
+# - ip: "127.0.0.1"
+#   hostnames:
+#     - "foo.local"
+#     - "bar.local"
+
+# Host network
+hostNetwork: false
+
+# Host PID
+hostPID: false
+
+# Dns policy
+dnsPolicy: ClusterFirst
+
+# Restart policy
+restartPolicy: Always
+
+# Scheduler name
+schedulerName: ""
+
+# Priority class name
+priorityClassName: ""
+
+# Runtime class name
+runtimeClassName: ""
+
+# Override the default deployment name
+nameOverride: ""
+
+# Override the default chart name
+fullnameOverride: ""
+
+# Common labels
+commonLabels: {}
+# - key: app.kubernetes.io/managed-by
+#   value: helm
+
+# Istio configuration for service mesh
+istio:
+  enabled: false
+  gateway:
+    name: "istio-ingressgateway"
+    namespace: "istio-system"
+    selector: {}
+    # - key: istio
+    #   value: ingressgateway
+    servers: []
+    # - port:
+    #     number: 80
+    #     name: http
+    #     protocol: HTTP
+    #   hosts:
+    #     - "api.example.com"
+    tls: {}
+    # - httpsRedirect: true
+    #   port:
+    #     number: 443
+    #     name: https
+    #     protocol: HTTPS
+    #   tls:
+    #     mode: SIMPLE
+    #     credentialName: api-tls-cert
+    annotations: {}
+  virtualService:
+    hosts: []
+    # - "api.example.com"
+    gateways: []
+    # - "istio-ingressgateway.istio-system"
+    http: []
+    # - match:
+    #     - uri:
+    #         prefix: /api
+    #   route:
+    #     - destination:
+    #         host: go-mysql-api
+    #         port:
+    #           number: 8088
+    #         subset: v1
+    #       weight: 100
+    corsPolicy: {}
+    # allowOrigins:
+    #   - exact: "https://example.com"
+    # allowMethods:
+    #   - GET
+    #   - POST
+    #   - PUT
+    #   - DELETE
+    # allowHeaders:
+    #   - "X-Custom-Header"
+    fault: {}
+    # delay:
+    #   percentage:
+    #     value: 10
+    #   fixedDelay: 5s
+    # abort:
+    #   percentage:
+    #     value: 10
+    #   httpStatus: 500
+    retries: {}
+    # attempts: 3
+    # perTryTimeout: 2s
+    # retryOn: connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes
+    timeout: "30s"
+    annotations: {}
+  destinationRule:
+    trafficPolicy: {}
+    # connectionPool:
+    #   tcp:
+    #     maxConnections: 100
+    #   http:
+    #     http1MaxPendingRequests: 1024
+    #     maxRequestsPerConnection: 10
+    # outlierDetection:
+    #   consecutive5xxErrors: 5
+    #   interval: 30s
+    #   baseEjectionTime: 30s
+    #   maxEjectionPercent: 10
+    subsets: []
+    # - name: v1
+    #   labels:
+    #     version: v1
+    #   trafficPolicy:
+    #     loadBalancer:
+    #       simple: ROUND_ROBIN
+    subsetTrafficPolicy: {}
+    annotations: {}
+  authorizationPolicy:
+    enabled: false
+    action: "ALLOW"
+    # action: "DENY"
+    rules: []
+    # - from:
+    #     - source:
+    #         principals: ["cluster.local/ns/default/sa/go-mysql-api"]
+    #   to:
+    #     - operation:
+    #         methods: ["GET", "POST"]
+    #         paths: ["/health", "/api/*"]
+    annotations: {}
+  peerAuthentication:
+    enabled: false
+    mtls:
+      mode: "PERMISSIVE"
+      # mode: "STRICT"
+      # mode: "DISABLE"
+    portLevelMtls: {}
+    # 8088:
+    #   mode: STRICT
+    annotations: {}
+
+# Common annotations
+commonAnnotations: {}
+# - key: meta.helm.sh/release-name
+#   value: {{ .Release.Name }}
