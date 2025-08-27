@@ -1,0 +1,439 @@
+#cloud-config
+# Kubernetes Control Plane CloudInit Configuration
+# This configures the base system for Kubernetes control plane nodes
+
+users:
+  - name: ec2-user
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+# Package installation
+packages:
+  - docker
+  - containerd
+  - curl
+  - wget
+  - git
+  - jq
+  - yum-utils
+  - device-mapper-persistent-data
+  - lvm2
+  - amazon-cloudwatch-agent
+  - cowsay
+  - fortune-mod
+
+# Package repositories
+package_update: true
+package_upgrade: true
+
+# Write files
+write_files:
+  - path: /etc/hosts
+    content: |
+      127.0.0.1 localhost
+      ::1 localhost ip6-localhost ip6-loopback
+      fe00::0 ip6-localnet
+      ff00::0 ip6-mcastprefix
+      ff02::1 ip6-allnodes
+      ff02::2 ip6-allrouters
+
+  - path: /etc/sysctl.d/99-kubernetes-cri.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+      vm.swappiness                       = 0
+
+  - path: /etc/modules-load.d/containerd.conf
+    content: |
+      overlay
+      br_netfilter
+
+  - path: /etc/containerd/config.toml
+    content: |
+      version = 2
+      root = "/var/lib/containerd"
+      state = "/run/containerd"
+      
+      [grpc]
+        address = "/run/containerd/containerd.sock"
+        uid = 0
+        gid = 0
+      
+      [plugins]
+        [plugins."io.containerd.grpc.v1.cri"]
+          sandbox_image = "registry.k8s.io/pause:3.9"
+          stream_server_address = "127.0.0.1"
+          stream_server_port = "0"
+          enable_selinux = false
+          enable_tls_streaming = false
+          max_container_log_line_size = 16384
+          
+          [plugins."io.containerd.grpc.v1.cri".containerd]
+            snapshotter = "overlayfs"
+            default_runtime_name = "runc"
+            no_pivot = false
+            
+            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+                runtime_type = "io.containerd.runc.v2"
+                
+                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+                  SystemdCgroup = true
+
+  - path: /etc/docker/daemon.json
+    content: |
+      {
+        "exec-opts": ["native.cgroupdriver=systemd"],
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "100m"
+        },
+        "storage-driver": "overlay2",
+        "storage-opts": [
+          "overlay2.override_kernel_check=true"
+        ]
+      }
+
+  - path: /etc/systemd/system/docker.service.d/override.conf
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/dockerd
+
+  - path: /etc/kubernetes/kubeadm-config.yaml
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: InitConfiguration
+      nodeRegistration:
+        criSocket: "unix:///run/containerd/containerd.sock"
+        kubeletExtraArgs:
+          cgroup-driver: "systemd"
+          container-runtime-endpoint: "unix:///run/containerd/containerd.sock"
+          node-ip: "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+          cloud-provider: "aws"
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: ClusterConfiguration
+      kubernetesVersion: "${kubernetes_version}"
+      clusterName: "${cluster_name}"
+      controlPlaneEndpoint: "${kubernetes_api_endpoint}"
+      networking:
+        podSubnet: "${pod_cidr}"
+        serviceSubnet: "${service_cidr}"
+        dnsDomain: "cluster.local"
+      apiServer:
+        certSANs:
+          - "${kubernetes_api_endpoint}"
+          - "kubernetes.default.svc"
+          - "kubernetes.default.svc.cluster.local"
+          - "127.0.0.1"
+          - "localhost"
+          - "$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
+          - "$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
+        extraArgs:
+          cloud-provider: "aws"
+          cloud-config: "/etc/kubernetes/cloud-config"
+          # Proxy certs for CRDs
+          proxy-client-cert-file: "/etc/kubernetes/pki/front-proxy-client.crt"
+          proxy-client-key-file: "/etc/kubernetes/pki/front-proxy-client.key"
+          requestheader-client-ca-file: "/etc/kubernetes/pki/front-proxy-ca.crt"
+          requestheader-allowed-names: "front-proxy-client"
+          requestheader-extra-headers-prefix: "X-Remote-Extra-"
+          requestheader-group-headers: "X-Remote-Group"
+          requestheader-username-headers: "X-Remote-User"
+      controllerManager:
+        extraArgs:
+          cloud-provider: "aws"
+          cloud-config: "/etc/kubernetes/cloud-config"
+          allocate-node-cidrs: "false"
+          # Proxy certs for CRDs
+          use-service-account-credentials: "true"
+          service-account-private-key-file: "/etc/kubernetes/pki/sa.key"
+          root-ca-file: "/etc/kubernetes/pki/ca.crt"
+      scheduler:
+        extraArgs: {}
+      etcd:
+        local:
+          dataDir: "/var/lib/etcd"
+          extraArgs:
+            listen-client-urls: "https://127.0.0.1:2379,https://$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4):2379"
+            advertise-client-urls: "https://$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4):2379"
+            listen-peer-urls: "https://$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4):2380"
+            initial-advertise-peer-urls: "https://$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4):2380"
+            initial-cluster: "k8s-control-plane-1=https://$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4):2380"
+            initial-cluster-state: "new"
+            initial-cluster-token: "etcd-cluster"
+            client-cert-auth: "true"
+            peer-cert-auth: "true"
+            cert-file: "/etc/kubernetes/pki/etcd/server.crt"
+            key-file: "/etc/kubernetes/pki/etcd/server.key"
+            peer-cert-file: "/etc/kubernetes/pki/etcd/peer.crt"
+            peer-key-file: "/etc/kubernetes/pki/etcd/peer.key"
+            trusted-ca-file: "/etc/kubernetes/pki/etcd/ca.crt"
+            peer-trusted-ca-file: "/etc/kubernetes/pki/etcd/ca.crt"
+
+  - path: /etc/kubernetes/cloud-config
+    content: |
+      [Global]
+      Region = "${aws_region}"
+      VPCID = "${vpc_id}"
+      RouteTableID = "${route_table_id}"
+      KubernetesClusterID = "${cluster_name}"
+      KubernetesClusterTag = "kubernetes.io/cluster/${cluster_name}"
+      SubnetID = "$(curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/$(curl -s http://169.254.169.254/latest/meta-data/mac)/subnet-id)"
+      InstanceID = "$(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
+
+  - path: /etc/kubernetes/calico-config.yaml
+    content: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: calico-config
+        namespace: kube-system
+      data:
+        # Typha is disabled.
+        typha_service_name: "none"
+        
+        # The CNI network configuration to install on each node.
+        cni_network_config: |-
+          {
+            "name": "k8s-pod-network",
+            "cniVersion": "0.3.1",
+            "plugins": [
+              {
+                "type": "calico",
+                "log_level": "info",
+                "log_file_path": "/var/log/calico/cni/cni.log",
+                "datastore_type": "kubernetes",
+                "nodename": "__KUBERNETES_NODE_NAME__",
+                "mtu": __CNI_MTU__,
+                "ipam": {
+                    "type": "calico-ipam"
+                },
+                "policy": {
+                    "type": "k8s"
+                },
+                "kubernetes": {
+                    "kubeconfig": "__KUBECONFIG_FILEPATH__"
+                }
+              },
+              {
+                "type": "portmap",
+                "snat": true,
+                "capabilities": {"portMappings": true}
+              },
+              {
+                "type": "bandwidth",
+                "capabilities": {"bandwidth": true}
+              }
+            ]
+          }
+        
+        # The CNI network configuration to install on each node for IPv6.
+        cni_network_config_ipv6: |-
+          {
+            "name": "k8s-pod-network",
+            "cniVersion": "0.3.1",
+            "plugins": [
+              {
+                "type": "calico",
+                "log_level": "info",
+                "log_file_path": "/var/log/calico/cni/cni.log",
+                "datastore_type": "kubernetes",
+                "nodename": "__KUBERNETES_NODE_NAME__",
+                "mtu": __CNI_MTU__,
+                "ipam": {
+                    "type": "calico-ipam",
+                    "assign_ipv4": "false",
+                    "assign_ipv6": "true"
+                },
+                "policy": {
+                    "type": "k8s"
+                },
+                "kubernetes": {
+                    "kubeconfig": "__KUBECONFIG_FILEPATH__"
+                }
+              },
+              {
+                "type": "portmap",
+                "snat": true,
+                "capabilities": {"portMappings": true}
+              },
+              {
+                "type": "bandwidth",
+                "capabilities": {"bandwidth": true}
+              }
+            ]
+          }
+
+  - path: /home/ec2-user/.bashrc
+    content: |
+      # .bashrc
+      
+      # Source global definitions
+      if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+      fi
+      
+      # User specific environment
+      PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+      export PATH
+      
+      # Kubernetes aliases
+      alias k='kubectl'
+      alias kg='kubectl get'
+      alias kd='kubectl describe'
+      alias kl='kubectl logs'
+      alias ke='kubectl exec -it'
+      
+      # Fun welcome message
+      if [ -x /usr/games/fortune ]; then
+        echo "🐳 Welcome to Kubernetes Control Plane! 🐳"
+        /usr/games/fortune | /usr/games/cowsay
+        echo ""
+        echo "📊 Cluster Info:"
+        echo "   Environment: ${environment}"
+        echo "   Service: ${service_name}"
+        echo "   Cluster: ${cluster_name}"
+        echo "   Pod CIDR: ${pod_cidr}"
+        echo "   Service CIDR: ${service_cidr}"
+        echo ""
+        echo "🔧 Available commands:"
+        echo "   k, kg, kd, kl, ke - kubectl shortcuts"
+        echo "   sudo systemctl status kubelet - Check kubelet status"
+        echo "   sudo journalctl -u kubelet -f - View kubelet logs"
+        echo ""
+      fi
+
+# Run commands
+runcmd:
+  # Load kernel modules
+  - modprobe overlay
+  - modprobe br_netfilter
+  
+  # Apply sysctl settings
+  - sysctl --system
+  
+  # Start and enable services
+  - systemctl daemon-reload
+  - systemctl enable containerd
+  - systemctl start containerd
+  - systemctl enable docker
+  - systemctl start docker
+  
+  # Create directories
+  - mkdir -p /etc/kubernetes/pki/etcd
+  - mkdir -p /var/lib/etcd
+  - mkdir -p /var/log/calico/cni
+  - mkdir -p /opt/cni/bin
+  - mkdir -p /var/lib/kubelet
+  - mkdir -p /var/lib/kube-proxy
+  - mkdir -p /var/lib/kubernetes
+  - mkdir -p /var/run/kubernetes
+  
+  # Set permissions
+  - chown -R ec2-user:ec2-user /home/ec2-user/.bashrc
+  
+  # Install AWS CLI v2
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip awscliv2.zip
+  - ./aws/install
+  - rm -rf aws awscliv2.zip
+  
+  # Configure AWS CLI for IMDSv2
+  - aws configure set default.region ${aws_region}
+  - aws configure set default.imds_use_http_tokens required
+  
+  # Install kubectl
+  - curl -LO "https://dl.k8s.io/release/v${kubernetes_version}/bin/linux/amd64/kubectl"
+  - chmod +x kubectl
+  - mv kubectl /usr/local/bin/
+  
+  # Install kubeadm
+  - curl -LO "https://dl.k8s.io/release/v${kubernetes_version}/bin/linux/amd64/kubeadm"
+  - chmod +x kubeadm
+  - mv kubeadm /usr/local/bin/
+  
+  # Install kubelet
+  - curl -LO "https://dl.k8s.io/release/v${kubernetes_version}/bin/linux/amd64/kubelet"
+  - chmod +x kubelet
+  - mv kubelet /usr/local/bin/
+  
+  # Install Helm
+  - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  
+  # Download kubelet systemd service
+  - curl -LO "https://raw.githubusercontent.com/kubernetes/release/master/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service"
+  - mv kubelet.service /etc/systemd/system/
+  
+  # Download kubelet configuration
+  - curl -LO "https://raw.githubusercontent.com/kubernetes/release/master/cmd/kubepkg/templates/latest/deb/kubelet/etc/systemd/system/kubelet.service.d/10-kubeadm.conf"
+  - mkdir -p /etc/systemd/system/kubelet.service.d
+  - mv 10-kubeadm.conf /etc/systemd/system/kubelet.service.d/
+  
+  # Enable and start kubelet
+  - systemctl daemon-reload
+  - systemctl enable kubelet
+  
+  # Create kubelet configuration
+  - mkdir -p /var/lib/kubelet
+  - cat > /var/lib/kubelet/config.yaml <<EOF
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
+      cgroupDriver: systemd
+      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      runtimeRequestTimeout: "15m"
+      failSwapOn: false
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          enabled: true
+        x509:
+          clientCAFile: "/etc/kubernetes/pki/ca.crt"
+      authorization:
+        mode: Webhook
+      clusterDomain: "cluster.local"
+      clusterDNS:
+      - "10.96.0.10"
+      runtimeCgroups: "/system.slice/containerd.service"
+      cgroupRoot: "/"
+      cgroupsPerQOS: true
+      cgroupDriver: systemd
+      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      runtimeRequestTimeout: "15m"
+      failSwapOn: false
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          enabled: true
+        x509:
+          clientCAFile: "/etc/kubernetes/pki/ca.crt"
+      authorization:
+        mode: Webhook
+      clusterDomain: "cluster.local"
+      clusterDNS:
+      - "10.96.0.10"
+      runtimeCgroups: "/system.slice/containerd.service"
+      cgroupRoot: "/"
+      cgroupsPerQOS: true
+      EOF
+  
+  # Set kubelet configuration
+  - sed -i "s|KUBELET_CONFIG_ARGS=.*|KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml|g" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+  
+  # Start kubelet
+  - systemctl start kubelet
+  
+  # Fun completion message
+  - echo "🎉 Kubernetes Control Plane CloudInit completed! 🎉"
+  - echo "📋 Next steps:"
+  - echo "   1. Wait for all instances to be ready"
+  - echo "   2. Run kubeadm init on the first control plane node"
+  - echo "   3. Join other control plane nodes"
+  - echo "   4. Install Calico CNI"
+  - echo "   5. Deploy your Go MySQL API application"
