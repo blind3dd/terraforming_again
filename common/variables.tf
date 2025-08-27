@@ -160,3 +160,29 @@ variable "db_instance_class" {
   type = string
   default = "db.t2.micro"
 }
+
+variable "aws_access_key_id" {
+  description = "AWS Access Key ID for cert-manager Route53 integration"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS Secret Access Key for cert-manager Route53 integration"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID for DNS01 challenge"
+  type        = string
+  default     = ""
+}
+
+variable "domain_name" {
+  description = "Domain name for the Kubernetes API and certificates"
+  type        = string
+  default     = "example.com"
+}
