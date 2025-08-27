@@ -84,22 +84,7 @@ variable "key_bits_size" {
   description = "The size of the key pair"
 }
 
-variable "db_password_param_user" {
-  type = string
-  default = "/opt/go-mysql-api/${var.environment}/username"
-  description = "The parameter name of the db username"
-}
-variable "db_password_param_pass" {
-  type = string
-  default = "/opt/go-mysql-api/${var.environment}/password"
-  description = "The parameter name of the db password"
-}
 
-variable "db_host_param" {
-  type = string
-  default = "/opt/go-mysql-api/${var.environment}/host"
-  description = "The parameter name of the db host"
-}
 
 variable "associate_public_ip_address" {
   type = bool

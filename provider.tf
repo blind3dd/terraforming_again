@@ -5,15 +5,13 @@ terraform {
            regional = { 
             source = "regional/subnets"
             
-                       # configuration_aliases = ["hashicorp/regional/subnets/cidr"]
+        # configuration_aliases = ["hashicorp/regional/subnets/cidr"]
 
         }
          zonal = {  
             source = "zonal/subnets"
             
             #configuration_aliases = ["hashicorp/zonal/subnets/cidr"]
-    
- 
 
         }
         local = {
@@ -43,9 +41,8 @@ terraform {
         }
     }
 
+}
 
- 
-        }
 # provider "local" {
 # }
 
