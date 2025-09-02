@@ -1,0 +1,128 @@
+---
+- name: Initialize Database Schema
+  hosts: webservers
+  become: yes
+  vars_files:
+    - database-secrets.enc.yaml
+  
+  tasks:
+    - name: Check if MySQL client is installed
+      command: which mysql
+      register: mysql_check
+      failed_when: false
+      changed_when: false
+    
+    - name: Install MySQL client if not present
+      yum:
+        name: mysql
+        state: present
+      when: mysql_check.rc != 0
+    
+    - name: Test database connection
+      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SELECT 1;" {{ database.name }}
+      register: db_connection_test
+      failed_when: false
+      changed_when: false
+    
+    - name: Display database connection status
+      debug:
+        msg: "Database connection: {{ 'Success' if db_connection_test.rc == 0 else 'Failed' }}"
+    
+    - name: Check if users table exists
+      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SHOW TABLES LIKE 'users';" {{ database.name }}
+      register: table_check
+      failed_when: false
+      changed_when: false
+    
+    - name: Display table check result
+      debug:
+        msg: "Users table exists: {{ 'Yes' if table_check.rc == 0 and table_check.stdout_lines | length > 1 else 'No' }}"
+    
+    - name: Initialize database schema if needed
+      block:
+        - name: Create init.sql file
+          copy:
+            dest: /tmp/init.sql
+            content: |
+              -- Initialize database for Go application
+              CREATE DATABASE IF NOT EXISTS goapp_users;
+              USE goapp_users;
+
+              -- Create users table
+              CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+              );
+
+              CREATE INDEX idx_username ON users(username);
+              CREATE INDEX idx_email ON users(email);
+              CREATE INDEX idx_created_at ON users(created_at);
+
+              -- Insert some test data (optional)
+              INSERT INTO users (username, email, password) VALUES 
+                ('admin', 'admin@example.com', 'admin123'),
+                ('user1', 'user1@example.com', 'password123')
+              ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
+            mode: '0644'
+        
+        - name: Execute database initialization script
+          command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} {{ database.name }} < /tmp/init.sql
+          register: init_result
+          changed_when: init_result.rc == 0
+        
+        - name: Display initialization result
+          debug:
+            msg: "Database initialization: {{ 'Success' if init_result.rc == 0 else 'Failed' }}"
+        
+        - name: Clean up init.sql file
+          file:
+            path: /tmp/init.sql
+            state: absent
+      
+      when: table_check.rc != 0 or table_check.stdout_lines | length <= 1
+    
+    - name: Verify database schema
+      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SHOW TABLES;" {{ database.name }}
+      register: schema_verification
+      changed_when: false
+    
+    - name: Display database tables
+      debug:
+        msg: "Database tables: {{ schema_verification.stdout_lines }}"
+    
+    - name: Check user count
+      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SELECT COUNT(*) as user_count FROM users;" {{ database.name }}
+      register: user_count
+      changed_when: false
+    
+    - name: Display user count
+      debug:
+        msg: "Total users in database: {{ user_count.stdout_lines[-1] if user_count.stdout_lines else 'Unknown' }}"
+    
+    - name: Display database initialization summary
+      debug:
+        msg: |
+          Database initialization completed!
+          
+          Database Information:
+          - Host: {{ database.host }}
+          - Database: {{ database.name }}
+          - User: {{ database.username }}
+          
+          Schema includes:
+          - users table
+          - user_profiles table
+          - user_sessions table
+          - user_roles table
+          - user_role_assignments table
+          - audit_logs table
+          
+          - Sample data includes:
+          - Default admin user (admin/admin123)
+          - Sample users (john_doe, jane_smith, bob_wilson)
+          - User roles (admin, user, moderator)
+          - User profiles with sample data
