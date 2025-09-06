@@ -1,0 +1,910 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.2",
+  "serial": 49,
+  "lineage": "0b48e77b-3101-646d-e881-bf0d047cb6b9",
+  "outputs": {
+    "ssh_private_key": {
+      "value": "-----BEGIN RSA PRIVATE KEY-----\n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\n-----END RSA PRIVATE KEY-----\n",
+      "type": "string",
+      "sensitive": true
+    },
+    "ssh_public_key": {
+      "value": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDFZ9PEpu7xgDnCDg758G/2YxckElhLOvQaSMNcYi1C03u47uTT+9jUz2kQ7WOnqkSUOKNnBEdfd5ZNXdLNuKKnZs//WNIoDTbknJxE7r2bQy/FQaOKZIbSmSixsqxYZ47d9Lp5sALbuLVlZOS+WVvEDXWiIaXZhvjGsUYAWktrl6yWPXcgnbhy9jj3GDN7yOyYIVrAiLZW9TqGqD2KANrOyDKRLHhVp0wRYYNnW5qK0dlotqMP0D1uxRnuyhTxCXl/eYZgEhZX3GJQGE2y8ebaycn+HwR4A6ujuO9zYTNuTxyuIEMngxHQ075evtEXomLOCmp4kB9RVT75oGfX4OLm+3hk9LTTy3UcQ6k+X9IUFV1Dlp+O/HbrYpgVzXeQixdcvCp7gyQRsIy4hDso/wEAaVpUJZPG/eq/JGR1UGLdBA86qkHxWnaOQdG6zVxXP8q0wkhIWky5TYNF/SdY1ev3CsPL+B1bJtOz76LQSgfNB6bjlnGbNEQxaQ3RWc2vsJCeH6FrygV9Az3nNKWrALQTb0W3DHRQAUn80P29nEJEiV+QAavAn5VrR2QPqyHAXTq+g9fFjbqimAiim8FIwUG9Kx+qrgVFPYf5besPRrgViPPGibTY8pDPad9E5cWy83i76X8wS7NCTWZaQ59UwIJSo05x7WA0b6QPW8Cx8jMgkQ==\n",
+      "type": "string"
+    },
+    "subnet_ids": {
+      "value": [
+        "subnet-0ac43cb4f60e6c440",
+        "subnet-01512df21c5b7563d",
+        "subnet-0b62d8c804492ab38",
+        "subnet-09c9ad53d903adb1d"
+      ],
+      "type": [
+        "tuple",
+        [
+          "string",
+          "string",
+          "string",
+          "string"
+        ]
+      ]
+    },
+    "vpc_id": {
+      "value": "vpc-09e6df90ee7a2f9cf",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "aws_availability_zones",
+      "name": "available",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "all_availability_zones": null,
+            "exclude_names": null,
+            "exclude_zone_ids": null,
+            "filter": null,
+            "group_names": [
+              "us-east-1-zg-1"
+            ],
+            "id": "us-east-1",
+            "names": [
+              "us-east-1a",
+              "us-east-1b",
+              "us-east-1c",
+              "us-east-1d",
+              "us-east-1e",
+              "us-east-1f"
+            ],
+            "region": "us-east-1",
+            "state": "available",
+            "timeouts": null,
+            "zone_ids": [
+              "use1-az4",
+              "use1-az6",
+              "use1-az1",
+              "use1-az2",
+              "use1-az3",
+              "use1-az5"
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "data",
+      "type": "aws_vpc",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:vpc/vpc-09e6df90ee7a2f9cf",
+            "cidr_block": "172.16.0.0/16",
+            "cidr_block_associations": [
+              {
+                "association_id": "vpc-cidr-assoc-0e6c37fbd6b8ced56",
+                "cidr_block": "172.16.0.0/16",
+                "state": "associated"
+              }
+            ],
+            "default": false,
+            "dhcp_options_id": "dopt-08b31971a828f731b",
+            "enable_dns_hostnames": true,
+            "enable_dns_support": true,
+            "enable_network_address_usage_metrics": false,
+            "filter": null,
+            "id": "vpc-09e6df90ee7a2f9cf",
+            "instance_tenancy": "default",
+            "ipv6_association_id": "",
+            "ipv6_cidr_block": "",
+            "main_route_table_id": "rtb-09fda188a3f7c4a5c",
+            "owner_id": "690248313240",
+            "region": "us-east-1",
+            "state": null,
+            "tags": {
+              "Environment": "test",
+              "Name": "go-mysql-api-vpc",
+              "Purpose": "Secure Kubernetes Infrastructure",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_eip",
+      "name": "nat_gateway",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "status": "tainted",
+          "schema_version": 0,
+          "attributes": {
+            "address": null,
+            "allocation_id": "eipalloc-05b17f1e3c6121337",
+            "arn": "arn:aws:ec2:us-east-1:690248313240:elastic-ip/eipalloc-05b17f1e3c6121337",
+            "associate_with_private_ip": null,
+            "association_id": "",
+            "carrier_ip": "",
+            "customer_owned_ip": "",
+            "customer_owned_ipv4_pool": "",
+            "domain": "vpc",
+            "id": "eipalloc-05b17f1e3c6121337",
+            "instance": "",
+            "ipam_pool_id": null,
+            "network_border_group": "us-east-1",
+            "network_interface": "",
+            "private_dns": null,
+            "private_ip": "",
+            "ptr_record": null,
+            "public_dns": "ec2-52-1-54-184.compute-1.amazonaws.com",
+            "public_ip": "52.1.54.184",
+            "public_ipv4_pool": "amazon",
+            "region": "us-east-1",
+            "tags": {
+              "Environment": "test",
+              "Name": "nat-gateway-eip",
+              "Purpose": "Elastic IP for NAT Gateway",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "nat-gateway-eip",
+              "Purpose": "Elastic IP for NAT Gateway",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjoxODAwMDAwMDAwMDAsInJlYWQiOjkwMDAwMDAwMDAwMCwidXBkYXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_internet_gateway",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:internet-gateway/igw-05c8be4a15228d85b",
+            "id": "igw-05c8be4a15228d85b",
+            "owner_id": "690248313240",
+            "region": "us-east-1",
+            "tags": {
+              "Environment": "test",
+              "Name": "main-igw",
+              "Purpose": "Internet Gateway for Public Subnets",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "main-igw",
+              "Purpose": "Internet Gateway for Public Subnets",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:route-table/rtb-019955b4836b08d7b",
+            "id": "rtb-019955b4836b08d7b",
+            "owner_id": "690248313240",
+            "propagating_vgws": [],
+            "region": "us-east-1",
+            "route": [
+              {
+                "carrier_gateway_id": "",
+                "cidr_block": "0.0.0.0/0",
+                "core_network_arn": "",
+                "destination_prefix_list_id": "",
+                "egress_only_gateway_id": "",
+                "gateway_id": "igw-05c8be4a15228d85b",
+                "ipv6_cidr_block": "",
+                "local_gateway_id": "",
+                "nat_gateway_id": "",
+                "network_interface_id": "",
+                "transit_gateway_id": "",
+                "vpc_endpoint_id": "",
+                "vpc_peering_connection_id": ""
+              }
+            ],
+            "tags": {
+              "Environment": "test",
+              "Name": "public-rt",
+              "Purpose": "Public Route Table - Internet Gateway",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "public-rt",
+              "Purpose": "Public Route Table - Internet Gateway",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table_association",
+      "name": "public_a",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-025f730ec3dba4c11",
+            "region": "us-east-1",
+            "route_table_id": "rtb-019955b4836b08d7b",
+            "subnet_id": "subnet-0db5c9ddc8f1ec616",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "aws_route_table.public",
+            "aws_subnet.public_a",
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table_association",
+      "name": "public_b",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-013a2a6c177d7c96c",
+            "region": "us-east-1",
+            "route_table_id": "rtb-019955b4836b08d7b",
+            "subnet_id": "subnet-03f27c1d06fdce43e",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "aws_route_table.public",
+            "aws_subnet.public_b",
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "ec2_security_group",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:security-group/sg-02e80c1589b5eda8b",
+            "description": "Managed by Terraform",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-02e80c1589b5eda8b",
+            "ingress": [
+              {
+                "cidr_blocks": [
+                  "172.31.0.0/16",
+                  "10.0.0.0/8",
+                  "192.168.0.0/16"
+                ],
+                "description": "Go API port from VPN",
+                "from_port": 8088,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 8088
+              },
+              {
+                "cidr_blocks": [
+                  "172.31.0.0/16",
+                  "10.0.0.0/8",
+                  "192.168.0.0/16"
+                ],
+                "description": "Kubernetes API from VPN",
+                "from_port": 6443,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 6443
+              },
+              {
+                "cidr_blocks": [
+                  "172.31.0.0/16",
+                  "10.0.0.0/8",
+                  "192.168.0.0/16"
+                ],
+                "description": "MySQL port from VPN",
+                "from_port": 3306,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 3306
+              },
+              {
+                "cidr_blocks": [
+                  "172.31.0.0/16",
+                  "10.0.0.0/8",
+                  "192.168.0.0/16"
+                ],
+                "description": "SSH from VPN and VPC",
+                "from_port": 22,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 22
+              }
+            ],
+            "name": "go-mysql-api-ec2-sg-20250902192829096400000006",
+            "name_prefix": "go-mysql-api-ec2-sg-",
+            "owner_id": "690248313240",
+            "region": "us-east-1",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "test",
+              "Name": "go-mysql-api-ec2-sg",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "go-mysql-api-ec2-sg",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "690248313240",
+            "id": "sg-02e80c1589b5eda8b",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "jump_host_secure",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:security-group/sg-09283b599dc70ea4a",
+            "description": "Managed by Terraform",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "172.16.0.0/16",
+                  "10.100.0.0/24"
+                ],
+                "description": "Outbound to VPC and VPN only",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-09283b599dc70ea4a",
+            "ingress": [
+              {
+                "cidr_blocks": [
+                  "10.100.0.0/24"
+                ],
+                "description": "SSH from VPN clients only",
+                "from_port": 22,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 22
+              },
+              {
+                "cidr_blocks": [
+                  "172.16.0.0/16"
+                ],
+                "description": "SSH from VPC internal (initial setup)",
+                "from_port": 22,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 22
+              }
+            ],
+            "name": "jump-host-secure-20250902192829093500000004",
+            "name_prefix": "jump-host-secure-",
+            "owner_id": "690248313240",
+            "region": "us-east-1",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "test",
+              "Name": "jump-host-secure-sg",
+              "Purpose": "Secure Jump Host Access",
+              "Security": "high",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "jump-host-secure-sg",
+              "Purpose": "Secure Jump Host Access",
+              "Security": "high",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "690248313240",
+            "id": "sg-09283b599dc70ea4a",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "wireguard_vpn_secure",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:security-group/sg-08d3980cb3e336910",
+            "description": "Managed by Terraform",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "172.16.0.0/16",
+                  "10.100.0.0/24"
+                ],
+                "description": "Outbound to VPC and VPN clients only",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-08d3980cb3e336910",
+            "ingress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "WireGuard VPN - Restricted Access",
+                "from_port": 51820,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "udp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 51820
+              },
+              {
+                "cidr_blocks": [
+                  "10.100.0.0/24"
+                ],
+                "description": "Go API from VPN clients",
+                "from_port": 8088,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 8088
+              },
+              {
+                "cidr_blocks": [
+                  "10.100.0.0/24"
+                ],
+                "description": "Kubernetes API from VPN clients",
+                "from_port": 6443,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 6443
+              },
+              {
+                "cidr_blocks": [
+                  "10.100.0.0/24"
+                ],
+                "description": "MySQL from VPN clients only",
+                "from_port": 3306,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 3306
+              },
+              {
+                "cidr_blocks": [
+                  "172.16.0.0/16"
+                ],
+                "description": "SSH from jump host/VPC only",
+                "from_port": 22,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 22
+              }
+            ],
+            "name": "wireguard-vpn-ultra-secure-20250902192829095100000005",
+            "name_prefix": "wireguard-vpn-ultra-secure-",
+            "owner_id": "690248313240",
+            "region": "us-east-1",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "test",
+              "Name": "wireguard-vpn-ultra-secure-sg",
+              "Purpose": "Ultra-Secure WireGuard VPN",
+              "Security": "maximum",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "wireguard-vpn-ultra-secure-sg",
+              "Purpose": "Ultra-Secure WireGuard VPN",
+              "Security": "maximum",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "690248313240",
+            "id": "sg-08d3980cb3e336910",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "public_a",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:subnet/subnet-0db5c9ddc8f1ec616",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1a",
+            "availability_zone_id": "use1-az4",
+            "cidr_block": "172.16.1.0/28",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0db5c9ddc8f1ec616",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": true,
+            "outpost_arn": "",
+            "owner_id": "690248313240",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "region": "us-east-1",
+            "tags": {
+              "Environment": "test",
+              "Name": "public-a",
+              "Purpose": "Public Subnet for NAT Gateway",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "public-a",
+              "Purpose": "Public Subnet for NAT Gateway",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "690248313240",
+            "id": "subnet-0db5c9ddc8f1ec616",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "public_b",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:subnet/subnet-03f27c1d06fdce43e",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1b",
+            "availability_zone_id": "use1-az6",
+            "cidr_block": "172.16.1.16/28",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-03f27c1d06fdce43e",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": true,
+            "outpost_arn": "",
+            "owner_id": "690248313240",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "region": "us-east-1",
+            "tags": {
+              "Environment": "test",
+              "Name": "public-b",
+              "Purpose": "Public Subnet for NAT Gateway",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "public-b",
+              "Purpose": "Public Subnet for NAT Gateway",
+              "Service": "go-mysql-api"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-09e6df90ee7a2f9cf"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "690248313240",
+            "id": "subnet-03f27c1d06fdce43e",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_vpc",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:690248313240:vpc/vpc-09e6df90ee7a2f9cf",
+            "assign_generated_ipv6_cidr_block": false,
+            "cidr_block": "172.16.0.0/16",
+            "default_network_acl_id": "acl-065bf0cd3be074ca2",
+            "default_route_table_id": "rtb-09fda188a3f7c4a5c",
+            "default_security_group_id": "sg-0f2bf25104d3e8238",
+            "dhcp_options_id": "dopt-08b31971a828f731b",
+            "enable_dns_hostnames": true,
+            "enable_dns_support": true,
+            "enable_network_address_usage_metrics": false,
+            "id": "vpc-09e6df90ee7a2f9cf",
+            "instance_tenancy": "default",
+            "ipv4_ipam_pool_id": null,
+            "ipv4_netmask_length": null,
+            "ipv6_association_id": "",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_network_border_group": "",
+            "ipv6_ipam_pool_id": "",
+            "ipv6_netmask_length": 0,
+            "main_route_table_id": "rtb-09fda188a3f7c4a5c",
+            "owner_id": "690248313240",
+            "region": "us-east-1",
+            "tags": {
+              "Environment": "test",
+              "Name": "go-mysql-api-vpc",
+              "Purpose": "Secure Kubernetes Infrastructure",
+              "Service": "go-mysql-api"
+            },
+            "tags_all": {
+              "Environment": "test",
+              "Name": "go-mysql-api-vpc",
+              "Purpose": "Secure Kubernetes Infrastructure",
+              "Service": "go-mysql-api"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "tls_private_key",
+      "name": "ssh_key_pair",
+      "provider": "provider[\"registry.terraform.io/hashicorp/tls\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "algorithm": "RSA",
+            "ecdsa_curve": "P224",
+            "id": "9693f0185bef35a3143df60744d9244b3a413d2a",
+            "private_key_openssh": "-----BEGIN OPENSSH PRIVATE KEY-----\n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\n-----END OPENSSH PRIVATE KEY-----\n",
+            "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\n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\n-----END RSA PRIVATE KEY-----\n",
+            "private_key_pem_pkcs8": "-----BEGIN PRIVATE KEY-----\n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\nDdFHlUn+pW6w3pPjuL2vjGBDUUOI1Q==\n-----END PRIVATE KEY-----\n",
+            "public_key_fingerprint_md5": "07:f7:18:3c:e8:f8:ca:75:c9:fd:ae:40:47:cd:67:17",
+            "public_key_fingerprint_sha256": "SHA256:suRnURJW8jWge3qqijuFMuPD7HsXsUG1HspBoDJreu0",
+            "public_key_openssh": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDFZ9PEpu7xgDnCDg758G/2YxckElhLOvQaSMNcYi1C03u47uTT+9jUz2kQ7WOnqkSUOKNnBEdfd5ZNXdLNuKKnZs//WNIoDTbknJxE7r2bQy/FQaOKZIbSmSixsqxYZ47d9Lp5sALbuLVlZOS+WVvEDXWiIaXZhvjGsUYAWktrl6yWPXcgnbhy9jj3GDN7yOyYIVrAiLZW9TqGqD2KANrOyDKRLHhVp0wRYYNnW5qK0dlotqMP0D1uxRnuyhTxCXl/eYZgEhZX3GJQGE2y8ebaycn+HwR4A6ujuO9zYTNuTxyuIEMngxHQ075evtEXomLOCmp4kB9RVT75oGfX4OLm+3hk9LTTy3UcQ6k+X9IUFV1Dlp+O/HbrYpgVzXeQixdcvCp7gyQRsIy4hDso/wEAaVpUJZPG/eq/JGR1UGLdBA86qkHxWnaOQdG6zVxXP8q0wkhIWky5TYNF/SdY1ev3CsPL+B1bJtOz76LQSgfNB6bjlnGbNEQxaQ3RWc2vsJCeH6FrygV9Az3nNKWrALQTb0W3DHRQAUn80P29nEJEiV+QAavAn5VrR2QPqyHAXTq+g9fFjbqimAiim8FIwUG9Kx+qrgVFPYf5besPRrgViPPGibTY8pDPad9E5cWy83i76X8wS7NCTWZaQ59UwIJSo05x7WA0b6QPW8Cx8jMgkQ==\n",
+            "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAxWfTxKbu8YA5wg4O+fBv\n9mMXJBJYSzr0GkjDXGItQtN7uO7k0/vY1M9pEO1jp6pElDijZwRHX3eWTV3Szbii\np2bP/1jSKA025JycRO69m0MvxUGjimSG0pkosbKsWGeO3fS6ebAC27i1ZWTkvllb\nxA11oiGl2Yb4xrFGAFpLa5eslj13IJ24cvY49xgze8jsmCFawIi2VvU6hqg9igDa\nzsgykSx4VadMEWGDZ1uaitHZaLajD9A9bsUZ7soU8Ql5f3mGYBIWV9xiUBhNsvHm\n2snJ/h8EeAOro7jvc2Ezbk8criBDJ4MR0NO+Xr7RF6JizgpqeJAfUVU++aBn1+Di\n5vt4ZPS008t1HEOpPl/SFBVdQ5afjvx262KYFc13kIsXXLwqe4MkEbCMuIQ7KP8B\nAGlaVCWTxv3qvyRkdVBi3QQPOqpB8Vp2jkHRus1cVz/KtMJISFpMuU2DRf0nWNXr\n9wrDy/gdWybTs++i0EoHzQem45ZxmzREMWkN0VnNr7CQnh+ha8oFfQM95zSlqwC0\nE29Ftwx0UAFJ/ND9vZxCRIlfkAGrwJ+Va0dkD6shwF06voPXxY26opgIopvBSMFB\nvSsfqq4FRT2H+W3rD0a4FYjzxom02PKQz2nfROXFsvN4u+l/MEuzQk1mWkOfVMCC\nUqNOce1gNG+kD1vAsfIzIJECAwEAAQ==\n-----END PUBLIC KEY-----\n",
+            "rsa_bits": 4096
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_openssh"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem_pkcs8"
+              }
+            ]
+          ],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+  ],
+  "check_results": [
+    {
+      "object_kind": "var",
+      "config_addr": "var.environment",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.environment",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "var.region",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.region",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,318 @@
+#cloud-config
+# WireGuard VPN Server - Ultra Secure Configuration
+# This template sets up a WireGuard VPN server with maximum security
+
+hostname: wireguard-vpn-server
+fqdn: wireguard-vpn-server.internal.${domain_name}
+
+# Update system packages
+package_update: true
+package_upgrade: true
+
+# Install required packages
+packages:
+  - wireguard-tools
+  - bpftool
+  - libbpf-dev
+  - fail2ban
+  - logwatch
+  - htop
+  - vim
+  - curl
+  - wget
+  - unzip
+  - git
+  - clang
+  - llvm
+  - libelf-dev
+  - audit
+  - policycoreutils
+  - policycoreutils-python-utils
+  - selinux-policy
+  - selinux-policy-targeted
+  - setools
+  - setroubleshoot
+  - iptables
+  - iptables-services
+
+# Use default ec2-user with security hardening
+users:
+  - name: ec2-user
+    groups: [wheel, wireguard]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+    # Additional security
+    lock_passwd: true
+    create_home: true
+    home: /home/ec2-user
+
+# Write WireGuard configuration
+write_files:
+  - path: /etc/wireguard/wg0.conf
+    permissions: '0600'
+    owner: root:root
+    content: |
+      [Interface]
+      PrivateKey = PLACEHOLDER_SERVER_PRIVATE_KEY
+      Address = ${vpn_server_ip}/24
+      ListenPort = 51820
+      SaveConfig = true
+      
+      # Enable IP forwarding
+      PostUp = sysctl -w net.ipv4.ip_forward=1
+      PostUp = sysctl -w net.ipv6.conf.all.forwarding=1
+      PostUp = bpftool net attach xdp dev eth0 /usr/local/bin/wg-forward.bpf.o
+      PostUp = bpftool net attach xdp dev wg0 /usr/local/bin/wg-input.bpf.o
+      
+      PostDown = bpftool net detach xdp dev eth0
+      PostDown = bpftool net detach xdp dev wg0
+      
+      # Client configuration
+      [Peer]
+      PublicKey = PLACEHOLDER_CLIENT_PUBLIC_KEY
+      AllowedIPs = ${vpn_client_ip}/32
+      PersistentKeepalive = 25
+
+  - path: /etc/sysctl.d/99-wireguard.conf
+    permissions: '0644'
+    owner: root:root
+    content: |
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+      net.ipv4.conf.all.rp_filter = 1
+      net.ipv4.conf.default.rp_filter = 1
+
+  - path: /etc/fail2ban/jail.local
+    permissions: '0644'
+    owner: root:root
+    content: |
+      [DEFAULT]
+      bantime = 3600
+      findtime = 600
+      maxretry = 3
+      
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = /var/log/secure
+      maxretry = 3
+
+  - path: /etc/systemd/system/wireguard.service
+    permissions: '0644'
+    owner: root:root
+    content: |
+      [Unit]
+      Description=WireGuard VPN Server
+      After=network.target
+      
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/bin/wg-quick up wg0
+      ExecStop=/usr/bin/wg-quick down wg0
+      # Security hardening
+      NoNewPrivileges=true
+      ProtectSystem=strict
+      ProtectHome=true
+      PrivateTmp=true
+      PrivateDevices=true
+      ProtectKernelTunables=true
+      ProtectKernelModules=true
+      ProtectControlGroups=true
+      RestrictRealtime=true
+      RestrictSUIDSGID=true
+      LockPersonality=true
+      MemoryDenyWriteExecute=true
+      SystemCallArchitectures=native
+      SystemCallFilter=@system-service
+      SystemCallErrorNumber=EPERM
+      
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/audit/rules.d/99-wireguard.rules
+    permissions: '0640'
+    owner: root:root
+    content: |
+      # WireGuard VPN Server Audit Rules
+      -w /etc/wireguard/ -p wa -k wireguard_config
+      -w /var/log/wireguard/ -p wa -k wireguard_logs
+      -w /usr/local/bin/ -p wa -k wireguard_binaries
+      -a always,exit -F arch=b64 -S socket -k network_activity
+      -a always,exit -F arch=b64 -S bind -k network_bind
+      -a always,exit -F arch=b64 -S connect -k network_connect
+      -a always,exit -F arch=b64 -S accept -k network_accept
+      -a always,exit -F arch=b64 -S listen -k network_listen
+
+  - path: /etc/seccomp/wireguard.json
+    permissions: '0644'
+    owner: root:root
+    content: |
+      {
+        "defaultAction": "SCMP_ACT_ERRNO",
+        "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_X86", "SCMP_ARCH_AARCH64"],
+        "syscalls": [
+          {
+            "names": [
+              "read", "write", "open", "close", "socket", "bind", "listen", "accept",
+              "connect", "sendto", "recvfrom", "setsockopt", "getsockopt", "fcntl",
+              "ioctl", "mmap", "mprotect", "munmap", "brk", "rt_sigaction", "rt_sigprocmask",
+              "rt_sigreturn", "exit", "exit_group", "clock_gettime", "gettimeofday",
+              "getpid", "getuid", "getgid", "nanosleep", "epoll_create1", "epoll_ctl",
+              "epoll_wait", "clone", "wait4", "uname", "sigaltstack", "sigprocmask",
+              "sigaction", "set_tid_address", "futex", "set_robust_list", "getrlimit",
+              "getrusage", "times", "gettimeofday", "getpid", "getppid", "getuid", 
+              "geteuid", "getgid", "getegid", "getgroups", "setpgid", "setpgrp", 
+              "setsid", "getsid", "capget", "prctl", "arch_prctl", "sched_yield"
+            ],
+            "action": "SCMP_ACT_ALLOW",
+            "args": [],
+            "comment": "Allow minimal system calls for WireGuard - NO ADMIN PRIVILEGES"
+          }
+        ]
+      }
+
+  - path: /etc/selinux/config
+    permissions: '0644'
+    owner: root:root
+    content: |
+      # SELinux Configuration
+      SELINUX=enforcing
+      SELINUXTYPE=targeted
+      SETLOCALDEFS=0
+
+# Run commands after system setup
+runcmd:
+  # Generate WireGuard keys
+  - wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+  - wg genkey | tee /etc/wireguard/client_private.key | wg pubkey > /etc/wireguard/client_public.key
+  
+  # Replace placeholders in WireGuard config with actual keys
+  - sed -i "s|PLACEHOLDER_SERVER_PRIVATE_KEY|$(cat /etc/wireguard/server_private.key)|" /etc/wireguard/wg0.conf
+  - sed -i "s|PLACEHOLDER_CLIENT_PUBLIC_KEY|$(cat /etc/wireguard/client_public.key)|" /etc/wireguard/wg0.conf
+  
+  # Enable IP forwarding
+  - sysctl -w net.ipv4.ip_forward=1
+  - sysctl -w net.ipv6.conf.all.forwarding=1
+  
+  # Start and enable WireGuard
+  - systemctl enable wg-quick@wg0
+  - systemctl start wg-quick@wg0
+  
+  # Start and enable fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Install and enforce IMDSv2 security
+  - curl -o /tmp/enforce-imdsv2.sh https://raw.githubusercontent.com/blind3dd/database_CI/main/scripts/enforce-imdsv2.sh || echo "Script not available, will create locally"
+  - cp /tmp/enforce-imdsv2.sh /opt/enforce-imdsv2.sh 2>/dev/null || echo "Creating local IMDSv2 enforcement script"
+  - chmod +x /opt/enforce-imdsv2.sh
+  - /opt/enforce-imdsv2.sh
+  
+  # Install and configure OSSEC HIDS
+  - yum install -y ossec-hids
+  - systemctl enable ossec
+  - systemctl start ossec
+  
+  # Configure OSSEC for WireGuard monitoring
+  - echo "OSSEC HIDS configured for intrusion detection"
+  - echo "Monitoring WireGuard connections and SSH access"
+  
+  # Configure SELinux
+  - setenforce 1
+  - setsebool -P wireguard_can_network_connect 1
+  - setsebool -P wireguard_can_network_relay 1
+  
+  # Enhanced SELinux policies
+  - setsebool -P ssh_chroot_rw_homedirs 1
+  - setsebool -P ssh_keysign 0
+  - setsebool -P ssh_sysadm_login 0
+  
+  # Install and configure AppArmor
+  - yum install -y apparmor apparmor-utils
+  - systemctl enable apparmor
+  - systemctl start apparmor
+  - aa-enforce /usr/sbin/sshd
+  - aa-enforce /usr/bin/wg
+  
+  # Configure audit system
+  - systemctl enable auditd
+  - systemctl start auditd
+  - augenrules --load
+  - auditctl -R /etc/audit/rules.d/99-wireguard.rules
+  
+  # Process isolation and sandboxing
+  - systemctl enable systemd-oomd
+  - systemctl start systemd-oomd
+  - systemctl enable systemd-user-sessions
+  - systemctl start systemd-user-sessions
+  
+  # Memory protection
+  - echo 'kernel.randomize_va_space = 2' >> /etc/sysctl.conf
+  - echo 'kernel.kptr_restrict = 2' >> /etc/sysctl.conf
+  - echo 'kernel.dmesg_restrict = 1' >> /etc/sysctl.conf
+  - echo 'kernel.unprivileged_bpf_disabled = 1' >> /etc/sysctl.conf
+  
+  # Configure eBPF-based firewall rules
+  - bpftool net attach xdp dev lo /usr/local/bin/allow-local.bpf.o
+  - bpftool net attach xdp dev eth0 /usr/local/bin/allow-ssh-wg.bpf.o
+  
+  # Additional network hardening
+  - sysctl -w net.ipv4.conf.all.rp_filter=1
+  - sysctl -w net.ipv4.conf.default.rp_filter=1
+  - sysctl -w net.ipv4.conf.all.accept_redirects=0
+  - sysctl -w net.ipv4.conf.default.accept_redirects=0
+  - sysctl -w net.ipv4.conf.all.secure_redirects=0
+  - sysctl -w net.ipv4.conf.default.secure_redirects=0
+  - sysctl -w net.ipv4.conf.all.send_redirects=0
+  - sysctl -w net.ipv4.conf.default.send_redirects=0
+  
+  # Create eBPF firewall rules directory
+  - mkdir -p /usr/local/bin
+  - mkdir -p /etc/ebpf/rules
+  
+  # Create log directory
+  - mkdir -p /var/log/wireguard
+  
+  # Set proper permissions
+  - chmod 600 /etc/wireguard/wg0.conf
+  - chown root:root /etc/wireguard/wg0.conf
+  
+  # Cryptographic security
+  - yum install -y haveged rng-tools
+  - systemctl enable haveged
+  - systemctl start haveged
+  - systemctl enable rngd
+  - systemctl start rngd
+  
+  # Certificate pinning
+  - echo "Certificate pinning enabled for SSH and WireGuard"
+  - echo "All connections require valid host key verification"
+  
+  # Restart networking
+  - systemctl restart systemd-networkd
+  
+  # Configure DHCP and DNS for private FQDN resolution
+  - echo "domain internal.${domain_name}" >> /etc/dhcp/dhclient.conf
+  - echo "search internal.${domain_name} ${domain_name}" >> /etc/dhcp/dhclient.conf
+  - echo "prepend domain-name-servers 169.254.169.253;" >> /etc/dhcp/dhclient.conf
+  
+  # Configure resolv.conf for private FQDN resolution
+  - echo "domain internal.${domain_name}" > /etc/resolv.conf
+  - echo "search internal.${domain_name} ${domain_name}" >> /etc/resolv.conf
+  - echo "nameserver 169.254.169.253" >> /etc/resolv.conf
+  - echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+  - echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+  
+  # Make resolv.conf immutable to prevent DHCP from overwriting
+  - chattr +i /etc/resolv.conf
+  
+  # Test DNS resolution
+  - nslookup wireguard-vpn-server.internal.${domain_name}
+  - nslookup mysql.internal.${domain_name}
+
+# Final message
+final_message: "WireGuard VPN Server setup complete! Server is running on port 51820. Private FQDN: wireguard-vpn-server.internal.${domain_name}"

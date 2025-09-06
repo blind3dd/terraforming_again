@@ -166,7 +166,10 @@ jobs:
           --output text)
         
         mkdir -p ~/.kube
-        scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        mkdir -p ~/.ssh
+        # First, get the host key to avoid man-in-the-middle attacks
+        ssh-keyscan -H ${CONTROL_PLANE_IP} >> ~/.ssh/known_hosts
+        scp -o StrictHostKeyChecking=yes \
           ec2-user@${CONTROL_PLANE_IP}:/home/ec2-user/.kube/config ~/.kube/config
         
     - name: Verify Kubernetes Cluster

@@ -1,0 +1,54 @@
+# YubiKey AWS Assume Role Configuration
+# This file contains configuration for YubiKey-based AWS assume role operations
+
+# AWS Configuration
+AWS_REGION="{{ aws_region }}"
+AWS_ACCOUNT_ID="{{ aws_account_id }}"
+DEFAULT_ROLE_NAME="{{ default_role_name }}"
+DEFAULT_SESSION_NAME="{{ default_session_name }}"
+
+# YubiKey Configuration
+YUBIKEY_SLOT="{{ yubikey_slot }}"
+YUBIKEY_ALGORITHM="{{ yubikey_algorithm }}"
+
+# Security Settings
+REQUIRE_YUBIKEY_AUTH={{ require_yubikey_auth | lower }}
+CACHE_TOKENS={{ cache_tokens | lower }}
+TOKEN_CACHE_DURATION={{ token_cache_duration }}
+
+# Role Mappings (role_name:role_arn)
+declare -A ROLE_MAPPINGS=(
+{% for role_name, role_arn in role_mappings.items() %}
+    ["{{ role_name }}"]="{{ role_arn }}"
+{% endfor %}
+)
+
+# MFA Configuration
+MFA_SERIAL="{{ mfa_serial }}"
+MFA_REQUIRED={{ mfa_required | lower }}
+
+# Additional Security Settings
+# Session duration limits
+MIN_SESSION_DURATION=900   # 15 minutes minimum
+MAX_SESSION_DURATION=43200 # 12 hours maximum
+
+# Audit logging
+AUDIT_LOG_FILE="{{ config_dir }}/yubikey-aws-audit.log"
+ENABLE_AUDIT_LOGGING=true
+
+# Token validation
+VALIDATE_TOKEN_SIGNATURE=true
+TOKEN_VALIDATION_TIMEOUT=30
+
+# Network security
+REQUIRE_HTTPS=true
+VERIFY_SSL_CERTIFICATES=true
+
+# Rate limiting
+MAX_REQUESTS_PER_MINUTE=10
+RATE_LIMIT_WINDOW=60
+
+# Backup and recovery
+BACKUP_TOKENS=false
+BACKUP_DIRECTORY="{{ config_dir }}/backups"
+BACKUP_RETENTION_DAYS=7

@@ -1,0 +1,317 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: impersonation-filter-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    # ImpersonationFilter configuration for local macOS Kubernetes
+    # This prevents unauthorized impersonation attacks
+    
+    # Disable user impersonation by default
+    disableUserImpersonation: true
+    
+    # Disable group impersonation by default  
+    disableGroupImpersonation: true
+    
+    # Disable service account impersonation by default
+    disableServiceAccountImpersonation: true
+    
+    # Allow only specific users to impersonate (empty = no one)
+    allowedImpersonators: []
+    
+    # Allow only specific groups to impersonate (empty = no one)
+    allowedImpersonatorGroups: []
+    
+    # Disable extra field impersonation
+    disableExtraFieldImpersonation: true
+    
+    # Log all impersonation attempts
+    logImpersonationAttempts: true
+    
+    # Fail closed on impersonation attempts
+    failClosed: true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admission-controller-config
+  namespace: kube-system
+data:
+  admission-controllers.yaml: |
+    # Admission Controllers for local macOS security
+    admission-controllers:
+      - NodeRestriction
+      - PodSecurityPolicy
+      - ResourceQuota
+      - LimitRanger
+      - ServiceAccount
+      - SecurityContextDeny
+      - DenyEscalatingExec
+      - AlwaysPullImages
+      - ImagePolicyWebhook
+      - ValidatingAdmissionWebhook
+      - MutatingAdmissionWebhook
+      - ImpersonationFilter
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-security-policy
+  namespace: kube-system
+data:
+  policy.yaml: |
+    # Pod Security Policy for local macOS Kubernetes
+    apiVersion: policy/v1beta1
+    kind: PodSecurityPolicy
+    metadata:
+      name: macos-restricted
+    spec:
+      # Prevent privilege escalation
+      allowPrivilegeEscalation: false
+      requiredDropCapabilities:
+        - ALL
+      allowedCapabilities: []
+      
+      # Restrict volumes
+      volumes:
+        - 'configMap'
+        - 'emptyDir'
+        - 'projected'
+        - 'secret'
+        - 'downwardAPI'
+        - 'persistentVolumeClaim'
+      
+      # Disable host networking
+      hostNetwork: false
+      hostIPC: false
+      hostPID: false
+      
+      # Restrict host ports
+      hostPorts:
+        - min: 0
+          max: 0
+      
+      # Run as non-root
+      runAsUser:
+        rule: 'MustRunAsNonRoot'
+      runAsGroup:
+        rule: 'MustRunAsNonRoot'
+      supplementalGroups:
+        rule: 'MustRunAsNonRoot'
+      
+      # Read-only root filesystem
+      readOnlyRootFilesystem: true
+      
+      # SELinux context (if available)
+      seLinux:
+        rule: 'RunAsAny'
+      
+      # Seccomp profile
+      seccompProfiles:
+        - 'runtime/default'
+        - 'localhost/profiles/kubernetes/seccomp-k8s-webapp-profile.json'
+        - 'localhost/profiles/kubernetes/seccomp-k8s-database-profile.json'
+        - 'localhost/profiles/kubernetes/seccomp-k8s-system-profile.json'
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-policy
+  namespace: kube-system
+data:
+  default-deny.yaml: |
+    # Default deny network policy for local macOS
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: default-deny-all
+      namespace: default
+    spec:
+      podSelector: {}
+      policyTypes:
+      - Ingress
+      - Egress
+      # No rules = deny all traffic
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rbac-security
+  namespace: kube-system
+data:
+  rbac.yaml: |
+    # RBAC configuration for local macOS security
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: macos-restricted-user
+    rules:
+    # Minimal permissions for local development
+    - apiGroups: [""]
+      resources: ["pods", "services", "configmaps", "secrets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "replicasets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["networking.k8s.io"]
+      resources: ["networkpolicies"]
+      verbs: ["get", "list", "watch"]
+    
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: macos-user-binding
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: macos-restricted-user
+    subjects:
+    - kind: User
+      name: macos-user
+      apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-policy
+  namespace: kube-system
+data:
+  audit-policy.yaml: |
+    # Audit policy for local macOS Kubernetes
+    apiVersion: audit.k8s.io/v1
+    kind: Policy
+    rules:
+    # Log all impersonation attempts
+    - level: RequestResponse
+      namespaces: ["kube-system"]
+      verbs: ["impersonate"]
+      resources:
+      - group: ""
+        resources: ["users", "groups", "serviceaccounts"]
+    
+    # Log all privilege escalation attempts
+    - level: RequestResponse
+      verbs: ["create", "update", "patch"]
+      resources:
+      - group: ""
+        resources: ["pods"]
+      - group: "apps"
+        resources: ["deployments", "replicasets"]
+    
+    # Log all RBAC changes
+    - level: RequestResponse
+      verbs: ["create", "update", "patch", "delete"]
+      resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    
+    # Log all security context changes
+    - level: RequestResponse
+      verbs: ["create", "update", "patch"]
+      resources:
+      - group: ""
+        resources: ["pods"]
+      omitStages:
+      - RequestReceived
+    
+    # Log all network policy changes
+    - level: RequestResponse
+      verbs: ["create", "update", "patch", "delete"]
+      resources:
+      - group: "networking.k8s.io"
+        resources: ["networkpolicies"]
+    
+    # Log all admission controller decisions
+    - level: RequestResponse
+      verbs: ["create", "update", "patch"]
+      resources:
+      - group: "admissionregistration.k8s.io"
+        resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seccomp-profiles
+  namespace: kube-system
+data:
+  # Copy our seccomp profiles to the cluster
+  seccomp-k8s-webapp-profile.json: |
+    {
+      "defaultAction": "SCMP_ACT_ERRNO",
+      "architectures": [
+        "SCMP_ARCH_X86_64",
+        "SCMP_ARCH_X86",
+        "SCMP_ARCH_X32"
+      ],
+      "syscalls": [
+        {
+          "names": [
+            "accept4", "access", "arch_prctl", "bind", "brk", "chdir", "chmod", "chown",
+            "clock_getres", "clock_gettime", "close", "connect", "creat", "dup", "dup2",
+            "dup3", "epoll_create", "epoll_create1", "epoll_ctl", "epoll_pwait", "epoll_wait",
+            "eventfd", "eventfd2", "execve", "exit", "exit_group", "faccessat", "fadvise64",
+            "fallocate", "fchdir", "fchmod", "fchmodat", "fchown", "fchownat", "fcntl",
+            "fcntl64", "fdatasync", "fgetxattr", "flock", "fork", "fsetxattr", "fstat",
+            "fstat64", "fstatat64", "fstatfs", "fstatfs64", "fsync", "ftruncate",
+            "ftruncate64", "futex", "getcwd", "getdents", "getdents64", "getegid",
+            "geteuid", "getgid", "getgroups", "getpeername", "getpgid", "getpgrp",
+            "getpid", "getppid", "getpriority", "getrandom", "getresgid", "getresuid",
+            "getrlimit", "getrusage", "getsid", "getsockname", "getsockopt", "gettid",
+            "gettimeofday", "getuid", "getxattr", "inotify_add_watch", "inotify_init",
+            "inotify_init1", "inotify_rm_watch", "ioctl", "ipc", "kill", "lgetxattr",
+            "link", "linkat", "listen", "listxattr", "llistxattr", "lseek", "lsetxattr",
+            "lstat", "lstat64", "madvise", "memfd_create", "mincore", "mkdir", "mkdirat",
+            "mknod", "mknodat", "mlock", "mlockall", "mmap", "mmap2", "mprotect",
+            "mq_getsetattr", "mq_notify", "mq_open", "mq_timedreceive", "mq_timedsend",
+            "mq_unlink", "mremap", "msgctl", "msgget", "msgrcv", "msgsnd", "msync",
+            "munlock", "munlockall", "munmap", "nanosleep", "newfstatat", "open",
+            "openat", "pause", "pipe", "pipe2", "poll", "ppoll", "prctl", "pread64",
+            "preadv", "prlimit64", "pselect6", "pwrite64", "pwritev", "read", "readahead",
+            "readdir", "readlink", "readlinkat", "readv", "recvfrom", "recvmmsg",
+            "recvmsg", "remap_file_pages", "removexattr", "rename", "renameat",
+            "renameat2", "restart_syscall", "rmdir", "rt_sigaction", "rt_sigpending",
+            "rt_sigprocmask", "rt_sigqueueinfo", "rt_sigreturn", "rt_sigsuspend",
+            "rt_sigtimedwait", "rt_tgsigqueueinfo", "sched_getaffinity", "sched_getattr",
+            "sched_getparam", "sched_getscheduler", "sched_rr_get_interval",
+            "sched_setaffinity", "sched_setattr", "sched_setparam", "sched_setscheduler",
+            "sched_yield", "select", "semctl", "semget", "semop", "semtimedop",
+            "sendfile", "sendfile64", "sendmmsg", "sendmsg", "sendto", "set_robust_list",
+            "set_tid_address", "setdomainname", "setfsgid", "setfsuid", "setgid",
+            "setgroups", "sethostname", "setitimer", "setpgid", "setpriority",
+            "setregid", "setresgid", "setresuid", "setreuid", "setrlimit", "setsid",
+            "setsockopt", "setuid", "setxattr", "shmat", "shmctl", "shmdt", "shmget",
+            "shutdown", "sigaltstack", "signalfd", "signalfd4", "socket", "socketpair",
+            "splice", "stat", "stat64", "statfs", "statfs64", "statx", "symlink",
+            "symlinkat", "sync", "sync_file_range", "syncfs", "sysinfo", "syslog",
+            "tee", "tgkill", "time", "timer_create", "timer_delete", "timer_getoverrun",
+            "timer_gettime", "timer_settime", "timerfd_create", "timerfd_gettime",
+            "timerfd_settime", "times", "tkill", "truncate", "truncate64", "ugetrlimit",
+            "umask", "uname", "unlink", "unlinkat", "unshare", "utime", "utimensat",
+            "utimes", "vfork", "vmsplice", "wait4", "waitid", "waitpid", "write", "writev"
+          ],
+          "action": "SCMP_ACT_ALLOW"
+        },
+        {
+          "names": [
+            "reboot", "kexec_load", "kexec_file_load", "init_module", "delete_module",
+            "create_module", "get_kernel_syms", "query_module", "nfsservctl", "getpmsg",
+            "putpmsg", "afs_syscall", "tuxcall", "security", "vserver", "lookup_dcookie",
+            "perf_event_open", "fanotify_init", "fanotify_mark", "name_to_handle_at",
+            "open_by_handle_at", "clock_adjtime", "setns", "process_vm_readv",
+            "process_vm_writev", "kcmp", "finit_module", "userfaultfd", "membarrier",
+            "copy_file_range", "pkey_mprotect", "pkey_alloc", "pkey_free",
+            "io_pgetevents", "rseq", "chroot", "ptrace", "bpf", "capget", "capset",
+            "ioprio_get", "ioprio_set"
+          ],
+          "action": "SCMP_ACT_ERRNO"
+        }
+      ]
+    }

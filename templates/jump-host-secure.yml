@@ -1,0 +1,212 @@
+#cloud-config
+# Secure Jump Host - Maximum Security Configuration
+# This template sets up a secure jump host for accessing private instances
+
+hostname: secure-jump-host
+fqdn: secure-jump-host.${domain_name}
+
+# Update system packages
+package_update: true
+package_upgrade: true
+
+# Install required packages
+packages:
+  - fail2ban
+  - bpftool
+  - libbpf-dev
+  - logwatch
+  - htop
+  - vim
+  - curl
+  - wget
+  - unzip
+  - git
+  - kubectl
+  - mysql-client
+  - net-tools
+  - tcpdump
+  - nmap
+  - clang
+  - llvm
+  - libelf-dev
+
+# Create system users
+users:
+  - name: jumpadmin
+    groups: [wheel]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+    # Additional security
+    lock_passwd: true
+    create_home: true
+    home: /home/jumpadmin
+
+# Write security configurations
+write_files:
+  - path: /etc/ssh/sshd_config
+    permissions: '0600'
+    owner: root:root
+    content: |
+      # SSH Security Configuration
+      Port 22
+      Protocol 2
+      HostKey /etc/ssh/ssh_host_rsa_key
+      HostKey /etc/ssh/ssh_host_ecdsa_key
+      HostKey /etc/ssh/ssh_host_ed25519_key
+      
+      # Security settings
+      PermitRootLogin no
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+      AuthorizedKeysFile .ssh/authorized_keys
+      
+      # Connection settings
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+      MaxAuthTries 3
+      MaxSessions 5
+      
+      # Logging
+      LogLevel VERBOSE
+      SyslogFacility AUTH
+      
+      # Restrict access
+      AllowUsers jumpadmin
+      AllowGroups wheel
+      
+      # Chroot and restrictions
+      ChrootDirectory none
+      ForceCommand internal-sftp
+
+  - path: /etc/fail2ban/jail.local
+    permissions: '0644'
+    owner: root:root
+    content: |
+      [DEFAULT]
+      bantime = 3600
+      findtime = 600
+      maxretry = 3
+      
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = /var/log/secure
+      maxretry = 3
+      
+      [sshd-ddos]
+      enabled = true
+      port = ssh
+      filter = sshd-ddos
+      logpath = /var/log/secure
+      maxretry = 5
+
+  - path: /etc/systemd/system/secure-jump.service
+    permissions: '0644'
+    owner: root:root
+    content: |
+      [Unit]
+      Description=Secure Jump Host Service
+      After=network.target
+      
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/true
+      ExecStop=/bin/true
+      
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /home/jumpadmin/.ssh/config
+    permissions: '0600'
+    owner: jumpadmin:jumpadmin
+    content: |
+      # SSH Configuration for Jump Host
+      Host kubernetes-control-plane
+        HostName ${kubernetes_private_ip}
+        User ec2-user
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking ask
+        UserKnownHostsFile ~/.ssh/known_hosts
+      
+      Host wireguard-vpn
+        HostName ${vpn_private_ip}
+        User ec2-user
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking ask
+        UserKnownHostsFile ~/.ssh/known_hosts
+      
+      Host *
+        ServerAliveInterval 300
+        ServerAliveCountMax 2
+        TCPKeepAlive yes
+        Compression yes
+
+  - path: /home/jumpadmin/.bashrc
+    permissions: '0644'
+    owner: jumpadmin:jumpadmin
+    content: |
+      # Jump Host Bash Configuration
+      export PS1='\[\033[01;32m\]\u@secure-jump-host\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+      
+      # Aliases for common operations
+      alias k='kubectl'
+      alias kp='kubectl get pods'
+      alias ks='kubectl get services'
+      alias kn='kubectl get nodes'
+      alias kl='kubectl logs'
+      
+      # VPN status
+      alias vpn-status='ssh wireguard-vpn "sudo wg show"'
+      alias vpn-restart='ssh wireguard-vpn "sudo systemctl restart wg-quick@wg0"'
+      
+      # Kubernetes access
+      alias k8s-status='ssh kubernetes-control-plane "sudo systemctl status kubelet"'
+      alias k8s-logs='ssh kubernetes-control-plane "sudo journalctl -u kubelet -f"'
+      
+      # Security
+      alias security-check='sudo fail2ban-client status'
+      alias firewall-status='sudo iptables -L -n -v'
+
+# Run commands after system setup
+runcmd:
+  # Start and enable fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Restart SSH with new configuration
+  - systemctl restart sshd
+  
+  # Configure eBPF-based firewall rules
+  - bpftool net attach xdp dev lo /usr/local/bin/allow-local.bpf.o
+  - bpftool net attach xdp dev eth0 /usr/local/bin/allow-ssh-only.bpf.o
+  
+  # Create eBPF firewall rules directory
+  - mkdir -p /usr/local/bin
+  - mkdir -p /etc/ebpf/rules
+  
+  # Set proper permissions
+  - chown jumpadmin:jumpadmin /home/jumpadmin/.ssh/config
+  - chown jumpadmin:jumpadmin /home/jumpadmin/.bashrc
+  
+  # Pre-populate known_hosts for secure connections
+  - mkdir -p /home/jumpadmin/.ssh
+  - touch /home/jumpadmin/.ssh/known_hosts
+  - chown jumpadmin:jumpadmin /home/jumpadmin/.ssh/known_hosts
+  - chmod 600 /home/jumpadmin/.ssh/known_hosts
+  
+  # Create log directory
+  - mkdir -p /var/log/jump-host
+  
+  # Enable and start jump host service
+  - systemctl enable secure-jump.service
+  - systemctl start secure-jump.service
+  
+  # Set up log rotation
+  - logrotate -f /etc/logrotate.conf
+
+# Final message
+final_message: "Secure Jump Host setup complete! Access your private infrastructure securely"

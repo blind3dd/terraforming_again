@@ -1,0 +1,122 @@
+# Ansible Variables for Istio Ambient Mode RDS Deployment
+
+# Application Configuration
+app_name: rds-app
+app_version: v1
+app_port: 8080
+namespace: istio-ambient
+
+# Security Configuration
+run_as_user: 1000
+run_as_group: 1000
+fs_group: 1000
+seccomp_profile: profiles/kubernetes/seccomp-k8s-database-profile.json
+
+# Scaling Configuration
+replicas: 2
+min_replicas: 2
+max_replicas: 10
+
+# Resource Configuration
+cpu_request: "100m"
+memory_request: "128Mi"
+cpu_limit: "200m"
+memory_limit: "256Mi"
+
+# Database Configuration
+db_port: 3306
+rds_host: "rds-endpoint.example.com"
+rds_username: "admin"
+rds_password: "password"
+rds_database: "myapp"
+
+# Network Configuration
+domain: "rds-app.example.com"
+
+# Istio Configuration
+istio_gateway_selector:
+  istio: ingressgateway
+
+# Security Policies
+pod_security_standards:
+  enforce: restricted
+  audit: restricted
+  warn: restricted
+
+# Network Policy Configuration
+network_policy:
+  allow_istio_system: true
+  allow_same_app: true
+  allow_rds_ports:
+    - 3306  # MySQL
+    - 5432  # PostgreSQL
+    - 1433  # SQL Server
+
+# Istio Ambient Mode Configuration
+istio_ambient:
+  enabled: true
+  sidecar_injection: false
+  dataplane_mode: ambient
+
+# Monitoring Configuration
+monitoring:
+  liveness_probe:
+    path: /health
+    initial_delay_seconds: 30
+    period_seconds: 10
+  readiness_probe:
+    path: /ready
+    initial_delay_seconds: 5
+    period_seconds: 5
+
+# Load Balancing Configuration
+load_balancer:
+  algorithm: ROUND_ROBIN
+  max_connections: 10
+  http1_max_pending_requests: 10
+  max_requests_per_connection: 2
+
+# Circuit Breaker Configuration
+circuit_breaker:
+  consecutive_errors: 3
+  interval: 30s
+  base_ejection_time: 30s
+  max_ejection_percent: 50
+
+# Retry Configuration
+retry:
+  attempts: 3
+  per_try_timeout: 10s
+  timeout: 30s
+
+# High Availability Configuration
+high_availability:
+  pod_disruption_budget:
+    min_available: 1
+  pod_anti_affinity:
+    enabled: true
+    weight: 100
+    topology_key: kubernetes.io/hostname
+
+# HPA Configuration
+hpa:
+  cpu_target_utilization: 70
+  memory_target_utilization: 80
+
+# Seccomp Profiles Configuration
+seccomp_profiles:
+  - seccomp-profiles.json
+  - seccomp-kubelet-profile.json
+  - seccomp-kube-proxy-profile.json
+  - seccomp-k8s-webapp-profile.json
+  - seccomp-k8s-database-profile.json
+  - seccomp-k8s-system-profile.json
+  - seccomp-bastion-profile.json
+  - seccomp-root-profile.json
+  - seccomp-container-profile.json
+
+# Seccomp Profile Symlinks
+seccomp_symlinks:
+  - { src: "seccomp-k8s-database-profile.json", dest: "database-profile.json" }
+  - { src: "seccomp-k8s-webapp-profile.json", dest: "webapp-profile.json" }
+  - { src: "seccomp-k8s-system-profile.json", dest: "system-profile.json" }

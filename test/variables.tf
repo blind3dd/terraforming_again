@@ -42,6 +42,18 @@ variable "public_subnet_range" {
   description = "The CIDR block for the public subnet A"
 }
 
+variable "existing_vpc_id" {
+  type = string
+  default = ""
+  description = "Existing VPC ID to use instead of creating new one"
+}
+
+variable "existing_subnet_ids" {
+  type = list(string)
+  default = []
+  description = "Existing subnet IDs to use instead of creating new ones"
+}
+
 variable "service_name" {
   type = string
   default = "go-mysql-api"
@@ -184,5 +196,12 @@ variable "route53_zone_id" {
 variable "domain_name" {
   description = "Domain name for the Kubernetes API and certificates"
   type        = string
-  default     = "example.com"
+  default     = "coderedalarmtech.com"
+}
+
+variable "rds_password" {
+  description = "Password for the RDS MySQL database"
+  type        = string
+  sensitive   = true
+  default     = "SecurePassword123!"
 }
