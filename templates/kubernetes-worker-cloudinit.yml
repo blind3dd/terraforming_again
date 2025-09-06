@@ -2,6 +2,10 @@
 # Kubernetes Worker Node CloudInit Configuration
 # This configures the base system for Kubernetes worker nodes
 
+# Set hostname with private FQDN
+hostname: kubernetes-worker-${worker_index}
+fqdn: kubernetes-worker-${worker_index}.internal.${domain_name}
+
 users:
   - name: ec2-user
     sudo: ALL=(ALL) NOPASSWD:ALL
@@ -11,15 +15,11 @@ users:
 
 # Package installation
 packages:
-  - docker
-  - containerd
   - curl
   - wget
   - git
   - jq
   - yum-utils
-  - device-mapper-persistent-data
-  - lvm2
   - amazon-cloudwatch-agent
   - cowsay
   - fortune-mod
@@ -45,63 +45,350 @@ write_files:
       net.bridge.bridge-nf-call-ip6tables = 1
       net.ipv4.ip_forward                 = 1
       vm.swappiness                       = 0
+      # Enable cgroups v2
+      kernel.unprivileged_userns_clone    = 1
 
-  - path: /etc/modules-load.d/containerd.conf
+  - path: /etc/modules-load.d/crio.conf
     content: |
       overlay
       br_netfilter
 
-  - path: /etc/containerd/config.toml
+  - path: /tmp/imdsv2-helper.sh
     content: |
-      version = 2
-      root = "/var/lib/containerd"
-      state = "/run/containerd"
-      
-      [grpc]
-        address = "/run/containerd/containerd.sock"
-        uid = 0
-        gid = 0
-      
-      [plugins]
-        [plugins."io.containerd.grpc.v1.cri"]
-          sandbox_image = "registry.k8s.io/pause:3.9"
-          stream_server_address = "127.0.0.1"
-          stream_server_port = "0"
-          enable_selinux = false
-          enable_tls_streaming = false
-          max_container_log_line_size = 16384
-          
-          [plugins."io.containerd.grpc.v1.cri".containerd]
-            snapshotter = "overlayfs"
-            default_runtime_name = "runc"
-            no_pivot = false
-            
-            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
-              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-                runtime_type = "io.containerd.runc.v2"
-                
-                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-                  SystemdCgroup = true
+      #!/bin/bash
+      # IMDSv2 Helper Script
+      # This script provides secure access to AWS Instance Metadata Service v2
+      # It handles token retrieval and subsequent metadata requests with proper headers
 
-  - path: /etc/docker/daemon.json
-    content: |
-      {
-        "exec-opts": ["native.cgroupdriver=systemd"],
-        "log-driver": "json-file",
-        "log-opts": {
-          "max-size": "100m"
-        },
-        "storage-driver": "overlay2",
-        "storage-opts": [
-          "overlay2.override_kernel_check=true"
-        ]
+      set -euo pipefail
+
+      # Colors for output
+      RED='\033[0;31m'
+      GREEN='\033[0;32m'
+      YELLOW='\033[1;33m'
+      NC='\033[0m' # No Color
+
+      log() {
+          echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
       }
 
-  - path: /etc/systemd/system/docker.service.d/override.conf
+      warn() {
+          echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
+      }
+
+      error() {
+          echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
+          exit 1
+      }
+
+      # IMDSv2 Configuration
+      METADATA_BASE_URL="http://169.254.169.254"
+      TOKEN_TTL=21600  # 6 hours (maximum allowed)
+      TOKEN_FILE="/tmp/imdsv2_token"
+
+      # Function to get IMDSv2 token
+      get_imdsv2_token() {
+          local ttl=${1:-$TOKEN_TTL}
+          
+          log "Requesting IMDSv2 token with TTL: ${ttl} seconds"
+          
+          # Request token with PUT method
+          local token_response
+          if token_response=$(curl -s -X PUT \
+              -H "X-aws-ec2-metadata-token-ttl-seconds: ${ttl}" \
+              "${METADATA_BASE_URL}/latest/api/token" 2>/dev/null); then
+              
+              if [[ -n "$token_response" && ${#token_response} -gt 10 ]]; then
+                  echo "$token_response"
+                  return 0
+              else
+                  error "Invalid token response received"
+              fi
+          else
+              error "Failed to retrieve IMDSv2 token"
+          fi
+      }
+
+      # Function to get metadata with IMDSv2 token
+      get_metadata() {
+          local path="$1"
+          local token="$2"
+          
+          if [[ -z "$token" ]]; then
+              error "IMDSv2 token is required"
+          fi
+          
+          if [[ -z "$path" ]]; then
+              error "Metadata path is required"
+          fi
+          
+          # Remove leading slash if present
+          path="${path#/}"
+          
+          log "Retrieving metadata: ${path}"
+          
+          # Get metadata with token header
+          if curl -s -H "X-aws-ec2-metadata-token: ${token}" \
+              "${METADATA_BASE_URL}/latest/meta-data/${path}"; then
+              return 0
+          else
+              error "Failed to retrieve metadata: ${path}"
+          fi
+      }
+
+      # Function to get or refresh token
+      ensure_valid_token() {
+          local token=""
+          
+          # Check if we have a cached token
+          if [[ -f "$TOKEN_FILE" ]]; then
+              token=$(cat "$TOKEN_FILE" 2>/dev/null || echo "")
+              
+              # Validate cached token
+              if get_metadata "instance-id" "$token" >/dev/null 2>&1; then
+                  log "Using cached IMDSv2 token"
+                  echo "$token"
+                  return 0
+              else
+                  warn "Cached token is invalid, requesting new token"
+                  rm -f "$TOKEN_FILE"
+              fi
+          fi
+          
+          # Get new token
+          token=$(get_imdsv2_token)
+          
+          # Cache the token
+          echo "$token" > "$TOKEN_FILE"
+          chmod 600 "$TOKEN_FILE"
+          
+          log "New IMDSv2 token obtained and cached"
+          echo "$token"
+      }
+
+      # Function to get common metadata
+      get_instance_id() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "instance-id" "$token"
+      }
+
+      get_availability_zone() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "placement/availability-zone" "$token"
+      }
+
+      get_region() {
+          local az
+          az=$(get_availability_zone)
+          echo "${az%?}"  # Remove last character (zone letter)
+      }
+
+      get_instance_type() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "instance-type" "$token"
+      }
+
+      get_public_ip() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "public-ipv4" "$token"
+      }
+
+      get_private_ip() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "local-ipv4" "$token"
+      }
+
+      get_security_groups() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "security-groups" "$token"
+      }
+
+      get_iam_role() {
+          local token
+          token=$(ensure_valid_token)
+          get_metadata "iam/security-credentials" "$token"
+      }
+
+      # Function to get IAM credentials
+      get_iam_credentials() {
+          local role_name="$1"
+          local token
+          token=$(ensure_valid_token)
+          
+          if [[ -z "$role_name" ]]; then
+              error "IAM role name is required"
+          fi
+          
+          log "Retrieving IAM credentials for role: ${role_name}"
+          get_metadata "iam/security-credentials/${role_name}" "$token"
+      }
+
+      # Function to validate IMDSv2 is working
+      validate_imdsv2() {
+          log "Validating IMDSv2 configuration..."
+          
+          # Test token retrieval
+          if ! get_imdsv2_token 60 >/dev/null 2>&1; then
+              error "IMDSv2 token retrieval failed"
+          fi
+          
+          # Test metadata access
+          local token
+          token=$(get_imdsv2_token 60)
+          
+          if ! get_metadata "instance-id" "$token" >/dev/null 2>&1; then
+              error "IMDSv2 metadata access failed"
+          fi
+          
+          log "IMDSv2 validation successful"
+      }
+
+      # Function to show usage
+      show_usage() {
+          cat << EOF
+      IMDSv2 Helper Script
+
+      Usage: $0 [COMMAND] [OPTIONS]
+
+      Commands:
+          token [TTL]              Get IMDSv2 token (default TTL: 21600 seconds)
+          metadata <path>          Get metadata at specified path
+          instance-id              Get instance ID
+          availability-zone        Get availability zone
+          region                   Get region
+          instance-type            Get instance type
+          public-ip                Get public IP
+          private-ip               Get private IP
+          security-groups          Get security groups
+          iam-role                 Get IAM role name
+          iam-credentials <role>   Get IAM credentials for role
+          validate                 Validate IMDSv2 configuration
+          help                     Show this help
+
+      Examples:
+          $0 token 3600                    # Get token with 1 hour TTL
+          $0 metadata instance-id          # Get instance ID
+          $0 metadata iam/security-credentials  # Get IAM role
+          $0 iam-credentials MyRole        # Get credentials for MyRole
+          $0 validate                      # Validate IMDSv2 setup
+
+      Environment Variables:
+          METADATA_BASE_URL        Base URL for metadata service (default: http://169.254.169.254)
+          TOKEN_TTL               Default token TTL in seconds (default: 21600)
+          TOKEN_FILE              Token cache file path (default: /tmp/imdsv2_token)
+
+      EOF
+      }
+
+      # Main script logic
+      main() {
+          local command="${1:-help}"
+          
+          case "$command" in
+              "token")
+                  local ttl="${2:-$TOKEN_TTL}"
+                  get_imdsv2_token "$ttl"
+                  ;;
+              "metadata")
+                  local path="$2"
+                  local token
+                  token=$(ensure_valid_token)
+                  get_metadata "$path" "$token"
+                  ;;
+              "instance-id")
+                  get_instance_id
+                  ;;
+              "availability-zone")
+                  get_availability_zone
+                  ;;
+              "region")
+                  get_region
+                  ;;
+              "instance-type")
+                  get_instance_type
+                  ;;
+              "public-ip")
+                  get_public_ip
+                  ;;
+              "private-ip")
+                  get_private_ip
+                  ;;
+              "security-groups")
+                  get_security_groups
+                  ;;
+              "iam-role")
+                  get_iam_role
+                  ;;
+              "iam-credentials")
+                  local role_name="$2"
+                  get_iam_credentials "$role_name"
+                  ;;
+              "validate")
+                  validate_imdsv2
+                  ;;
+              "help"|"--help"|"-h")
+                  show_usage
+                  ;;
+              *)
+                  error "Unknown command: $command"
+                  show_usage
+                  ;;
+          esac
+      }
+
+      # Run main function with all arguments
+      main "$@"
+    permissions: '0755'
+
+  - path: /etc/crio/crio.conf
     content: |
-      [Service]
-      ExecStart=
-      ExecStart=/usr/bin/dockerd
+      [crio]
+      log_level = "info"
+      log_to_journald = true
+      storage_driver = "overlay"
+      storage_option = ["overlay.mount_program=/usr/bin/fuse-overlayfs"]
+      runroot = "/var/run/containers/storage"
+      root = "/var/lib/containers/storage"
+      
+      [crio.api]
+      listen = "/var/run/crio/crio.sock"
+      stream_address = "127.0.0.1"
+      stream_port = "0"
+      
+      [crio.runtime]
+      default_runtime = "runc"
+      cgroup_manager = "systemd"
+      conmon_cgroup = "system.slice"
+      hooks_dir = ["/usr/share/containers/oci/hooks.d"]
+      pids_limit = 1024
+      log_size_max = -1
+      
+      [crio.runtime.runtimes]
+      [crio.runtime.runtimes.runc]
+      runtime_path = "/usr/bin/runc"
+      runtime_type = "oci"
+      runtime_root = "/var/run/crio"
+      
+      [crio.image]
+      default_transport = "docker://"
+      pause_image = "registry.k8s.io/pause:3.9"
+      pause_image_auth_file = ""
+      pause_command = "/pause"
+      
+      [crio.network]
+      network_dir = "/etc/cni/net.d/"
+      plugin_dirs = ["/opt/cni/bin"]
+      cni_default_network = "crio-bridge"
+      
+      [crio.metrics]
+      enable_metrics = true
+      metrics_port = 9090
 
   - path: /home/ec2-user/.bashrc
     content: |
@@ -144,6 +431,17 @@ write_files:
 
 # Run commands
 runcmd:
+  # Enable cgroups v2
+  - echo 'GRUB_CMDLINE_LINUX="systemd.unified_cgroup_hierarchy=1"' >> /etc/default/grub
+  - grub2-mkconfig -o /boot/grub2/grub.cfg
+  
+  # Install CRI-O repository
+  - curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_8/devel:kubic:libcontainers:stable.repo
+  - curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:1.28.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.28/CentOS_8/devel:kubic:libcontainers:stable:cri-o:1.28.repo
+  
+  # Install CRI-O and dependencies
+  - yum install -y cri-o cri-tools runc conmon
+  
   # Load kernel modules
   - modprobe overlay
   - modprobe br_netfilter
@@ -151,12 +449,10 @@ runcmd:
   # Apply sysctl settings
   - sysctl --system
   
-  # Start and enable services
+  # Start and enable CRI-O
   - systemctl daemon-reload
-  - systemctl enable containerd
-  - systemctl start containerd
-  - systemctl enable docker
-  - systemctl start docker
+  - systemctl enable crio
+  - systemctl start crio
   
   # Create directories
   - mkdir -p /var/log/calico/cni
@@ -178,6 +474,14 @@ runcmd:
   # Configure AWS CLI for IMDSv2
   - aws configure set default.region ${aws_region}
   - aws configure set default.imds_use_http_tokens required
+  
+  # Install IMDSv2 helper script
+  - cp /tmp/imdsv2-helper.sh /usr/local/bin/imdsv2-helper
+  - chmod +x /usr/local/bin/imdsv2-helper
+  - chown root:root /usr/local/bin/imdsv2-helper
+  
+  # Validate IMDSv2 configuration
+  - /usr/local/bin/imdsv2-helper validate
   
   # Install kubectl
   - curl -LO "https://dl.k8s.io/release/v${kubernetes_version}/bin/linux/amd64/kubectl"
@@ -213,7 +517,7 @@ runcmd:
       apiVersion: kubelet.config.k8s.io/v1beta1
       kind: KubeletConfiguration
       cgroupDriver: systemd
-      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+      containerRuntimeEndpoint: unix:///var/run/crio/crio.sock
       runtimeRequestTimeout: "15m"
       failSwapOn: false
       authentication:
@@ -228,28 +532,20 @@ runcmd:
       clusterDomain: "cluster.local"
       clusterDNS:
       - "172.17.0.10"
-      runtimeCgroups: "/system.slice/containerd.service"
+      runtimeCgroups: "/system.slice/crio.service"
       cgroupRoot: "/"
       cgroupsPerQOS: true
+      # cgroups v2 specific settings
       cgroupDriver: systemd
-      containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
-      runtimeRequestTimeout: "15m"
-      failSwapOn: false
-      authentication:
-        anonymous:
-          enabled: false
-        webhook:
-          enabled: true
-        x509:
-          clientCAFile: "/etc/kubernetes/pki/ca.crt"
-      authorization:
-        mode: Webhook
-      clusterDomain: "cluster.local"
-      clusterDNS:
-      - "172.17.0.10"
-      runtimeCgroups: "/system.slice/containerd.service"
-      cgroupRoot: "/"
-      cgroupsPerQOS: true
+      enforceNodeAllocatable: ["pods"]
+      kubeReserved:
+        cpu: "100m"
+        memory: "100Mi"
+        ephemeral-storage: "1Gi"
+      systemReserved:
+        cpu: "100m"
+        memory: "100Mi"
+        ephemeral-storage: "1Gi"
       EOF
   
   # Set kubelet configuration
@@ -258,6 +554,26 @@ runcmd:
   # Start kubelet
   - systemctl start kubelet
   
+  # Configure DHCP and DNS for private FQDN resolution
+  - echo "domain internal.${domain_name}" >> /etc/dhcp/dhclient.conf
+  - echo "search internal.${domain_name} ${domain_name}" >> /etc/dhcp/dhclient.conf
+  - echo "prepend domain-name-servers 169.254.169.253;" >> /etc/dhcp/dhclient.conf
+  
+  # Configure resolv.conf for private FQDN resolution
+  - echo "domain internal.${domain_name}" > /etc/resolv.conf
+  - echo "search internal.${domain_name} ${domain_name}" >> /etc/resolv.conf
+  - echo "nameserver 169.254.169.253" >> /etc/resolv.conf
+  - echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+  - echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+  
+  # Make resolv.conf immutable to prevent DHCP from overwriting
+  - chattr +i /etc/resolv.conf
+  
+  # Test DNS resolution
+  - nslookup kubernetes-worker-${worker_index}.internal.${domain_name}
+  - nslookup kubernetes-control-plane.internal.${domain_name}
+  - nslookup mysql.internal.${domain_name}
+  
   # Fun completion message
   - echo "🎉 Kubernetes Worker Node CloudInit completed! 🎉"
   - echo "📋 Next steps:"
@@ -265,3 +581,4 @@ runcmd:
   - echo "   2. Get join command from control plane"
   - echo "   3. Run kubeadm join command"
   - echo "   4. Verify node is ready"
+  - echo "🌐 Private FQDN: kubernetes-worker-${worker_index}.internal.${domain_name}"

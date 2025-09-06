@@ -1,13 +1,8 @@
-[webservers:children]
-go_mysql_api_instances
+[local]
+localhost ansible_connection=local ansible_python_interpreter=python3
 
-[go_mysql_api_instances]
-# This group will be populated dynamically by the AWS EC2 plugin
+[kubernetes_cluster]
+localhost ansible_connection=local ansible_python_interpreter=python3
 
-[all:vars]
-ansible_user=ec2-user
-ansible_ssh_private_key_file=~/.ssh/{{ aws_key_pair_name }}.pem
-ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-ansible_python_interpreter=/usr/bin/python3
-ansible_become=yes
-ansible_become_method=sudo
+[istio_ambient]
+localhost ansible_connection=local ansible_python_interpreter=python3

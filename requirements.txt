@@ -1,0 +1,19 @@
+# Core Python dependencies for CI/CD pipeline
+# This file is used by GitHub Actions to install Python dependencies
+
+# Development and testing tools
+black==24.0.0
+flake8==7.0.0
+mypy==1.8.0
+pytest==8.0.0
+
+# Security scanning tools
+bandit==1.7.5
+safety==3.0.1
+
+# Infrastructure tools
+ansible==9.0.0
+ansible-lint==24.0.0
+
+# Additional utilities
+pre-commit==3.6.0

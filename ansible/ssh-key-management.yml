@@ -37,7 +37,7 @@
     - name: Create SSH private key file
       copy:
         dest: /home/ec2-user/.ssh/id_rsa
-        content: "{{ ssh_private_key_param.parameters[0].Value }}"
+        content: "{{ ssh_private_key_param }}"
         owner: ec2-user
         group: ec2-user
         mode: '0600'
@@ -45,7 +45,7 @@
     - name: Create SSH public key file
       copy:
         dest: /home/ec2-user/.ssh/id_rsa.pub
-        content: "{{ ssh_public_key_param.parameters[0].Value }}"
+        content: "{{ ssh_public_key_param }}"
         owner: ec2-user
         group: ec2-user
         mode: '0644'
@@ -54,15 +54,16 @@
       authorized_key:
         user: ec2-user
         state: present
-        key: "{{ ssh_public_key_param.parameters[0].Value }}"
+        key: "{{ ssh_public_key_param }}"
 
-    - name: Configure SSH client
-      template:
-        src: ssh_config.j2
-        dest: /home/ec2-user/.ssh/config
-        owner: ec2-user
-        group: ec2-user
-        mode: '0600'
+#Optional - Missing jinja template
+    # - name: Configure SSH client
+    #   template:
+    #     src: ssh_config.j2
+    #     dest: /home/ec2-user/.ssh/config
+    #     owner: ec2-user
+    #     group: ec2-user
+    #     mode: '0600'
 
     - name: Set SSH key permissions
       file:
@@ -81,14 +82,14 @@
     - name: Display SSH test result
       debug:
         msg: "SSH key test: {{ 'Success' if ssh_test.rc == 0 else 'Failed' }}"
-
-    - name: Create SSH access script
-      template:
-        src: ssh_access.j2
-        dest: /home/ec2-user/ssh_access.sh
-        owner: ec2-user
-        group: ec2-user
-        mode: '0755'
+#Optional
+    # - name: Create SSH access script
+    #   template:
+    #     src: ssh_access.j2
+    #     dest: /home/ec2-user/ssh_access.sh
+    #     owner: ec2-user
+    #     group: ec2-user
+    #     mode: '0755'
 
     - name: Display SSH access information
       debug:
@@ -101,5 +102,3 @@
           
           Connection Command:
           ssh -i /home/ec2-user/.ssh/id_rsa ec2-user@{{ ansible_host }}
-          
-          Quick Access Script: /home/ec2-user/ssh_access.sh

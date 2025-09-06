@@ -1,0 +1,574 @@
+# Service Catalog for RDS with Enhanced Security
+# This configuration provides secure service discovery for RDS endpoints
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: service-catalog
+  labels:
+    name: service-catalog
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Service Catalog API Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-catalog-api-server
+  namespace: service-catalog
+  labels:
+    app: service-catalog-api-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: service-catalog-api-server
+  template:
+    metadata:
+      labels:
+        app: service-catalog-api-server
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: service-catalog-api-server
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: Localhost
+          localhostProfile: profiles/kubernetes/seccomp-k8s-system-profile.json
+      containers:
+      - name: api-server
+        image: quay.io/kubernetes-service-catalog/service-catalog:v0.3.1
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: Localhost
+            localhostProfile: profiles/kubernetes/seccomp-k8s-system-profile.json
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: SERVICE_CATALOG_NAMESPACE
+          value: "service-catalog"
+        - name: SERVICE_CATALOG_STORAGE_TYPE
+          value: "etcd"
+        - name: SERVICE_CATALOG_ETCD_SERVERS
+          value: "http://etcd:2379"
+        - name: SERVICE_CATALOG_TLS_CERT_FILE
+          value: "/etc/ssl/tls.crt"
+        - name: SERVICE_CATALOG_TLS_PRIVATE_KEY_FILE
+          value: "/etc/ssl/tls.key"
+        - name: SERVICE_CATALOG_TLS_CA_FILE
+          value: "/etc/ssl/ca.crt"
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/ssl
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: service-catalog-tls
+      - name: tmp
+        emptyDir: {}
+
+---
+# Service Catalog API Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-catalog-api-server
+  namespace: service-catalog
+  labels:
+    app: service-catalog-api-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: service-catalog-api-server
+
+---
+# Service Catalog API Server ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-catalog-api-server
+  namespace: service-catalog
+  labels:
+    app: service-catalog-api-server
+
+---
+# Service Catalog API Server RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: service-catalog-api-server
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps", "services", "endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["servicecatalog.k8s.io"]
+  resources: ["clusterservicebrokers", "clusterserviceclasses", "clusterserviceplans", "serviceinstances", "servicebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["servicecatalog.k8s.io"]
+  resources: ["clusterservicebrokers/status", "clusterserviceclasses/status", "clusterserviceplans/status", "serviceinstances/status", "servicebindings/status"]
+  verbs: ["update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: service-catalog-api-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: service-catalog-api-server
+subjects:
+- kind: ServiceAccount
+  name: service-catalog-api-server
+  namespace: service-catalog
+
+---
+# RDS Service Broker
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rds-service-broker
+  namespace: service-catalog
+  labels:
+    app: rds-service-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rds-service-broker
+  template:
+    metadata:
+      labels:
+        app: rds-service-broker
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: rds-service-broker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: Localhost
+          localhostProfile: profiles/kubernetes/seccomp-k8s-system-profile.json
+      containers:
+      - name: broker
+        image: quay.io/kubernetes-service-catalog/aws-service-broker:v1.0.0
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: Localhost
+            localhostProfile: profiles/kubernetes/seccomp-k8s-system-profile.json
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: AWS_REGION
+          value: "${var.aws_region}"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: secret-access-key
+        - name: RDS_ENDPOINT
+          value: "${var.rds_endpoint}"
+        - name: RDS_FQDN
+          value: "${var.rds_fqdn}"
+        - name: RDS_PORT
+          value: "3306"
+        - name: RDS_DATABASE_NAME
+          value: "goapp_users"
+        - name: RDS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: username
+        - name: RDS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: password
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# RDS Service Broker Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rds-service-broker
+  namespace: service-catalog
+  labels:
+    app: rds-service-broker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: rds-service-broker
+
+---
+# RDS Service Broker ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rds-service-broker
+  namespace: service-catalog
+  labels:
+    app: rds-service-broker
+
+---
+# RDS Service Broker RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rds-service-broker
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps", "services", "endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["servicecatalog.k8s.io"]
+  resources: ["clusterservicebrokers", "clusterserviceclasses", "clusterserviceplans", "serviceinstances", "servicebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["servicecatalog.k8s.io"]
+  resources: ["clusterservicebrokers/status", "clusterserviceclasses/status", "clusterserviceplans/status", "serviceinstances/status", "servicebindings/status"]
+  verbs: ["update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rds-service-broker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rds-service-broker
+subjects:
+- kind: ServiceAccount
+  name: rds-service-broker
+  namespace: service-catalog
+
+---
+# Cluster Service Broker for RDS
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServiceBroker
+metadata:
+  name: rds-broker
+  labels:
+    app: rds-broker
+spec:
+  url: http://rds-service-broker.service-catalog.svc.cluster.local:8080
+  authInfo:
+    bearer:
+      secretRef:
+        name: rds-broker-auth
+        namespace: service-catalog
+  relistBehavior: Duration
+  relistDuration: 15m
+  relistRequests: 1
+
+---
+# RDS Service Class
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServiceClass
+metadata:
+  name: rds-mysql-service
+  labels:
+    app: rds-mysql-service
+spec:
+  clusterServiceBrokerName: rds-broker
+  externalName: rds-mysql
+  externalID: rds-mysql-service-id
+  description: "Secure RDS MySQL service with encryption and monitoring"
+  bindable: true
+  planUpdatable: false
+  tags:
+  - database
+  - mysql
+  - rds
+  - encrypted
+  - secure
+
+---
+# RDS Service Plan
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServicePlan
+metadata:
+  name: rds-mysql-plan
+  labels:
+    app: rds-mysql-plan
+spec:
+  clusterServiceBrokerName: rds-broker
+  clusterServiceClassRef:
+    name: rds-mysql-service
+  externalName: secure-mysql
+  externalID: rds-mysql-plan-id
+  description: "Secure RDS MySQL plan with encryption, monitoring, and high availability"
+  bindable: true
+  free: false
+  instanceCreateParameterSchema:
+    type: object
+    properties:
+      database_name:
+        type: string
+        description: "Database name"
+        default: "goapp_users"
+      username:
+        type: string
+        description: "Database username"
+        default: "admin"
+      password:
+        type: string
+        description: "Database password"
+        format: password
+      ssl_mode:
+        type: string
+        description: "SSL mode"
+        enum: ["REQUIRED", "PREFERRED", "DISABLED"]
+        default: "REQUIRED"
+      encryption:
+        type: boolean
+        description: "Enable encryption"
+        default: true
+      monitoring:
+        type: boolean
+        description: "Enable monitoring"
+        default: true
+      multi_az:
+        type: boolean
+        description: "Enable Multi-AZ"
+        default: true
+  instanceUpdateParameterSchema:
+    type: object
+    properties:
+      monitoring:
+        type: boolean
+        description: "Enable monitoring"
+      multi_az:
+        type: boolean
+        description: "Enable Multi-AZ"
+  bindingCreateParameterSchema:
+    type: object
+    properties:
+      ssl_mode:
+        type: string
+        description: "SSL mode for binding"
+        enum: ["REQUIRED", "PREFERRED", "DISABLED"]
+        default: "REQUIRED"
+      connection_pool_size:
+        type: integer
+        description: "Connection pool size"
+        minimum: 1
+        maximum: 100
+        default: 10
+
+---
+# Service Instance for RDS
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceInstance
+metadata:
+  name: rds-mysql-instance
+  namespace: istio-ambient
+  labels:
+    app: rds-mysql-instance
+spec:
+  clusterServiceClassExternalName: rds-mysql
+  clusterServicePlanExternalName: secure-mysql
+  parameters:
+    database_name: "goapp_users"
+    username: "admin"
+    password: "${var.rds_password}"
+    ssl_mode: "REQUIRED"
+    encryption: true
+    monitoring: true
+    multi_az: true
+
+---
+# Service Binding for RDS
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceBinding
+metadata:
+  name: rds-mysql-binding
+  namespace: istio-ambient
+  labels:
+    app: rds-mysql-binding
+spec:
+  instanceRef:
+    name: rds-mysql-instance
+  parameters:
+    ssl_mode: "REQUIRED"
+    connection_pool_size: 10
+  secretName: rds-mysql-credentials
+
+---
+# Network Policy for Service Catalog
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: service-catalog-netpol
+  namespace: service-catalog
+spec:
+  podSelector:
+    matchLabels:
+      app: service-catalog-api-server
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    - namespaceSelector:
+        matchLabels:
+          name: istio-ambient
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 15008
+    - protocol: TCP
+      port: 15009
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 3306
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# Network Policy for RDS Service Broker
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rds-service-broker-netpol
+  namespace: service-catalog
+spec:
+  podSelector:
+    matchLabels:
+      app: rds-service-broker
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: service-catalog
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 15008
+    - protocol: TCP
+      port: 15009
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 3306
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
