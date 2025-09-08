@@ -8,7 +8,7 @@ resource "aws_eks_cluster" "main" {
   version  = "1.28"
 
   vpc_config {
-    subnet_ids              = aws_subnet.public_subnet[*].id
+    subnet_ids              = aws_subnet.public[*].id
     endpoint_private_access = true
     endpoint_public_access  = true
     public_access_cidrs     = ["0.0.0.0/0"]
@@ -113,7 +113,7 @@ resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.environment}-${var.service_name}-node-group"
   node_role_arn   = aws_iam_role.eks_node_group_role.arn
-  subnet_ids      = aws_subnet.public_subnet[*].id
+  subnet_ids      = aws_subnet.public[*].id
   version         = aws_eks_cluster.main.version
 
   ami_type       = "AL2_x86_64"
@@ -200,7 +200,7 @@ resource "aws_security_group" "eks_nodes" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.rds_sg.id]
+    security_groups = [aws_security_group.rds.id]
     description     = "Allow MySQL traffic to RDS"
   }
 
@@ -226,7 +226,7 @@ resource "aws_security_group_rule" "eks_to_rds" {
   to_port                  = 3306
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.eks_nodes.id
-  security_group_id        = aws_security_group.rds_sg.id
+  security_group_id        = aws_security_group.rds.id
   description              = "Allow EKS nodes to access RDS"
 }
 
@@ -237,7 +237,7 @@ resource "aws_security_group_rule" "rds_to_eks" {
   to_port                  = 0
   protocol                 = "-1"
   source_security_group_id = aws_security_group.eks_nodes.id
-  security_group_id        = aws_security_group.rds_sg.id
+  security_group_id        = aws_security_group.rds.id
   description              = "Allow RDS to respond to EKS nodes"
 }
 

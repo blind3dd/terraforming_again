@@ -38,7 +38,7 @@ resource "aws_subnet" "private_subnet_b" {
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_range
-  map_public_ip_on_launch = false  # Security: No instances should get public IPs
+  map_public_ip_on_launch = true
   availability_zone       = "us-east-1a"
 
   tags = {

@@ -150,10 +150,10 @@ aws ssm get-parameter --name "/sandbox/go-mysql-api/db/password" --with-decrypti
 ### Debugging Commands
 
 ```bash
-# Check instance metadata (IMDSv2 secure)
-./scripts/imdsv2-helper.sh instance-id
-./scripts/imdsv2-helper.sh region
-./scripts/imdsv2-helper.sh iam-role
+# Check instance metadata
+curl http://169.254.169.254/latest/meta-data/instance-id
+curl http://169.254.169.254/latest/meta-data/placement/region
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
 
 # Check AWS CLI configuration
 aws configure list
