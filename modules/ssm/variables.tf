@@ -48,18 +48,18 @@ variable "kms_deletion_window" {
 
 variable "db_password_param_user" {
   type = string
-  default = "/opt/go-mysql-api/db/username"
+  default = "/opt/go-mysql-api/${var.environment}/username"
   description = "The parameter name of the db username"
 }
 variable "db_password_param_pass" {
   type = string
-  default = "/opt/go-mysql-api/db}/password"
+  default = "/opt/go-mysql-api/${var.environment}/password"
   description = "The parameter name of the db password"
 }
 
 variable "db_host_param" {
   type = string
-  default = "/opt/go-mysql-api/db/host"
+  default = "/opt/go-mysql-api/${var.environment}/host"
   description = "The parameter name of the db host"
 }
 

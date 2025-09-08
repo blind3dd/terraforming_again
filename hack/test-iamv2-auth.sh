@@ -46,7 +46,7 @@ test_metadata_service() {
     log_info "Testing instance metadata service..."
     
     # Test IMDSv2 token
-    TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 16800" 2>/dev/null || echo "")
+    TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null || echo "")
     
     if [ -n "$TOKEN" ]; then
         log_success "IMDSv2 token obtained successfully"

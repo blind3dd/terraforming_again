@@ -27,18 +27,23 @@ resource "aws_subnet" "private_subnets" {
   resource "tls_private_key" "private_rsa_pair" {
 	  algorithm = var.key_algorithm
 	  rsa_bits  = var.key_bits_size
-    # lifecycle {
-    #   depends_on = [aws_vpc.main]
-    # }
-  } 
+  }
 
- 
+# AWS Key Pair is now defined in cloudinit.tf
+
+  resource "local_sensitive_file" "tf_key" {
+	  content              = tls_private_key.private_rsa_pair.private_key_pem
+	  file_permission      = "0600"
+	  directory_permission = "0700"
+	  filename             = "${var.aws_key_pair_name}.pem"
+  }
+  
   resource "aws_ssm_parameter" "db_password" {
   name        = var.db_password_param
+  description = "Database password for ${var.environment} environment"
   type        = "SecureString"
-  value       = var.db_password
-  key_id      = var.aws_access_key_id
-  # In production, use a secure password
+  value       = "mock_password_123"  # In production, use a secure password
+
   lifecycle {
     ignore_changes = [
       value # Prevent updates to sensitive values unless explicitly changed
@@ -321,7 +326,7 @@ resource "aws_db_instance" "aws_rds_mysql_8" {
 
   db_name  = var.db_name
   username = var.db_username
-  password = var.db_password //TODO Ternary if prod and ssm param
+  password = data.aws_ssm_parameter.db_password.value
 
   db_subnet_group_name = aws_db_subnet_group.private_db_subnet.name 
   skip_final_snapshot = true

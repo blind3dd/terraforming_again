@@ -7,7 +7,6 @@ data "cloudinit_config" "ec2_user_data" {
     content_type = "text/cloud-config"
     content      = templatefile("${path.module}/cloudinit.yml", {
       environment = var.environment
-      region = var.region
       service_name = var.service_name
       ssh_public_key = tls_private_key.ec2_ssh_key.public_key_openssh
       ec2_user_password = random_password.ec2_user_password.result
@@ -16,7 +15,7 @@ data "cloudinit_config" "ec2_user_data" {
 
   part {
     content_type = "text/x-shellscript"
-    content      = templatefile("${path.module}/cloudinit_script.sh", {
+    content      = templatefile("${path.module}/cloudinit-script.sh", {
       environment = var.environment
       service_name = var.service_name
       db_host = aws_db_instance.aws_rds_mysql_8.address

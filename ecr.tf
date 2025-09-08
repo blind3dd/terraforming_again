@@ -84,7 +84,6 @@ resource "aws_ecr_lifecycle_policy" "go_mysql_api_lifecycle" {
 
 # Data source for current AWS account
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
 
 # Outputs
 output "ecr_repository_url" {

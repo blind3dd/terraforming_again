@@ -58,7 +58,7 @@ resource "aws_iam_policy" "kubernetes_control_plane" {
           "ssm:GetParametersByPath"
         ]
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.environment}-${var.service_name}/*"
+          "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.environment}-${var.service_name}/*"
         ]
       },
       {
@@ -71,11 +71,6 @@ resource "aws_iam_policy" "kubernetes_control_plane" {
       }
     ]
   })
-}
-
-variable "aws_region" {
-  type = string
-  default = "us-east-1"
 }
 
 # Attach policy to role
@@ -289,7 +284,7 @@ resource "aws_security_group_rule" "kubernetes_to_rds" {
   to_port                  = 3306
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.kubernetes_workers.id
-  security_group_id        = aws_security_group.rds_sg.id
+  security_group_id        = aws_security_group.rds.id
   description              = "Kubernetes workers to RDS MySQL"
 }
 
@@ -300,7 +295,7 @@ resource "aws_security_group_rule" "rds_to_kubernetes" {
   to_port                  = 3306
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.kubernetes_workers.id
-  security_group_id        = aws_security_group.rds_sg.id
+  security_group_id        = aws_security_group.rds.id
   description              = "RDS MySQL to Kubernetes workers"
 }
 
@@ -311,7 +306,7 @@ data "cloudinit_config" "kubernetes_control_plane" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.cwd}/templates/kubernetes-control-plane-cloudinit.yml", {
+    content      = templatefile("${path.module}/templates/kubernetes-control-plane-cloudinit.yml", {
       environment = var.environment
       service_name = var.service_name
       cluster_name = "${var.environment}-${var.service_name}-cluster"
@@ -319,8 +314,6 @@ data "cloudinit_config" "kubernetes_control_plane" {
       service_cidr = "10.96.0.0/12"
       calico_version = "3.26.1"
       kubernetes_version = "1.28.0"
-      kubernetes_api_endpoint = aws_lb.kubernetes_api.dns_name
-      ssh_public_key = tls_private_key.ec2_ssh_key.public_key_openssh
       aws_region = data.aws_region.current.name
       aws_account_id = data.aws_caller_identity.current.account_id
       rds_endpoint = aws_db_instance.aws_rds_mysql_8.endpoint
@@ -328,16 +321,12 @@ data "cloudinit_config" "kubernetes_control_plane" {
       rds_database = aws_db_instance.aws_rds_mysql_8.db_name
       rds_username = aws_db_instance.aws_rds_mysql_8.username
       rds_password_parameter = aws_ssm_parameter.db_password.name
-      vpc_id = aws_vpc.main.id
-      route_table_id = aws_route_table.public_route_table.id
     })
   }
 
   part {
     content_type = "text/x-shellscript"
-    content      = templatefile("${path.cwd}/templates/kubernetes-control-plane-setup.sh",    {
-      enable_multicluster_headless = "false"
-      enable_native_sidecars = "false"
+    content      = templatefile("${path.module}/templates/kubernetes-control-plane-setup.sh", {
       environment = var.environment
       service_name = var.service_name
       cluster_name = "${var.environment}-${var.service_name}-cluster"
@@ -352,7 +341,6 @@ data "cloudinit_config" "kubernetes_control_plane" {
       rds_database = aws_db_instance.aws_rds_mysql_8.db_name
       rds_username = aws_db_instance.aws_rds_mysql_8.username
       rds_password_parameter = aws_ssm_parameter.db_password.name
-      vpc_id = aws_vpc.main.id
       aws_access_key_id = var.aws_access_key_id
       aws_secret_access_key = var.aws_secret_access_key
       route53_zone_id = var.route53_zone_id
@@ -379,7 +367,7 @@ resource "aws_launch_template" "kubernetes_control_plane" {
 
   user_data = data.cloudinit_config.kubernetes_control_plane.rendered
 
-  key_name = aws_key_pair.ec2_key_pair.key_name
+  key_name = aws_key_pair.main.key_name
 
   monitoring {
     enabled = true
@@ -411,7 +399,7 @@ resource "aws_autoscaling_group" "kubernetes_control_plane" {
   max_size           = 5
   min_size           = 3
   target_group_arns  = [aws_lb_target_group.kubernetes_api.arn]
-  vpc_zone_identifier = aws_subnet.public_subnet[*].id
+  vpc_zone_identifier = aws_subnet.public[*].id
   health_check_type  = "ELB"
   health_check_grace_period = 300
 
@@ -469,7 +457,7 @@ resource "aws_lb" "kubernetes_api" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.kubernetes_control_plane.id]
-  subnets            = aws_subnet.public_subnet[*].id
+  subnets            = aws_subnet.public[*].id
 
   enable_deletion_protection = false
 
@@ -607,16 +595,12 @@ resource "aws_iam_policy" "kubernetes_workers" {
           "ssm:GetParametersByPath"
         ]
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.environment}-${var.service_name}/*"
+          "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.environment}-${var.service_name}/*"
         ]
       }
     ]
   })
 }
-
-# output "aws_region" {
-#   value = data.aws_region.name
-# }
 
 # Attach policy to worker role
 resource "aws_iam_role_policy_attachment" "kubernetes_workers" {
@@ -645,15 +629,14 @@ data "cloudinit_config" "kubernetes_workers" {
       service_cidr = "10.96.0.0/12"
       calico_version = "3.26.1"
       kubernetes_version = "1.28.0"
-      ssh_public_key = tls_private_key.ec2_ssh_key.public_key_openssh
-      aws_region = data.aws_region.current
+      aws_region = data.aws_region.current.name
       aws_account_id = data.aws_caller_identity.current.account_id
     })
   }
 
   part {
     content_type = "text/x-shellscript"
-    content      = templatefile("${path.cwd}/templates/kubernetes-worker-setup.sh", {
+    content      = templatefile("${path.module}/templates/kubernetes-worker-setup.sh", {
       environment = var.environment
       service_name = var.service_name
       cluster_name = "${var.environment}-${var.service_name}-cluster"
@@ -663,9 +646,6 @@ data "cloudinit_config" "kubernetes_workers" {
       kubernetes_version = "1.28.0"
       aws_region = data.aws_region.current.name
       aws_account_id = data.aws_caller_identity.current.account_id
-      aws_access_key_id = var.aws_access_key_id
-      aws_secret_access_key = var.aws_secret_access_key
-      route53_zone_id = var.route53_zone_id
     })
   }
 }
@@ -674,7 +654,7 @@ data "cloudinit_config" "kubernetes_workers" {
 resource "aws_launch_template" "kubernetes_workers" {
   name_prefix   = "${var.environment}-${var.service_name}-k8s-workers-"
   image_id      = "ami-0c7217cdde317cfec" # Amazon Linux 2023 with kernel 6.1
-  instance_type = "t3.micro"
+  instance_type = "t3.medium"
 
   network_interfaces {
     associate_public_ip_address = true
@@ -689,7 +669,7 @@ resource "aws_launch_template" "kubernetes_workers" {
 
   user_data = data.cloudinit_config.kubernetes_workers.rendered
 
-  key_name = aws_key_pair.ec2_key_pair.key_name
+  key_name = aws_key_pair.main.key_name
 
   monitoring {
     enabled = true
@@ -720,7 +700,7 @@ resource "aws_autoscaling_group" "kubernetes_workers" {
   desired_capacity    = 2
   max_size           = 10
   min_size           = 1
-  vpc_zone_identifier = aws_subnet.public_subnet[*].id
+  vpc_zone_identifier = aws_subnet.public[*].id
   health_check_type  = "EC2"
   health_check_grace_period = 300
 

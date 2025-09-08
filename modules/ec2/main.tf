@@ -50,29 +50,11 @@ resource "aws_instance" "go_mysql_api" {
 	directory_permission = "0700"
 	filename             = "${aws_key_pair.ec2_key_pair.key_name}.pem"
   }
-
-resource "aws_kms_key" "ssm_parameter" { 
-  description = "KMS key for SSM parameters"
-  key_usage = "ENCRYPT_DECRYPT"
-  enable_key_rotation = true
-  key_id = ssm_parameter_key_id.value
-}
-
-output "ssm_parameter_key_id"  {
-  value = aws_kms_key.ssm_parameter.key_id
-}
   
-  resource "aws_ssm_parameter" "db_password" {
-	name        = "/opt/go-mysql-api/${var.environment}/password"
-	type        = "SecureString"
-	key_id      = aws_kms_key.ssm_parameter.key_id
-  
-  lifecycle {
-    ignore_changes = [
-      value # Prevent updates to sensitive values unless explicitly changed
-    ]
+  data "aws_ssm_parameter" "db_password" {
+	name        = "/opt/goapi/db/password"
   }
-}
+  
   # Create an IAM instance profile for the EC2 instance
   resource "aws_iam_instance_profile" "instance_profile" {
 	name = var.ec2_instance_profile_name.id
