@@ -2,8 +2,6 @@
 - name: SSH Key Management and User Access Setup
   hosts: go_mysql_api_instances
   become: yes
-  vars_files:
-    - database-secrets.enc.yaml
 
   tasks:
     - name: Create SSH keys directory
