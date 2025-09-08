@@ -25,6 +25,15 @@ terraform {
             version = ">= 2.0.0"
         }
     }
+
+    # S3 Backend Configuration
+    backend "s3" {
+        bucket         = "terraform-state-bucket"  # Replace with your S3 bucket name
+        key            = "terraform.tfstate"
+        region         = "us-east-1"  # Replace with your preferred region
+        dynamodb_table = "terraform-state-lock"  # Replace with your DynamoDB table name
+        encrypt        = true
+    }
 }
 
 # Configure the AWS Provider
