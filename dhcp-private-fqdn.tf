@@ -77,13 +77,6 @@ resource "aws_route53_record" "rds_private" {
   type    = "CNAME"
   ttl     = 300
   records = [aws_db_instance.mysql.endpoint]
-
-  tags = {
-    Name        = "rds-private-fqdn"
-    Environment = var.environment
-    Service     = "go-mysql-api"
-    Purpose     = "RDS Private FQDN"
-  }
 }
 
 # Private FQDN for Kubernetes API
@@ -92,14 +85,7 @@ resource "aws_route53_record" "k8s_api_private" {
   name    = "k8s-api.internal.${var.domain_name}"
   type    = "A"
   ttl     = 300
-  records = [aws_instance.kubernetes_control_plane.private_ip]
-
-  tags = {
-    Name        = "k8s-api-private-fqdn"
-    Environment = var.environment
-    Service     = "go-mysql-api"
-    Purpose     = "Kubernetes API Private FQDN"
-  }
+  records = [aws_instance.kubernetes_control_plane.private_ip ]
 }
 
 # Private FQDN for VPN server
@@ -109,13 +95,6 @@ resource "aws_route53_record" "vpn_private" {
   type    = "A"
   ttl     = 300
   records = [aws_instance.wireguard_vpn_server.private_ip]
-
-  tags = {
-    Name        = "vpn-private-fqdn"
-    Environment = var.environment
-    Service     = "go-mysql-api"
-    Purpose     = "VPN Server Private FQDN"
-  }
 }
 
 # Private FQDN for Jump Host
@@ -125,13 +104,6 @@ resource "aws_route53_record" "jump_private" {
   type    = "A"
   ttl     = 300
   records = [aws_instance.jump_host.private_ip]
-
-  tags = {
-    Name        = "jump-private-fqdn"
-    Environment = var.environment
-    Service     = "go-mysql-api"
-    Purpose     = "Jump Host Private FQDN"
-  }
 }
 
 # Private FQDN for Load Balancer (ALB)

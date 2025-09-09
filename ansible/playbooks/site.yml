@@ -8,7 +8,7 @@
   gather_facts: false
   vars:
     # Global variables
-    environment: "production"
+    environment: "sandbox"
     region: "us-east-1"
     cluster_name: "database-ci-cluster"
     

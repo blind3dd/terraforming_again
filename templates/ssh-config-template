@@ -52,7 +52,7 @@ Host jump-host
 # FQDN: kubernetes-control-plane.internal.coderedalarmtech.com
 # Purpose: Kubernetes API server and control plane
 
-Host k8s-master
+Host control-plane
     HostName 172.16.2.12
     User k8sadmin
     IdentityFile ~/.ssh/ec2-key-pair.pem
@@ -172,7 +172,7 @@ Host wireguard
 # Template for future Kubernetes worker nodes
 # These will be added as the cluster scales
 
-# Host k8s-worker-1
+# Host worker-1
 #     HostName 172.16.2.13
 #     User k8sadmin
 #     IdentityFile ~/.ssh/ec2-key-pair.pem
@@ -244,7 +244,7 @@ Host *
 #    ssh jump-host
 # 
 # 3. Connect to Kubernetes master:
-#    ssh k8s-master
+#    ssh control-plane
 #    ssh kubernetes
 # 
 # 4. Connect to VPN server:
@@ -252,15 +252,15 @@ Host *
 #    ssh wireguard
 # 
 # 5. Copy files to instances:
-#    scp file.txt k8s-master:/tmp/
+#    scp file.txt control-plane:/tmp/
 #    scp -r directory/ kubernetes:/opt/
 # 
 # 6. Execute commands remotely:
-#    ssh k8s-master "kubectl get nodes"
+#    ssh control-plane "kubectl get nodes"
 #    ssh kubernetes "docker ps"
 # 
 # 7. Port forwarding:
-#    ssh -L 8080:localhost:8080 k8s-master
+#    ssh -L 8080:localhost:8080 control-plane
 #    ssh -L 6443:localhost:6443 kubernetes
 # 
 # =============================================================================
@@ -282,7 +282,7 @@ Host *
 # 1. Copy this file to ~/.ssh/config
 # 2. Ensure ~/.ssh/ec2-key-pair.pem exists and has correct permissions (600)
 # 3. Connect to VPN first: ssh vpn-server
-# 4. Then access other instances: ssh k8s-master
+# 4. Then access other instances: ssh control-plane
 # 5. Update IP addresses if they change during deployment
 # 6. Add new worker nodes using the template provided
 # 

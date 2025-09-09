@@ -205,7 +205,7 @@ resource "aws_security_group" "kubernetes_control_plane" {
 
 # Security Group for Kubernetes Worker Nodes
 resource "aws_security_group" "kubernetes_workers" {
-  name_prefix = "${var.environment}-${var.service_name}-k8s-workers-"
+  name_prefix = "${var.environment}-${var.service_name}-workers-"
   vpc_id      = aws_vpc.main.id
 
   # Allow all traffic within the security group
@@ -270,7 +270,7 @@ resource "aws_security_group" "kubernetes_workers" {
   }
 
   tags = {
-    Name        = "${var.environment}-${var.service_name}-k8s-workers"
+    Name        = "${var.environment}-${var.service_name}-workers"
     Environment = var.environment
     Service     = var.service_name
     CreatedBy   = var.infra_builder
@@ -542,7 +542,7 @@ resource "aws_route53_record" "kubernetes_api" {
 
 # IAM Role for Kubernetes Worker Nodes
 resource "aws_iam_role" "kubernetes_workers" {
-  name = "${var.environment}-${var.service_name}-k8s-workers"
+  name = "${var.environment}-${var.service_name}-workers"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -558,7 +558,7 @@ resource "aws_iam_role" "kubernetes_workers" {
   })
 
   tags = {
-    Name        = "${var.environment}-${var.service_name}-k8s-workers"
+    Name        = "${var.environment}-${var.service_name}-workers"
     Environment = var.environment
     Service     = var.service_name
     CreatedBy   = var.infra_builder
@@ -567,7 +567,7 @@ resource "aws_iam_role" "kubernetes_workers" {
 
 # IAM Policy for Kubernetes Worker Nodes
 resource "aws_iam_policy" "kubernetes_workers" {
-  name        = "${var.environment}-${var.service_name}-k8s-workers"
+  name        = "${var.environment}-${var.service_name}-workers"
   description = "Policy for Kubernetes worker nodes"
 
   policy = jsonencode({
@@ -610,7 +610,7 @@ resource "aws_iam_role_policy_attachment" "kubernetes_workers" {
 
 # IAM Instance Profile for Workers
 resource "aws_iam_instance_profile" "kubernetes_workers" {
-  name = "${var.environment}-${var.service_name}-k8s-workers"
+  name = "${var.environment}-${var.service_name}-workers"
   role = aws_iam_role.kubernetes_workers.name
 }
 
@@ -652,7 +652,7 @@ data "cloudinit_config" "kubernetes_workers" {
 
 # Launch Template for Kubernetes Worker Nodes
 resource "aws_launch_template" "kubernetes_workers" {
-  name_prefix   = "${var.environment}-${var.service_name}-k8s-workers-"
+  name_prefix   = "${var.environment}-${var.service_name}-workers-"
   image_id      = "ami-0c7217cdde317cfec" # Amazon Linux 2023 with kernel 6.1
   instance_type = "t3.medium"
 
@@ -678,7 +678,7 @@ resource "aws_launch_template" "kubernetes_workers" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name        = "${var.environment}-${var.service_name}-k8s-workers"
+      Name        = "${var.environment}-${var.service_name}-workers"
       Environment = var.environment
       Service     = var.service_name
       Role        = "kubernetes-workers"
@@ -687,7 +687,7 @@ resource "aws_launch_template" "kubernetes_workers" {
   }
 
   tags = {
-    Name        = "${var.environment}-${var.service_name}-k8s-workers"
+    Name        = "${var.environment}-${var.service_name}-workers"
     Environment = var.environment
     Service     = var.service_name
     CreatedBy   = var.infra_builder
@@ -696,7 +696,7 @@ resource "aws_launch_template" "kubernetes_workers" {
 
 # Auto Scaling Group for Kubernetes Worker Nodes
 resource "aws_autoscaling_group" "kubernetes_workers" {
-  name                = "${var.environment}-${var.service_name}-k8s-workers"
+  name                = "${var.environment}-${var.service_name}-workers"
   desired_capacity    = 2
   max_size           = 10
   min_size           = 1
@@ -711,7 +711,7 @@ resource "aws_autoscaling_group" "kubernetes_workers" {
 
   tag {
     key                 = "Name"
-    value              = "${var.environment}-${var.service_name}-k8s-workers"
+    value              = "${var.environment}-${var.service_name}-workers"
     propagate_at_launch = true
   }
 

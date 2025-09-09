@@ -1,0 +1,66 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: go-mysql-api-dev
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Base configuration
+bases:
+  - ../../base
+
+# Namespace override
+namespace: go-mysql-api-dev
+
+# Common labels for dev environment
+commonLabels:
+  environment: dev
+  app.kubernetes.io/instance: go-mysql-api-dev
+
+# Common annotations
+commonAnnotations:
+  environment: dev
+  deployment.timestamp: "{{ timestamp }}"
+
+# Images for dev
+images:
+  - name: go-mysql-api
+    newTag: dev-latest
+
+# ConfigMap patches for dev
+configMapGenerator:
+  - name: go-mysql-api-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - ENVIRONMENT=dev
+      - DEBUG=true
+    options:
+      disableNameSuffixHash: true
+
+# Secret patches for dev
+secretGenerator:
+  - name: go-mysql-api-secrets
+    behavior: merge
+    literals:
+      - DB_HOST=mysql-dev-service
+      - DB_NAME=go_mysql_api_dev
+      - DB_USER=api_user_dev
+    options:
+      disableNameSuffixHash: true
+
+# Patches for dev-specific configurations
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - service-patch.yaml
+  - ingress-patch.yaml
+
+# Replicas for dev (lower resource usage)
+replicas:
+  - name: go-mysql-api
+    count: 1
+
+# Resources for dev environment
+resources:
+  - dev-resources.yaml

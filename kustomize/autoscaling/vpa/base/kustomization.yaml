@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: vpa-base
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Base resources for VPA
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
+  - deployment.yaml
+  - service.yaml
+
+# Common labels for all environments
+commonLabels:
+  app.kubernetes.io/name: vpa
+  app.kubernetes.io/part-of: autoscaling
+  app.kubernetes.io/managed-by: kustomize
+
+# Common annotations
+commonAnnotations:
+  managed-by: kustomize
+  version: v0.14.0

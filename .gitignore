@@ -20,6 +20,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Devbox
+devbox*
+
 # Temporary files
 *.tmp
 *.temp
