@@ -1,0 +1,131 @@
+# CAPI Hybrid Cluster Configuration
+# Deploys Kubernetes clusters across AWS and Azure
+
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: hybrid-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: hybrid-cluster-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: AWSCluster
+    name: hybrid-cluster-aws
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSCluster
+metadata:
+  name: hybrid-cluster-aws
+  namespace: default
+spec:
+  region: us-west-2
+  vpcCidrBlock: 10.0.0.0/16
+  bastion:
+    enabled: true
+  controlPlaneLoadBalancer:
+    scheme: internet-facing
+  controlPlaneEndpoint:
+    host: ""
+    port: 6443
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: hybrid-cluster-control-plane
+  namespace: default
+spec:
+  replicas: 3
+  version: v1.28.0
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: AWSMachineTemplate
+    name: hybrid-cluster-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: aws
+      controllerManager:
+        extraArgs:
+          cloud-provider: aws
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: hybrid-cluster-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      instanceType: t3.medium
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      sshKeyName: default
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: hybrid-cluster-md-0
+  namespace: default
+spec:
+  clusterName: hybrid-cluster
+  replicas: 2
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: hybrid-cluster
+  template:
+    spec:
+      clusterName: hybrid-cluster
+      version: v1.28.0
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: hybrid-cluster-md-0
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: AWSMachineTemplate
+        name: hybrid-cluster-md-0
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: hybrid-cluster-md-0
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: aws
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: hybrid-cluster-md-0
+  namespace: default
+spec:
+  template:
+    spec:
+      instanceType: t3.small
+      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+      sshKeyName: default

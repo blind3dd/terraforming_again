@@ -142,7 +142,7 @@ connect_k8s_master() {
     fi
     
     info "Connecting to Kubernetes master at $K8S_MASTER..."
-    ssh k8s-master
+    ssh control-plane
 }
 
 # Function to connect to VPN server
@@ -181,7 +181,7 @@ test_all_connections() {
     fi
     
     # Test Kubernetes master
-    if ! test_connectivity "k8s-master" "Kubernetes Master"; then
+    if ! test_connectivity "control-plane" "Kubernetes Master"; then
         ((failed++))
     fi
     
@@ -223,11 +223,11 @@ show_status() {
     echo ""
     echo -e "${CYAN}SSH Commands:${NC}"
     echo "  ssh jump-host      # Connect to jump host"
-    echo "  ssh k8s-master     # Connect to Kubernetes master"
+    echo "  ssh control-plane     # Connect to Kubernetes master"
     echo "  ssh vpn-server     # Connect to VPN server"
     echo ""
     echo -e "${CYAN}Alternative Names:${NC}"
-    echo "  ssh kubernetes     # Same as k8s-master"
+    echo "  ssh kubernetes     # Same as control-plane"
     echo "  ssh wireguard      # Same as vpn-server"
 }
 
@@ -239,8 +239,8 @@ show_help() {
     echo ""
     echo "Commands:"
     echo "  jump-host          Connect to jump host (Go-MySQL)"
-    echo "  k8s-master         Connect to Kubernetes master"
-    echo "  kubernetes         Connect to Kubernetes master (alias)"
+    echo "  control-plane      Connect to Kubernetes control plane"
+    echo "  kubernetes         Connect to Kubernetes control plane (alias)"
     echo "  vpn-server         Connect to VPN server"
     echo "  wireguard          Connect to VPN server (alias)"
     echo "  test               Test all connections"
@@ -250,7 +250,7 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 jump-host       # Connect to jump host"
-    echo "  $0 k8s-master      # Connect to Kubernetes master"
+    echo "  $0 control-plane      # Connect to Kubernetes master"
     echo "  $0 test            # Test all connections"
     echo "  $0 status          # Show status"
     echo ""
@@ -283,7 +283,7 @@ setup_ssh_config() {
     echo "Next steps:"
     echo "1. Connect to VPN: $0 vpn-server"
     echo "2. Test connections: $0 test"
-    echo "3. Access instances: $0 k8s-master"
+    echo "3. Access instances: $0 control-plane"
 }
 
 # Main function
@@ -292,7 +292,7 @@ main() {
         "jump-host")
             connect_jump_host
             ;;
-        "k8s-master"|"kubernetes")
+        "control-plane"|"kubernetes")
             connect_k8s_master
             ;;
         "vpn-server"|"wireguard")

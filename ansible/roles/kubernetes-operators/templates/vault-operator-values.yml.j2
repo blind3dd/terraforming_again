@@ -1,0 +1,109 @@
+# HashiCorp Vault Operator Helm Values
+replicaCount: {{ vault_operator_replicas }}
+
+image:
+  repository: {{ vault_operator_image_repository }}
+  tag: {{ vault_operator_image_tag }}
+  pullPolicy: {{ vault_operator_image_pull_policy }}
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: {{ service_accounts.vault_operator }}
+
+rbac:
+  create: {{ rbac_enabled }}
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: vault-operator.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: {{ vault_operator_cpu_limit }}
+    memory: {{ vault_operator_memory_limit }}
+  requests:
+    cpu: {{ vault_operator_cpu_request }}
+    memory: {{ vault_operator_memory_request }}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Vault Operator specific configuration
+vault:
+  enabled: {{ install_vault_server | default(false) }}
+  server:
+    replicas: {{ vault_server_replicas | default(1) }}
+    image:
+      repository: {{ vault_server_image_repository | default('hashicorp/vault') }}
+      tag: {{ vault_server_image_tag | default('latest') }}
+    resources:
+      limits:
+        cpu: {{ vault_server_cpu_limit | default('500m') }}
+        memory: {{ vault_server_memory_limit | default('512Mi') }}
+      requests:
+        cpu: {{ vault_server_cpu_request | default('100m') }}
+        memory: {{ vault_server_memory_request | default('256Mi') }}
+    config:
+      storage:
+        file:
+          path: "/vault/file"
+      listener:
+        tcp:
+          address: "0.0.0.0:8200"
+          tls_disable: true
+      ui: true
+      disable_mlock: true
+    service:
+      type: ClusterIP
+      port: 8200
+    ingress:
+      enabled: false
+
+# Environment variables
+env:
+  - name: VAULT_ADDR
+    value: "http://vault-server:8200"
+  - name: VAULT_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: vault-token
+        key: token

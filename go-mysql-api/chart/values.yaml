@@ -470,3 +470,25 @@ istio:
 commonAnnotations: {}
 # - key: meta.helm.sh/release-name
 #   value: {{ .Release.Name }}
+
+# Test configurations
+tests:
+  enabled: true
+  connection:
+    enabled: true
+    timeout: 30
+  performance:
+    enabled: true
+    concurrentRequests: 10
+    totalRequests: 100
+    timeout: 30
+    thresholds:
+      minSuccessRate: 95
+      maxAvgResponseTime: 500
+  security:
+    enabled: true
+    timeout: 30
+    httpsEnforced: false
+    rateLimitingEnabled: false
+    thresholds:
+      minSuccessRate: 90

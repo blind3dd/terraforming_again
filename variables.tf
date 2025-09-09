@@ -1,1 +1,1 @@
-common/variables.tf
+environments/shared/variables.tf

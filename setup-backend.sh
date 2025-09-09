@@ -33,10 +33,10 @@ echo "🔧 Initializing Terraform for backend setup..."
 terraform init
 
 echo "📋 Planning backend infrastructure..."
-terraform plan -var="state_bucket_name=$BUCKET_NAME" -var="state_table_name=$TABLE_NAME" -var="region=$REGION" -target=module.s3_state_bucket -target=module.dynamodb_state_lock
+terraform plan -var="create_backend=true" -var="state_bucket_name=$BUCKET_NAME" -var="state_table_name=$TABLE_NAME" -var="region=$REGION" -target=module.terraform_backend
 
 echo "🚀 Creating backend infrastructure..."
-terraform apply -auto-approve -var="state_bucket_name=$BUCKET_NAME" -var="state_table_name=$TABLE_NAME" -var="region=$REGION" -target=module.s3_state_bucket -target=module.dynamodb_state_lock
+terraform apply -auto-approve -var="create_backend=true" -var="state_bucket_name=$BUCKET_NAME" -var="state_table_name=$TABLE_NAME" -var="region=$REGION" -target=module.terraform_backend
 
 # Get outputs
 BUCKET_NAME_OUTPUT=$(terraform output -raw s3_bucket_name)

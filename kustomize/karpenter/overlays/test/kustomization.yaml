@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: karpenter-test
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Base configuration
+bases:
+  - ../../base
+
+# Namespace override
+namespace: karpenter-test
+
+# Common labels for test environment
+commonLabels:
+  environment: test
+  app.kubernetes.io/instance: karpenter-test
+
+# Common annotations
+commonAnnotations:
+  environment: test
+
+# Images for test
+images:
+  - name: public.ecr.aws/karpenter/karpenter
+    newTag: v0.37.0-test
+
+# Patches for test-specific configurations
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - service-nodeport.yaml
+
+# Replicas for test
+replicas:
+  - name: karpenter
+    count: 2

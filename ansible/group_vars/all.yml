@@ -1,4 +1,5 @@
 # Ansible Variables for Istio Ambient Mode RDS Deployment
+# Non-sensitive configuration variables
 
 # Application Configuration
 app_name: rds-app
@@ -23,11 +24,8 @@ memory_request: "128Mi"
 cpu_limit: "200m"
 memory_limit: "256Mi"
 
-# Database Configuration
+# Database Configuration (non-sensitive)
 db_port: 3306
-rds_host: "rds-endpoint.example.com"
-rds_username: "admin"
-rds_password: "password"
 rds_database: "myapp"
 
 # Network Configuration

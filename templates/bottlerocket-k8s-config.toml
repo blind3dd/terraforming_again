@@ -3,7 +3,7 @@
 
 [settings]
 # Hostname configuration
-hostname = "k8s-master"
+hostname = "control-plane"
 
 # Timezone
 timezone = "UTC"
@@ -11,7 +11,7 @@ timezone = "UTC"
 # Network configuration
 [settings.network]
 # Static IP configuration (will be set by CloudInit)
-# hostname = "k8s-master.internal.coderedalarmtech.com"
+# hostname = "control-plane.internal.coderedalarmtech.com"
 
 # Kubernetes configuration
 [settings.kubernetes]

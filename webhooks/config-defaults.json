@@ -1,0 +1,19 @@
+{
+  "port": "8080",
+  "github_token": "",
+  "repository": "blind3dd/database_CI",
+  "working_dir": "/tmp/webhook-workspace",
+  "kubernetes_version": "1.31",
+  "encryption_key": "default-webhook-encryption-key-change-in-production",
+  "log_level": "info",
+  "max_concurrency": 10,
+  "request_timeout": 30,
+  "enable_metrics": true,
+  "metrics_port": "9090",
+  "max_memory_mb": 1024,
+  "cpu_threshold": 0.8,
+  "allowed_hosts": ["localhost", "127.0.0.1"],
+  "database_password": "",
+  "api_key": "",
+  "secret_token": ""
+}
