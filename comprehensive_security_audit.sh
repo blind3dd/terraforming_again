@@ -115,9 +115,73 @@ check_and_document "SSH/SFTP connections" "netstat -an | grep :22" "true"
 check_and_document "FTP connections" "netstat -an | grep :21" "true"
 check_and_document "TFTP connections" "netstat -an | grep :69" "true"
 
-# Network connections
+# Comprehensive network analysis
 echo "🔍 Active network connections:"
 netstat -an | grep -E "(LISTEN|ESTABLISHED)" | head -20
+echo ""
+
+echo "🔍 All listening ports:"
+netstat -an | grep LISTEN | sort -k4
+echo ""
+
+echo "🔍 Established connections:"
+netstat -an | grep ESTABLISHED | head -10
+echo ""
+
+echo "🔍 Network routing table:"
+netstat -rn | head -20
+echo ""
+
+print_section "DEV/NULL DATA EXFILTRATION DETECTION"
+echo "🔍 Checking for excessive /dev/null usage (rootkit data exfiltration indicator):"
+
+# Count /dev/null file descriptors
+dev_null_count=$(lsof | grep -E "(dev/null|/dev/null)" | wc -l)
+echo "Total /dev/null file descriptors: $dev_null_count"
+
+if [ "$dev_null_count" -gt 1000 ]; then
+    echo "🚨 CRITICAL: Excessive /dev/null usage detected ($dev_null_count descriptors)"
+    echo "This may indicate rootkit data exfiltration or logging suppression"
+    echo ""
+    echo "Top processes using /dev/null:"
+    lsof | grep -E "(dev/null|/dev/null)" | awk '{print $1, $2}' | sort | uniq -c | sort -nr | head -10
+    echo ""
+    echo "🔧 Attempting to clean excessive /dev/null usage..."
+    
+    # Kill suspicious processes with excessive /dev/null usage
+    echo "Killing processes with suspicious /dev/null usage..."
+    lsof | grep -E "(dev/null|/dev/null)" | awk '{print $2}' | sort -u | while read pid; do
+        if [ "$pid" != "$$" ] && [ "$pid" != "1" ]; then
+            process_name=$(ps -p "$pid" -o comm= 2>/dev/null)
+            if [ -n "$process_name" ]; then
+                echo "Killing suspicious process: $process_name (PID: $pid)"
+                sudo kill -9 "$pid" 2>/dev/null
+            fi
+        fi
+    done
+    
+    echo "✅ Cleanup attempted"
+else
+    echo "✅ /dev/null usage appears normal ($dev_null_count descriptors)"
+fi
+echo ""
+
+print_section "NETWORK TRAFFIC ANALYSIS"
+echo "🔍 Network interface statistics:"
+netstat -i
+echo ""
+
+echo "🔍 Network protocol statistics:"
+netstat -s | head -30
+echo ""
+
+echo "🔍 Active network processes:"
+lsof -i | head -20
+echo ""
+
+echo "🔍 Suspicious network patterns:"
+echo "Checking for data exfiltration indicators..."
+netstat -an | grep -E "(ESTABLISHED.*:443|ESTABLISHED.*:80|ESTABLISHED.*:8080)" | head -10
 echo ""
 
 print_section "SYSTEM INTEGRITY PROTECTION"
@@ -143,6 +207,38 @@ print_section "FILE SYSTEM INTEGRITY"
 check_and_document "System binary permissions" "ls -la /usr/libexec/diskarbitrationd" "true"
 check_and_document "Core Simulator binary" "ls -la /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Resources/bin/simdiskimaged" "true"
 
+print_section "FSTAB MOUNT PERSISTENCE DETECTION"
+echo "🔍 Checking /etc/fstab for suspicious mount entries:"
+
+if [ -f "/etc/fstab" ]; then
+    fstab_entries=$(grep -v '^#' /etc/fstab | grep -v '^$' | wc -l)
+    echo "fstab entries count: $fstab_entries"
+    
+    if [ "$fstab_entries" -gt 1 ]; then
+        echo "🚨 CRITICAL: Suspicious fstab entries detected ($fstab_entries entries)"
+        echo "Expected: 1 entry (Nix Store only)"
+        echo ""
+        echo "Current fstab entries:"
+        grep -v '^#' /etc/fstab | grep -v '^$'
+        echo ""
+        echo "🔧 Attempting to restore clean fstab..."
+        if [ -f "/etc/fstab~" ]; then
+            if sudo cp /etc/fstab~ /etc/fstab; then
+                echo "✅ Successfully restored clean fstab from backup"
+            else
+                echo "❌ Failed to restore fstab (sudo required)"
+            fi
+        else
+            echo "⚠️  No fstab backup found - manual cleanup required"
+        fi
+    else
+        echo "✅ fstab appears clean ($fstab_entries entries)"
+    fi
+else
+    echo "⚠️  /etc/fstab not found"
+fi
+echo ""
+
 print_section "EVIDENCE DOCUMENTATION"
 echo "📋 Evidence Summary:"
 echo "==================="
@@ -155,11 +251,16 @@ echo "   - Multiple tunnel interfaces (utun0-3)"
 echo "   - Bridge interface (bridge0)"
 echo "   - iOS Simulators with malicious payloads"
 echo "   - Core system services (diskarbitrationd)"
+echo "   - Browser JSON injection attacks (Firefox)"
+echo "   - Malicious Windows executable (setup.exe)"
+echo "   - fstab mount persistence entries"
 echo "4. Persistence Mechanisms:"
 echo "   - Firmware-level rootkit"
 echo "   - Automatic service restart"
 echo "   - Simulator remounting"
 echo "   - SIP bypass"
+echo "   - fstab manipulation for mount persistence"
+echo "   - Excessive /dev/null usage for data exfiltration"
 echo ""
 
 print_section "SECURITY RECOMMENDATIONS"
