@@ -51,6 +51,7 @@ data "cloudinit_config" "ec2_user_data" {
     content      = templatefile("${path.module}/cloudinit.yml", {
       environment = var.environment
       service_name = var.service_name
+      region = var.aws_region
       ssh_public_key = tls_private_key.ssh_key.public_key_openssh
       ec2_user_password = var.create_ec2_user_password ? random_password.ec2_user_password[0].result : null
     })

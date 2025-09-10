@@ -11,13 +11,19 @@ variable "service_name" {
   default     = "go-mysql-api"
 }
 
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
 variable "vpc_id" {
   description = "ID of the VPC where the EC2 instance will be created"
   type        = string
 }
 
 variable "public_subnet_id" {
-  description = "ID of the public subnet where the EC2 instance will be created"
+  description = "ID of the subnet where the EC2 instance will be created (can be public or private)"
   type        = string
 }
 

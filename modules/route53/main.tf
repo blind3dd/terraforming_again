@@ -41,11 +41,7 @@ resource "aws_route53_record" "records" {
     }
   }
 
-  tags = merge(var.tags, {
-    Name        = "${var.environment}-${each.key}-record"
-    Environment = var.environment
-    Record      = each.key
-  })
+  # Note: Route53 records don't support tags
 }
 
 # ACM Certificate for HTTPS
@@ -85,11 +81,7 @@ resource "aws_route53_record" "cert_validation" {
   type            = each.value.type
   zone_id         = data.aws_route53_zone.main.zone_id
 
-  tags = merge(var.tags, {
-    Name        = "${var.environment}-cert-validation-${each.key}"
-    Environment = var.environment
-    Purpose     = "Certificate Validation"
-  })
+  # Note: Route53 records don't support tags
 }
 
 # ACM Certificate Validation

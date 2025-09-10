@@ -234,6 +234,16 @@ spec:
     kind: MutatingWebhookConfiguration
   - group: 'admissionregistration.k8s.io'
     kind: ValidatingWebhookConfiguration
+  - group: 'terraform.io'
+    kind: TerraformConfig
+  - group: 'vault.io'
+    kind: VaultSecret
+  - group: 'ansible.io'
+    kind: AnsibleJob
+  - group: 'karpenter.sh'
+    kind: NodeClaim
+  - group: 'karpenter.sh'
+    kind: NodePool
     
   namespaceResourceWhitelist:
   - group: 'apps'
