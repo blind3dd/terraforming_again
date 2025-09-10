@@ -16,3 +16,6 @@ maintainers:
   - name: Database CI Team
     email: team@database-ci.com
 dependencies: []
+annotations:
+  category: Infrastructure
+  licenses: MPL-2.0

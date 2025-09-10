@@ -546,7 +546,7 @@ resource "kubernetes_config_map" "kibana_config" {
 # =============================================================================
 
 # Filebeat DaemonSet
-resource "kubernetes_daemon_set" "filebeat" {
+resource "kubernetes_daemonset" "filebeat" {
   count = var.create_filebeat ? 1 : 0
   
   metadata {
