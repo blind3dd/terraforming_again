@@ -1,5 +1,5 @@
 # CAPI Hybrid Cluster Configuration
-# Deploys Kubernetes clusters across AWS and Azure
+# Deploys Kubernetes clusters across AWS and Azure - initial configuration
 
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
