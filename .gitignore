@@ -27,3 +27,5 @@ devbox*
 *.tmp
 *.temp
 key3_private.asc
+new-key-backup.asc
+*.asc
