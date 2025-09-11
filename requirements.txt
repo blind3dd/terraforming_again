@@ -2,7 +2,7 @@
 # This file is used by GitHub Actions to install Python dependencies
 
 # Development and testing tools
-black==24.0.0
+black==24.3.0
 flake8==7.0.0
 mypy==1.8.0
 pytest==8.0.0
