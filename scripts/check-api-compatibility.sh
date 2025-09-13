@@ -18,24 +18,9 @@ CHART_PATH="go-mysql-api/chart"
 KUSTOMIZE_PATH="kustomize"
 HELMFILE_PATH="helmfile"
 
-# API Version mappings for different Kubernetes versions
-declare -A API_VERSIONS=(
-    ["1.28"]="apps/v1,networking.k8s.io/v1,autoscaling/v2,policy/v1"
-    ["1.27"]="apps/v1,networking.k8s.io/v1,autoscaling/v2,policy/v1"
-    ["1.26"]="apps/v1,networking.k8s.io/v1,autoscaling/v2,policy/v1"
-    ["1.25"]="apps/v1,networking.k8s.io/v1,autoscaling/v2,policy/v1"
-)
-
 # Deprecated API versions that should trigger chart version updates
-declare -A DEPRECATED_APIS=(
-    ["extensions/v1beta1"]="1.16"
-    ["apps/v1beta1"]="1.16"
-    ["apps/v1beta2"]="1.16"
-    ["networking.k8s.io/v1beta1"]="1.19"
-    ["autoscaling/v2beta1"]="1.23"
-    ["autoscaling/v2beta2"]="1.23"
-    ["policy/v1beta1"]="1.21"
-)
+# Format: "api_version:deprecation_version"
+DEPRECATED_APIS="extensions/v1beta1:1.16 apps/v1beta1:1.16 apps/v1beta2:1.16 networking.k8s.io/v1beta1:1.19 autoscaling/v2beta1:1.23 autoscaling/v2beta2:1.23 policy/v1beta1:1.21"
 
 echo -e "${BLUE}🔍 Checking Kubernetes API Compatibility${NC}"
 echo -e "${BLUE}Target Kubernetes Version: ${KUBERNETES_VERSION}${NC}"
@@ -55,9 +40,11 @@ check_deprecated_api() {
     local api_version="$1"
     local k8s_version="$2"
     
-    for deprecated_api in "${!DEPRECATED_APIS[@]}"; do
+    for deprecated_entry in $DEPRECATED_APIS; do
+        local deprecated_api=$(echo "$deprecated_entry" | cut -d: -f1)
+        local deprecation_version=$(echo "$deprecated_entry" | cut -d: -f2)
+        
         if [[ "$api_version" == "$deprecated_api" ]]; then
-            local deprecation_version="${DEPRECATED_APIS[$deprecated_api]}"
             if [[ "$(printf '%s\n' "$deprecation_version" "$k8s_version" | sort -V | head -n1)" == "$deprecation_version" ]]; then
                 return 0  # API is deprecated
             fi
@@ -146,8 +133,25 @@ main() {
     local kustomize_apis_array=($(echo "$kustomize_apis"))
     local helm_apis_array=($(echo "$helm_apis"))
     
+    # Kustomize-specific API versions that don't need to be in Helm
+    local kustomize_specific_apis="kustomize.config.k8s.io/v1beta1 kustomize.config.k8s.io/v1alpha1"
+    
     for kustomize_api in "${kustomize_apis_array[@]}"; do
         if [[ -n "$kustomize_api" ]]; then
+            # Skip Kustomize-specific API versions
+            local is_kustomize_specific=false
+            for kustomize_specific in $kustomize_specific_apis; do
+                if [[ "$kustomize_api" == "$kustomize_specific" ]]; then
+                    is_kustomize_specific=true
+                    break
+                fi
+            done
+            
+            if [[ "$is_kustomize_specific" == true ]]; then
+                echo -e "${GREEN}✅ Kustomize-specific API (ignored): $kustomize_api${NC}"
+                continue
+            fi
+            
             local found=false
             for helm_api in "${helm_apis_array[@]}"; do
                 if [[ "$kustomize_api" == "$helm_api" ]]; then
