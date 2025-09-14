@@ -4,6 +4,17 @@ on:
   schedule:
     # Run security remediation daily at 3 AM UTC
     - cron: '0 3 * * *'
+  push:
+    branches: [ main, develop, working_branch ]
+    paths:
+      - 'go-mysql-api/go.mod'
+      - 'go-mysql-api/go.sum'
+      - '**/Dockerfile'
+      - '**/requirements.txt'
+      - '**/package.json'
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       remediation_type:
@@ -17,6 +28,8 @@ on:
           - policies
           - compliance
           - secrets
+  repository_dispatch:
+    types: [security-alert]
 
 env:
   SECURITY_SCAN_DIR: "."
@@ -68,12 +81,27 @@ jobs:
     - name: Update Go dependencies
       run: |
         if [ -f "go.mod" ]; then
+          # Update all dependencies to latest versions
           go get -u ./...
           go mod tidy
+          
+          # Update specific vulnerable dependencies
+          go get -u github.com/go-sql-driver/mysql@latest
+          go get -u github.com/gorilla/mux@latest
+          go get -u github.com/stretchr/testify@latest
+          go get -u github.com/caarlos0/env@latest
+          go get -u gopkg.in/yaml.v3@latest
+          
+          # Clean up and tidy
+          go mod tidy
+          go mod verify
           
           # Check for vulnerable Go dependencies
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./... > govulncheck-report.txt || true
+          
+          # Run go mod download to ensure all dependencies are available
+          go mod download
         fi
         
     - name: Update Node.js dependencies

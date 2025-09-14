@@ -1,4 +1,4 @@
-#!/bin/bash
+ i#!/bin/bash
 
 # Security Automation Script
 # Follows Kubernetes and CAPI community standards
@@ -38,6 +38,49 @@ run_security_scan() {
         echo -e "${RED}❌ $scan_type scan failed${NC}"
         return 1
     fi
+}
+
+# Function to auto-remediate vulnerabilities
+auto_remediate_vulnerabilities() {
+    echo -e "${BLUE}🔧 Starting automatic vulnerability remediation...${NC}"
+    
+    # Auto-update Go dependencies
+    if [ -f "go-mysql-api/go.mod" ]; then
+        echo -e "${YELLOW}Updating Go dependencies...${NC}"
+        cd go-mysql-api
+        go get -u ./...
+        go get -u github.com/go-sql-driver/mysql@latest
+        go get -u github.com/gorilla/mux@latest
+        go get -u github.com/stretchr/testify@latest
+        go get -u github.com/caarlos0/env@latest
+        go get -u gopkg.in/yaml.v3@latest
+        go mod tidy
+        go mod verify
+        cd ..
+        echo -e "${GREEN}✅ Go dependencies updated${NC}"
+    fi
+    
+    # Auto-update Docker base images
+    find . -name "Dockerfile*" -type f | while read dockerfile; do
+        echo -e "${YELLOW}Updating $dockerfile...${NC}"
+        sed -i 's/FROM golang:[0-9.]*-alpine[0-9.]*/FROM golang:1.21.5-alpine3.19/g' "$dockerfile"
+        sed -i 's/FROM alpine:[0-9.]*/FROM alpine:3.19/g' "$dockerfile"
+        sed -i 's/FROM ubuntu:[0-9.]*/FROM ubuntu:22.04/g' "$dockerfile"
+        echo -e "${GREEN}✅ Updated $dockerfile${NC}"
+    done
+    
+    # Auto-remediate secrets
+    echo -e "${YELLOW}Remediating exposed secrets...${NC}"
+    find . -type f \( -name "*.py" -o -name "*.go" -o -name "*.js" -o -name "*.ts" -o -name "*.tf" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
+        if [ -f "$file" ]; then
+            sed -i 's/password.*=.*"[^"]*"/password = os.getenv("DB_PASSWORD")/g' "$file"
+            sed -i 's/api_key.*=.*"[^"]*"/api_key = os.getenv("API_KEY")/g' "$file"
+            sed -i 's/secret.*=.*"[^"]*"/secret = os.getenv("SECRET_KEY")/g' "$file"
+        fi
+    done
+    echo -e "${GREEN}✅ Secrets remediated${NC}"
+    
+    echo -e "${GREEN}🎉 Automatic vulnerability remediation completed${NC}"
 }
 
 # Function to check if tool is installed
@@ -174,7 +217,11 @@ if check_tool "kube-bench"; then
         "cis-benchmark-results.json"
 fi
 
-# 8. Generate Security Report
+# 8. Auto-remediate vulnerabilities
+echo -e "${BLUE}🔧 Auto-remediating vulnerabilities${NC}"
+auto_remediate_vulnerabilities
+
+# 9. Generate Security Report
 echo -e "${BLUE}📊 Generating Security Report${NC}"
 
 cat > "$OUTPUT_DIR/security-report.md" << EOF
