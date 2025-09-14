@@ -1,0 +1,1066 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: telemetry-operator
+  labels:
+    app.kubernetes.io/name: telemetry-operator
+    app.kubernetes.io/part-of: crossplane
+    app.kubernetes.io/managed-by: crossplane
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: terraforming-again.io/v1alpha1
+    kind: XTelemetryOperator
+  mode: Pipeline
+  pipeline:
+  - step: create-namespace
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: telemetry-operator
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+              telemetry.crossplane.io/operator: "true"
+  - step: create-prometheus
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: monitoring.coreos.com/v1
+          kind: Prometheus
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-prometheus
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: prometheus
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            serviceAccountName: prometheus
+            serviceMonitorSelector:
+              matchLabels:
+                app.kubernetes.io/part-of: telemetry
+            ruleSelector:
+              matchLabels:
+                app.kubernetes.io/part-of: telemetry
+            resources:
+              requests:
+                memory: 400Mi
+                cpu: 200m
+              limits:
+                memory: 1Gi
+                cpu: 500m
+            retention: 15d
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: gp2
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 50Gi
+  - step: create-grafana
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: grafana.integreatly.org/v1beta1
+          kind: Grafana
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-grafana
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: grafana
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            deployment:
+              replicas: 2
+              resources:
+                requests:
+                  memory: 256Mi
+                  cpu: 100m
+                limits:
+                  memory: 512Mi
+                  cpu: 200m
+            config:
+              security:
+                admin_user: admin
+                admin_password: {{ .observed.composite.resource.spec.adminPassword | default "admin123" }}
+              server:
+                root_url: "https://grafana.{{ .observed.composite.resource.spec.domain | default "example.com" }}"
+              datasources:
+                datasources.yaml:
+                  apiVersion: 1
+                  datasources:
+                  - name: Prometheus
+                    type: prometheus
+                    url: http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090
+                    access: proxy
+                    isDefault: true
+  - step: create-jaeger
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: jaegertracing.io/v1
+          kind: Jaeger
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-jaeger
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: jaeger
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            strategy: production
+            collector:
+              maxReplicas: 5
+              resources:
+                requests:
+                  memory: 256Mi
+                  cpu: 100m
+                limits:
+                  memory: 512Mi
+                  cpu: 200m
+            storage:
+              type: elasticsearch
+              elasticsearch:
+                nodeCount: 3
+                storage:
+                  storageClassName: gp2
+                  size: 100Gi
+                resources:
+                  requests:
+                    memory: 1Gi
+                    cpu: 200m
+                  limits:
+                    memory: 2Gi
+                    cpu: 500m
+  - step: create-elasticsearch
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: elasticsearch.k8s.elastic.co/v1
+          kind: Elasticsearch
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-elasticsearch
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: elasticsearch
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            version: 8.11.0
+            nodeSets:
+            - name: default
+              count: 3
+              config:
+                node.roles: ["master", "data", "ingest"]
+                xpack.security.enabled: true
+                xpack.security.transport.ssl.enabled: true
+                xpack.security.http.ssl.enabled: true
+              podTemplate:
+                spec:
+                  containers:
+                  - name: elasticsearch
+                    resources:
+                      requests:
+                        memory: 2Gi
+                        cpu: 200m
+                      limits:
+                        memory: 4Gi
+                        cpu: 500m
+              volumeClaimTemplates:
+              - metadata:
+                  name: elasticsearch-data
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 100Gi
+                  storageClassName: gp2
+  - step: create-kibana
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: kibana.k8s.elastic.co/v1
+          kind: Kibana
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-kibana
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: kibana
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            version: 8.11.0
+            count: 2
+            elasticsearchRef:
+              name: {{ .observed.composite.resource.metadata.name }}-elasticsearch
+            podTemplate:
+              spec:
+                containers:
+                - name: kibana
+                  resources:
+                    requests:
+                      memory: 1Gi
+                      cpu: 100m
+                    limits:
+                      memory: 2Gi
+                      cpu: 200m
+  - step: create-fluentd
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: apps/v1
+          kind: DaemonSet
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-fluentd
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: fluentd
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: fluentd
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: fluentd
+              spec:
+                serviceAccountName: fluentd
+                containers:
+                - name: fluentd
+                  image: fluent/fluentd-kubernetes-daemonset:v1-debian-elasticsearch8-1
+                  resources:
+                    requests:
+                      memory: 256Mi
+                      cpu: 100m
+                    limits:
+                      memory: 512Mi
+                      cpu: 200m
+                  env:
+                  - name: FLUENT_ELASTICSEARCH_HOST
+                    value: "{{ .observed.composite.resource.metadata.name }}-elasticsearch-es-http"
+                  - name: FLUENT_ELASTICSEARCH_PORT
+                    value: "9200"
+                  - name: FLUENT_ELASTICSEARCH_SCHEME
+                    value: "https"
+                  - name: FLUENT_ELASTICSEARCH_SSL_VERIFY
+                    value: "false"
+                  - name: FLUENT_ELASTICSEARCH_USER
+                    value: "elastic"
+                  - name: FLUENT_ELASTICSEARCH_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: {{ .observed.composite.resource.metadata.name }}-elasticsearch-es-elastic-user
+                        key: elastic
+                  volumeMounts:
+                  - name: varlog
+                    mountPath: /var/log
+                  - name: varlibdockercontainers
+                    mountPath: /var/lib/docker/containers
+                    readOnly: true
+                volumes:
+                - name: varlog
+                  hostPath:
+                    path: /var/log
+                - name: varlibdockercontainers
+                  hostPath:
+                    path: /var/lib/docker/containers
+                tolerations:
+                - key: node-role.kubernetes.io/master
+                  effect: NoSchedule
+                - key: node-role.kubernetes.io/control-plane
+                  effect: NoSchedule
+  - step: create-opentelemetry
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: opentelemetry.io/v1alpha1
+          kind: OpenTelemetryCollector
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-otel-collector
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: opentelemetry-collector
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            mode: deployment
+            replicas: 2
+            config: |
+              receivers:
+                otlp:
+                  protocols:
+                    grpc:
+                      endpoint: 0.0.0.0:4317
+                    http:
+                      endpoint: 0.0.0.0:4318
+                jaeger:
+                  protocols:
+                    grpc:
+                      endpoint: 0.0.0.0:14250
+                    thrift_http:
+                      endpoint: 0.0.0.0:14268
+                prometheus:
+                  config:
+                    scrape_configs:
+                    - job_name: 'otel-collector'
+                      scrape_interval: 10s
+                      static_configs:
+                      - targets: ['0.0.0.0:8888']
+              processors:
+                batch:
+                  timeout: 1s
+                  send_batch_size: 1024
+                memory_limiter:
+                  limit_mib: 512
+              exporters:
+                jaeger:
+                  endpoint: {{ .observed.composite.resource.metadata.name }}-jaeger-collector:14250
+                  tls:
+                    insecure: true
+                prometheus:
+                  endpoint: "0.0.0.0:8889"
+                logging:
+                  loglevel: debug
+              service:
+                pipelines:
+                  traces:
+                    receivers: [otlp, jaeger]
+                    processors: [memory_limiter, batch]
+                    exporters: [jaeger, logging]
+                  metrics:
+                    receivers: [otlp, prometheus]
+                    processors: [memory_limiter, batch]
+                    exporters: [prometheus, logging]
+            resources:
+              requests:
+                memory: 256Mi
+                cpu: 100m
+              limits:
+                memory: 512Mi
+                cpu: 200m
+  - step: create-node-exporter
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: apps/v1
+          kind: DaemonSet
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-node-exporter
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: node-exporter
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: node-exporter
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: node-exporter
+              spec:
+                serviceAccountName: node-exporter
+                containers:
+                - name: node-exporter
+                  image: prom/node-exporter:v1.6.1
+                  args:
+                  - --path.sysfs=/host/sys
+                  - --path.rootfs=/host/root
+                  - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+                  - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+                  ports:
+                  - name: metrics
+                    containerPort: 9100
+                    hostPort: 9100
+                  resources:
+                    requests:
+                      memory: 64Mi
+                      cpu: 50m
+                    limits:
+                      memory: 128Mi
+                      cpu: 100m
+                  volumeMounts:
+                  - name: proc
+                    mountPath: /host/proc
+                    readOnly: true
+                  - name: sys
+                    mountPath: /host/sys
+                    readOnly: true
+                  - name: root
+                    mountPath: /host/root
+                    readOnly: true
+                volumes:
+                - name: proc
+                  hostPath:
+                    path: /proc
+                - name: sys
+                  hostPath:
+                    path: /sys
+                - name: root
+                  hostPath:
+                    path: /
+                hostNetwork: true
+                hostPID: true
+                tolerations:
+                - key: node-role.kubernetes.io/master
+                  effect: NoSchedule
+                - key: node-role.kubernetes.io/control-plane
+                  effect: NoSchedule
+  - step: create-cadvisor
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: apps/v1
+          kind: DaemonSet
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-cadvisor
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: cadvisor
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: cadvisor
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: cadvisor
+              spec:
+                serviceAccountName: cadvisor
+                containers:
+                - name: cadvisor
+                  image: gcr.io/cadvisor/cadvisor:v0.47.0
+                  ports:
+                  - name: metrics
+                    containerPort: 8080
+                    hostPort: 8080
+                  resources:
+                    requests:
+                      memory: 128Mi
+                      cpu: 100m
+                    limits:
+                      memory: 256Mi
+                      cpu: 200m
+                  volumeMounts:
+                  - name: rootfs
+                    mountPath: /rootfs
+                    readOnly: true
+                  - name: var-run
+                    mountPath: /var/run
+                    readOnly: true
+                  - name: sys
+                    mountPath: /sys
+                    readOnly: true
+                  - name: docker
+                    mountPath: /var/lib/docker
+                    readOnly: true
+                  - name: disk
+                    mountPath: /dev/disk
+                    readOnly: true
+                volumes:
+                - name: rootfs
+                  hostPath:
+                    path: /
+                - name: var-run
+                  hostPath:
+                    path: /var/run
+                - name: sys
+                  hostPath:
+                    path: /sys
+                - name: docker
+                  hostPath:
+                    path: /var/lib/docker
+                - name: disk
+                  hostPath:
+                    path: /dev/disk
+                hostNetwork: true
+                tolerations:
+                - key: node-role.kubernetes.io/master
+                  effect: NoSchedule
+                - key: node-role.kubernetes.io/control-plane
+                  effect: NoSchedule
+  - step: create-keda
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-keda-operator
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: keda-operator
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: keda-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: keda-operator
+              spec:
+                serviceAccountName: keda-operator
+                containers:
+                - name: keda-operator
+                  image: ghcr.io/kedacore/keda:2.12.0
+                  args:
+                  - /keda
+                  - --zap-log-level=info
+                  - --zap-encoder=console
+                  - --zap-time-encoding=iso8601
+                  - --leader-elect=true
+                  - --metrics-addr=:8080
+                  - --health-probe-bind-address=:8081
+                  - --kube-rbac-proxy-image=gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
+                  - --kube-rbac-proxy-image-pull-policy=IfNotPresent
+                  ports:
+                  - name: metrics
+                    containerPort: 8080
+                    protocol: TCP
+                  - name: health
+                    containerPort: 8081
+                    protocol: TCP
+                  env:
+                  - name: WATCH_NAMESPACE
+                    value: ""
+                  - name: POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.name
+                  - name: OPERATOR_NAME
+                    value: keda-operator
+                  resources:
+                    requests:
+                      memory: 100Mi
+                      cpu: 100m
+                    limits:
+                      memory: 200Mi
+                      cpu: 200m
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: 8081
+                    initialDelaySeconds: 15
+                    periodSeconds: 20
+                  readinessProbe:
+                    httpGet:
+                      path: /readyz
+                      port: 8081
+                    initialDelaySeconds: 5
+                    periodSeconds: 10
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-keda-metrics-apiserver
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: keda-metrics-apiserver
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: keda-metrics-apiserver
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: keda-metrics-apiserver
+              spec:
+                serviceAccountName: keda-metrics-apiserver
+                containers:
+                - name: keda-metrics-apiserver
+                  image: ghcr.io/kedacore/keda-metrics-apiserver:2.12.0
+                  args:
+                  - --secure-port=6443
+                  - --cert-dir=/tmp/cert
+                  - --logtostderr=true
+                  - --v=0
+                  - --audit-log-path=-
+                  - --audit-log-maxage=0
+                  - --audit-log-maxbackup=0
+                  - --audit-log-maxsize=0
+                  - --tls-cert-file=/tmp/cert/tls.crt
+                  - --tls-private-key-file=/tmp/cert/tls.key
+                  ports:
+                  - name: https
+                    containerPort: 6443
+                    protocol: TCP
+                  resources:
+                    requests:
+                      memory: 100Mi
+                      cpu: 100m
+                    limits:
+                      memory: 200Mi
+                      cpu: 200m
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: 8081
+                      scheme: HTTP
+                    initialDelaySeconds: 15
+                    periodSeconds: 20
+                  readinessProbe:
+                    httpGet:
+                      path: /readyz
+                      port: 8081
+                      scheme: HTTP
+                    initialDelaySeconds: 5
+                    periodSeconds: 10
+                  volumeMounts:
+                  - name: cert
+                    mountPath: /tmp/cert
+                    readOnly: true
+                volumes:
+                - name: cert
+                  secret:
+                    secretName: {{ .observed.composite.resource.metadata.name }}-keda-metrics-apiserver
+  - step: create-prometheus-adapter
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-prometheus-adapter
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: prometheus-adapter
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: prometheus-adapter
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: prometheus-adapter
+              spec:
+                serviceAccountName: prometheus-adapter
+                containers:
+                - name: prometheus-adapter
+                  image: k8s.gcr.io/prometheus-adapter/prometheus-adapter:v0.10.0
+                  args:
+                  - --cert-dir=/var/run/serving-cert
+                  - --config=/etc/adapter/config.yaml
+                  - --logtostderr=true
+                  - --prometheus-url=http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090/
+                  - --metrics-relist-interval=1m
+                  - --v=4
+                  - --secure-port=6443
+                  - --audit-log-path=-
+                  - --audit-log-maxage=0
+                  - --audit-log-maxbackup=0
+                  - --audit-log-maxsize=0
+                  ports:
+                  - name: https
+                    containerPort: 6443
+                    protocol: TCP
+                  resources:
+                    requests:
+                      memory: 100Mi
+                      cpu: 100m
+                    limits:
+                      memory: 200Mi
+                      cpu: 200m
+                  volumeMounts:
+                  - name: config
+                    mountPath: /etc/adapter
+                  - name: serving-cert
+                    mountPath: /var/run/serving-cert
+                volumes:
+                - name: config
+                  configMap:
+                    name: {{ .observed.composite.resource.metadata.name }}-prometheus-adapter-config
+                - name: serving-cert
+                  secret:
+                    secretName: {{ .observed.composite.resource.metadata.name }}-prometheus-adapter
+          ---
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-prometheus-adapter-config
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: prometheus-adapter
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          data:
+            config.yaml: |
+              rules:
+              - seriesQuery: 'http_requests_per_second{namespace!="",pod!=""}'
+                resources:
+                  overrides:
+                    namespace:
+                      resource: namespace
+                    pod:
+                      resource: pod
+                name:
+                  matches: "^(.*)"
+                  as: "http_requests_per_second"
+                metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
+              - seriesQuery: 'cpu_usage_percent{namespace!="",pod!=""}'
+                resources:
+                  overrides:
+                    namespace:
+                      resource: namespace
+                    pod:
+                      resource: pod
+                name:
+                  matches: "^(.*)"
+                  as: "cpu_usage_percent"
+                metricsQuery: 'sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>) * 100'
+              - seriesQuery: 'memory_usage_percent{namespace!="",pod!=""}'
+                resources:
+                  overrides:
+                    namespace:
+                      resource: namespace
+                    pod:
+                      resource: pod
+                name:
+                  matches: "^(.*)"
+                  as: "memory_usage_percent"
+                metricsQuery: 'sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>) / sum(container_spec_memory_limit_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>) * 100'
+              - seriesQuery: 'queue_length{namespace!="",deployment!=""}'
+                resources:
+                  overrides:
+                    namespace:
+                      resource: namespace
+                    deployment:
+                      resource: deployment
+                name:
+                  matches: "^(.*)"
+                  as: "queue_length"
+                metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+              - seriesQuery: 'active_connections{namespace!="",service!=""}'
+                resources:
+                  overrides:
+                    namespace:
+                      resource: namespace
+                    service:
+                      resource: service
+                name:
+                  matches: "^(.*)"
+                  as: "active_connections"
+                metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+  - step: create-keda-scaledobjects
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-http-requests-scaler
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: http-requests-scaler
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            scaleTargetRef:
+              name: {{ .observed.composite.resource.metadata.name }}-grafana
+            minReplicaCount: 1
+            maxReplicaCount: 10
+            triggers:
+            - type: prometheus
+              metadata:
+                serverAddress: http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090
+                metricName: http_requests_per_second
+                threshold: '10'
+                query: sum(rate(http_requests_total{job="grafana"}[2m]))
+            - type: cpu
+              metadata:
+                type: Utilization
+                value: "70"
+          ---
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-elasticsearch-scaler
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: elasticsearch-scaler
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            scaleTargetRef:
+              name: {{ .observed.composite.resource.metadata.name }}-elasticsearch-es-default
+            minReplicaCount: 3
+            maxReplicaCount: 10
+            triggers:
+            - type: prometheus
+              metadata:
+                serverAddress: http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090
+                metricName: elasticsearch_cluster_health_status
+                threshold: '1'
+                query: elasticsearch_cluster_health_status{color="yellow"}
+            - type: prometheus
+              metadata:
+                serverAddress: http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090
+                metricName: elasticsearch_indices_docs_count
+                threshold: '1000000'
+                query: sum(elasticsearch_indices_docs_count)
+          ---
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-jaeger-scaler
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: jaeger-scaler
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            scaleTargetRef:
+              name: {{ .observed.composite.resource.metadata.name }}-jaeger-collector
+            minReplicaCount: 1
+            maxReplicaCount: 5
+            triggers:
+            - type: prometheus
+              metadata:
+                serverAddress: http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090
+                metricName: jaeger_spans_received_total
+                threshold: '1000'
+                query: sum(rate(jaeger_spans_received_total[2m]))
+            - type: prometheus
+              metadata:
+                serverAddress: http://{{ .observed.composite.resource.metadata.name }}-prometheus:9090
+                metricName: jaeger_queue_length
+                threshold: '100'
+                query: sum(jaeger_queue_length)
+  - step: create-hpa-examples
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: autoscaling/v2
+          kind: HorizontalPodAutoscaler
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-prometheus-hpa
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: prometheus-hpa
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            scaleTargetRef:
+              apiVersion: apps/v1
+              kind: Deployment
+              name: {{ .observed.composite.resource.metadata.name }}-prometheus
+            minReplicas: 1
+            maxReplicas: 5
+            metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: 70
+            - type: Resource
+              resource:
+                name: memory
+                target:
+                  type: Utilization
+                  averageUtilization: 80
+            - type: Pods
+              pods:
+                metric:
+                  name: http_requests_per_second
+                target:
+                  type: AverageValue
+                  averageValue: "10"
+            - type: Pods
+              pods:
+                metric:
+                  name: cpu_usage_percent
+                target:
+                  type: AverageValue
+                  averageValue: "70"
+          ---
+          apiVersion: autoscaling/v2
+          kind: HorizontalPodAutoscaler
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-grafana-hpa
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: grafana-hpa
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            scaleTargetRef:
+              apiVersion: apps/v1
+              kind: Deployment
+              name: {{ .observed.composite.resource.metadata.name }}-grafana
+            minReplicas: 2
+            maxReplicas: 10
+            metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: 60
+            - type: Resource
+              resource:
+                name: memory
+                target:
+                  type: Utilization
+                  averageUtilization: 70
+            - type: Pods
+              pods:
+                metric:
+                  name: http_requests_per_second
+                target:
+                  type: AverageValue
+                  averageValue: "5"
+            - type: Pods
+              pods:
+                metric:
+                  name: active_connections
+                target:
+                  type: AverageValue
+                  averageValue: "50"
+  - step: create-service-monitors
+    functionRef:
+      name: function-go-templating
+    input:
+      inline:
+        template: |
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-node-exporter
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: node-exporter
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: node-exporter
+            endpoints:
+            - port: metrics
+              interval: 30s
+              path: /metrics
+          ---
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-cadvisor
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: cadvisor
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: cadvisor
+            endpoints:
+            - port: metrics
+              interval: 30s
+              path: /metrics
+          ---
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-otel-collector
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: opentelemetry-collector
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: opentelemetry-collector
+            endpoints:
+            - port: prometheus
+              interval: 30s
+              path: /metrics
+          ---
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-keda-operator
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: keda-operator
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: keda-operator
+            endpoints:
+            - port: metrics
+              interval: 30s
+              path: /metrics
+          ---
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-prometheus-adapter
+            namespace: {{ .observed.composite.resource.metadata.name }}-telemetry
+            labels:
+              app.kubernetes.io/name: prometheus-adapter
+              app.kubernetes.io/part-of: telemetry
+              app.kubernetes.io/managed-by: crossplane
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: prometheus-adapter
+            endpoints:
+            - port: https
+              interval: 30s
+              path: /metrics
+              scheme: https
+              tlsConfig:
+                insecureSkipVerify: true
