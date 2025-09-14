@@ -1,9 +1,9 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.21.5-alpine3.19 AS builder
 
 WORKDIR /app
 
 # Install git and other dependencies
-RUN apk add --no-cache git
+RUN apk add --no-cache && apk upgrade --no-cache git
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -18,10 +18,10 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.19latest
 
 # Install git and other dependencies
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache && apk upgrade --no-cache git ca-certificates
 
 WORKDIR /root/
 

@@ -1,7 +1,7 @@
 # Build stage
 FROM golang:1.21.5-alpine3.19 AS builder
 
-RUN apk add --no-cache git ca-certificates tzdata && \
+RUN apk add --no-cache && apk upgrade --no-cache git ca-certificates tzdata && \
     apk upgrade --no-cache
 
 RUN addgroup -g 1001 -S appgroup && \

@@ -1,7 +1,7 @@
 # SELinux Policy for Comprehensive Audit Logging
 # This policy ensures all security events are properly logged
 
-policy_module(audit_security, 1.0.0)
+module audit_security 1.0.0;
 
 require {
     type auditd_t;

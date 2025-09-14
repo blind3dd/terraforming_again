@@ -1,8 +1,8 @@
 # Test stage
-FROM golang:1.21-alpine AS test
+FROM golang:1.21.5-alpine3.19 AS test
 
 # Install git, ca-certificates, and test dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache && apk upgrade --no-cache git ca-certificates tzdata
 
 # Set working directory
 WORKDIR /app
