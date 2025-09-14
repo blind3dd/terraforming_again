@@ -1,0 +1,384 @@
+# Prow Jobs Configuration for terraforming_again
+# This follows Kubernetes community standards for automated testing
+
+presubmits:
+  blind3dd/terraforming_again:
+    - name: terraform-validate
+      always_run: true
+      optional: false
+      trigger: '(?m)^/test (?:.* )?terraform-validate(?: .*)?$'
+      rerun_command: '/test terraform-validate'
+      spec:
+        containers:
+        - image: hashicorp/terraform:1.5.0
+          command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "🔍 Running Terraform validation..."
+            
+            # Initialize Terraform
+            terraform init -backend=false
+            
+            # Validate configuration
+            terraform validate
+            
+            # Check formatting
+            terraform fmt -check -recursive
+            
+            # Run security scan
+            if command -v tfsec &> /dev/null; then
+              tfsec .
+            fi
+            
+            echo "✅ Terraform validation completed successfully"
+          workingDir: /workspace
+        - name: test
+          image: hashicorp/terraform:1.5.0
+          command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "🧪 Running Terraform tests..."
+            
+            # Run terraform test if available
+            if terraform test --help &> /dev/null; then
+              terraform test
+            else
+              echo "ℹ️  Terraform test command not available, skipping tests"
+            fi
+            
+            echo "✅ Terraform tests completed"
+          workingDir: /workspace
+
+    - name: ansible-lint
+      always_run: true
+      optional: false
+      trigger: '(?m)^/test (?:.* )?ansible-lint(?: .*)?$'
+      rerun_command: '/test ansible-lint'
+      spec:
+        containers:
+        - image: cytopia/ansible-lint:latest
+          command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "🔍 Running Ansible linting..."
+            
+            # Run ansible-lint
+            ansible-lint ansible/ --profile production
+            
+            echo "✅ Ansible linting completed successfully"
+          workingDir: /workspace
+
+    - name: helm-lint
+      always_run: true
+      optional: false
+      trigger: '(?m)^/test (?:.* )?helm-lint(?: .*)?$'
+      rerun_command: '/test helm-lint'
+      spec:
+        containers:
+        - image: alpine/helm:3.12.0
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🔍 Running Helm linting..."
+            
+            # Find and lint all Helm charts
+            find applications/ operators/ -name "Chart.yaml" -exec dirname {} \; | while read chart_dir; do
+              echo "📦 Linting chart: $chart_dir"
+              helm lint "$chart_dir"
+            done
+            
+            echo "✅ Helm linting completed successfully"
+          workingDir: /workspace
+
+    - name: helm-test
+      always_run: false
+      optional: true
+      trigger: '(?m)^/test (?:.* )?helm-test(?: .*)?$'
+      rerun_command: '/test helm-test'
+      spec:
+        containers:
+        - image: alpine/helm:3.12.0
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🧪 Running Helm tests..."
+            
+            # Install kubectl for testing
+            apk add --no-cache curl
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            mv kubectl /usr/local/bin/
+            
+            # Find and test all Helm charts
+            find applications/ operators/ -name "Chart.yaml" -exec dirname {} \; | while read chart_dir; do
+              chart_name=$(basename "$chart_dir")
+              echo "🧪 Testing chart: $chart_name"
+              
+              # Template the chart to validate it renders correctly
+              helm template "$chart_name" "$chart_dir" > /dev/null
+              
+              # Check if chart has tests
+              if [ -d "$chart_dir/templates/tests" ]; then
+                echo "📋 Found test templates for $chart_name"
+                
+                # For charts with tests, we'll validate the test templates
+                # Note: Actual helm test requires a running cluster
+                helm template "$chart_name" "$chart_dir" --show-only templates/tests/ > /dev/null
+                echo "✅ Test templates validated for $chart_name"
+              else
+                echo "ℹ️  No test templates found for $chart_name"
+              fi
+            done
+            
+            echo "✅ Helm tests completed successfully"
+          workingDir: /workspace
+
+    - name: kustomize-build
+      always_run: true
+      optional: false
+      trigger: '(?m)^/test (?:.* )?kustomize-build(?: .*)?$'
+      rerun_command: '/test kustomize-build'
+      spec:
+        containers:
+        - image: k8s.gcr.io/kustomize/kustomize:v4.5.7
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🔍 Running Kustomize build tests..."
+            
+            # Find and build all Kustomize configurations
+            find applications/ operators/ -name "kustomization.yaml" -exec dirname {} \; | while read kustomize_dir; do
+              echo "📦 Building Kustomize config: $kustomize_dir"
+              kustomize build "$kustomize_dir" > /dev/null
+            done
+            
+            echo "✅ Kustomize build tests completed successfully"
+          workingDir: /workspace
+
+    - name: go-test
+      always_run: true
+      optional: false
+      trigger: '(?m)^/test (?:.* )?go-test(?: .*)?$'
+      rerun_command: '/test go-test'
+      spec:
+        containers:
+        - image: golang:1.21
+          command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "🔍 Running Go tests..."
+            
+            # Test go-mysql-api
+            cd go-mysql-api
+            go mod tidy
+            go test -v -race -coverprofile=coverage.out ./...
+            go tool cover -func=coverage.out
+            
+            # Test webhooks
+            cd ../webhooks
+            if [ -f "go.mod" ]; then
+              go mod tidy
+              go test -v ./...
+            fi
+            
+            echo "✅ Go tests completed successfully"
+          workingDir: /workspace
+
+    - name: api-compatibility-check
+      always_run: true
+      optional: false
+      trigger: '(?m)^/test (?:.* )?api-compatibility-check(?: .*)?$'
+      rerun_command: '/test api-compatibility-check'
+      spec:
+        containers:
+        - image: alpine:latest
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🔍 Running API compatibility check..."
+            
+            # Install bash
+            apk add --no-cache bash
+            
+            # Make script executable and run
+            chmod +x scripts/check-api-compatibility.sh
+            ./scripts/check-api-compatibility.sh -k 1.28
+            
+            echo "✅ API compatibility check completed successfully"
+          workingDir: /workspace
+
+    - name: security-scan
+      always_run: false
+      optional: true
+      trigger: '(?m)^/test (?:.* )?security-scan(?: .*)?$'
+      rerun_command: '/test security-scan'
+      spec:
+        containers:
+        - image: aquasec/trivy:latest
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🔍 Running security scan..."
+            
+            # Scan filesystem
+            trivy fs --format sarif --output trivy-results.sarif .
+            
+            # Scan Docker images if Dockerfile exists
+            if [ -f "go-mysql-api/Dockerfile" ]; then
+              trivy image --format sarif --output trivy-image-results.sarif go-mysql-api:latest || true
+            fi
+            
+            echo "✅ Security scan completed"
+          workingDir: /workspace
+
+postsubmits:
+  blind3dd/terraforming_again:
+    - name: build-and-push-images
+      spec:
+        containers:
+        - image: docker:latest
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🔨 Building and pushing Docker images..."
+            
+            # Build go-mysql-api image
+            docker build -t go-mysql-api:latest go-mysql-api/
+            docker build -t go-mysql-api:$PULL_BASE_SHA go-mysql-api/
+            
+            # Build webhook image
+            docker build -t api-compatibility-webhook:latest webhooks/
+            docker build -t api-compatibility-webhook:$PULL_BASE_SHA webhooks/
+            
+            echo "✅ Docker images built successfully"
+          workingDir: /workspace
+
+    - name: generate-manifests
+      spec:
+        containers:
+        - image: alpine/helm:3.12.0
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "📦 Generating Kubernetes manifests..."
+            
+            # Generate manifests for each environment
+            for env in dev test prod; do
+              echo "Generating manifests for $env environment..."
+              
+              # Generate base manifests from Helm
+              helm template go-mysql-api applications/go-mysql-api/helm/ \
+                --values applications/go-mysql-api/helm/values-$env.yaml \
+                > applications/go-mysql-api/manifests/$env/base-manifests.yaml
+              
+              # Build Kustomize overlays
+              kustomize build applications/go-mysql-api/kustomize/overlays/$env/ \
+                > applications/go-mysql-api/manifests/$env/final-manifests.yaml
+            done
+            
+            echo "✅ Kubernetes manifests generated successfully"
+          workingDir: /workspace
+
+    - name: helm-test-cluster
+      spec:
+        containers:
+        - image: alpine/helm:3.12.0
+          command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "🧪 Running Helm tests in cluster..."
+            
+            # Install kubectl
+            apk add --no-cache curl
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            mv kubectl /usr/local/bin/
+            
+            # Deploy and test go-mysql-api chart
+            echo "📦 Deploying go-mysql-api chart for testing..."
+            helm upgrade --install go-mysql-api-test applications/go-mysql-api/helm/ \
+              --namespace test-namespace \
+              --create-namespace \
+              --wait \
+              --timeout 5m
+            
+            # Run Helm tests
+            echo "🧪 Running Helm tests..."
+            helm test go-mysql-api-test --namespace test-namespace --logs
+            
+            # Cleanup
+            echo "🧹 Cleaning up test deployment..."
+            helm uninstall go-mysql-api-test --namespace test-namespace
+            kubectl delete namespace test-namespace --ignore-not-found=true
+            
+            echo "✅ Helm cluster tests completed successfully"
+          workingDir: /workspace
+
+periodics:
+  - name: security-scan-daily
+    cron: "0 2 * * *"  # Daily at 2 AM
+    spec:
+      containers:
+      - image: aquasec/trivy:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🔍 Running daily security scan..."
+          
+          # Scan for vulnerabilities
+          trivy fs --format json --output trivy-daily-results.json .
+          
+          # Check for secrets
+          trivy fs --scanners secret --format json --output trivy-secrets.json .
+          
+          echo "✅ Daily security scan completed"
+        workingDir: /workspace
+
+  - name: dependency-update-check
+    cron: "0 3 * * 1"  # Every Monday at 3 AM
+    spec:
+      containers:
+      - image: golang:1.21
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "🔍 Checking for dependency updates..."
+          
+          # Check Go dependencies
+          cd go-mysql-api
+          go list -u -m all
+          
+          # Check for outdated dependencies
+          go get -u ./...
+          go mod tidy
+          
+          echo "✅ Dependency update check completed"
+        workingDir: /workspace

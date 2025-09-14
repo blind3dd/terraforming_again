@@ -1,0 +1,263 @@
+---
+- name: Assume AWS IAM Role
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # Role to assume
+    role_arn: "{{ role_arn | default('') }}"
+    role_session_name: "{{ role_session_name | default('ansible-session') }}"
+    duration_seconds: "{{ duration_seconds | default(3600) }}"
+    external_id: "{{ external_id | default('') }}"
+    mfa_serial: "{{ mfa_serial | default('') }}"
+    mfa_token: "{{ mfa_token | default('') }}"
+    
+    # Output options
+    output_format: "{{ output_format | default('json') }}"
+    export_to_env: "{{ export_to_env | default(false) }}"
+    save_to_file: "{{ save_to_file | default(false) }}"
+    output_file: "{{ output_file | default('aws-credentials.json') }}"
+    
+    # AWS configuration
+    aws_region: "{{ aws_region | default('us-east-1') }}"
+    aws_profile: "{{ aws_profile | default('profile-test') }}"
+    
+  tasks:
+    - name: Check if role ARN is provided
+      fail:
+        msg: "role_arn is required. Use: ansible-playbook assume-role.yml -e 'role_arn=arn:aws:iam::123456789012:role/YourRole'"
+      when: role_arn == ""
+
+    - name: Check if AWS CLI is available
+      command: aws --version
+      register: aws_cli_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if AWS CLI not available
+      fail:
+        msg: "AWS CLI is not installed or not in PATH"
+      when: aws_cli_check.rc != 0
+
+    - name: Check current AWS identity
+      command: aws sts get-caller-identity
+      register: current_identity
+      changed_when: false
+      failed_when: false
+
+    - name: Display current AWS identity
+      debug:
+        msg: "Current AWS identity: {{ current_identity.stdout }}"
+      when: current_identity.rc == 0
+
+    - name: Assume IAM role
+      command: |
+        aws sts assume-role \
+          --role-arn "{{ role_arn }}" \
+          --role-session-name "{{ role_session_name }}" \
+          --duration-seconds "{{ duration_seconds }}" \
+          --region "{{ aws_region }}" \
+          --profile "{{ aws_profile }}"
+          {% if external_id %}--external-id "{{ external_id }}"{% endif %}
+          {% if mfa_serial and mfa_token %}--serial-number "{{ mfa_serial }}" --token-code "{{ mfa_token }}"{% endif %}
+      register: assume_role_result
+      failed_when: assume_role_result.rc != 0
+
+    - name: Parse assume role response
+      set_fact:
+        credentials: "{{ assume_role_result.stdout | from_json }}"
+
+    - name: Display assumed role information
+      debug:
+        msg: |
+          Successfully assumed role:
+          Role ARN: {{ credentials.AssumedRoleUser.Arn }}
+          Session Name: {{ credentials.AssumedRoleUser.AssumedRoleId }}
+          Expiration: {{ credentials.Credentials.Expiration }}
+
+    - name: Export credentials to environment variables
+      block:
+        - name: Set AWS_ACCESS_KEY_ID
+          set_fact:
+            aws_access_key_id: "{{ credentials.Credentials.AccessKeyId }}"
+
+        - name: Set AWS_SECRET_ACCESS_KEY
+          set_fact:
+            aws_secret_access_key: "{{ credentials.Credentials.SecretAccessKey }}"
+
+        - name: Set AWS_SESSION_TOKEN
+          set_fact:
+            aws_session_token: "{{ credentials.Credentials.SessionToken }}"
+
+        - name: Display environment variables
+          debug:
+            msg: |
+              Environment variables set:
+              AWS_ACCESS_KEY_ID: {{ aws_access_key_id[:10] }}...
+              AWS_SECRET_ACCESS_KEY: {{ aws_secret_access_key[:10] }}...
+              AWS_SESSION_TOKEN: {{ aws_session_token[:10] }}...
+      when: export_to_env | bool
+
+    - name: Save credentials to file
+      block:
+        - name: Create credentials file
+          copy:
+            content: |
+              {
+                "Version": 1,
+                "AccessKeyId": "{{ credentials.Credentials.AccessKeyId }}",
+                "SecretAccessKey": "{{ credentials.Credentials.SecretAccessKey }}",
+                "SessionToken": "{{ credentials.Credentials.SessionToken }}",
+                "Expiration": "{{ credentials.Credentials.Expiration }}",
+                "RoleArn": "{{ role_arn }}",
+                "RoleSessionName": "{{ role_session_name }}"
+              }
+            dest: "{{ output_file }}"
+            mode: '0600'
+
+        - name: Display file location
+          debug:
+            msg: "Credentials saved to: {{ output_file }}"
+      when: save_to_file | bool
+
+    - name: Create AWS credentials file for Terraform
+      block:
+        - name: Create AWS credentials directory
+          file:
+            path: "~/.aws"
+            state: directory
+            mode: '0700'
+
+        - name: Create AWS credentials file
+          copy:
+            content: |
+              [assumed-role]
+              aws_access_key_id = {{ credentials.Credentials.AccessKeyId }}
+              aws_secret_access_key = {{ credentials.Credentials.SecretAccessKey }}
+              aws_session_token = {{ credentials.Credentials.SessionToken }}
+              region = {{ aws_region }}
+            dest: "~/.aws/credentials"
+            mode: '0600'
+
+        - name: Create AWS config file
+          copy:
+            content: |
+              [profile assumed-role]
+              region = {{ aws_region }}
+              output = {{ output_format }}
+            dest: "~/.aws/config"
+            mode: '0600'
+
+        - name: Display profile information
+          debug:
+            msg: |
+              AWS profile 'assumed-role' created:
+              Use with: aws --profile assumed-role sts get-caller-identity
+              Or set: export AWS_PROFILE=assumed-role
+      when: export_to_env | bool
+
+    - name: Test assumed role credentials
+      command: aws sts get-caller-identity --profile assumed-role
+      register: test_credentials
+      changed_when: false
+      failed_when: false
+      when: export_to_env | bool
+
+    - name: Display test result
+      debug:
+        msg: "Credential test result: {{ test_credentials.stdout }}"
+      when: export_to_env | bool and test_credentials.rc == 0
+
+    - name: Create shell script for easy role assumption
+      copy:
+        content: |
+          #!/bin/bash
+          # Quick AWS Role Assumption Script
+          
+          set -e
+          
+          # Colors
+          GREEN='\033[0;32m'
+          BLUE='\033[0;34m'
+          NC='\033[0m'
+          
+          log() {
+              echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+          }
+          
+          success() {
+              echo -e "${GREEN}[SUCCESS] $1${NC}"
+          }
+          
+          # Check if role ARN is provided
+          if [ -z "$1" ]; then
+              echo "Usage: $0 <role-arn> [session-name] [duration]"
+              echo "Example: $0 arn:aws:iam::123456789012:role/YourRole my-session 3600"
+              exit 1
+          fi
+          
+          ROLE_ARN="$1"
+          SESSION_NAME="${2:-ansible-session}"
+          DURATION="${3:-3600}"
+          
+          log "Assuming role: $ROLE_ARN"
+          log "Session name: $SESSION_NAME"
+          log "Duration: $DURATION seconds"
+          
+          # Assume role
+          RESPONSE=$(aws sts assume-role \
+              --role-arn "$ROLE_ARN" \
+              --role-session-name "$SESSION_NAME" \
+              --duration-seconds "$DURATION" \
+              --output json)
+          
+          # Extract credentials
+          ACCESS_KEY=$(echo "$RESPONSE" | jq -r '.Credentials.AccessKeyId')
+          SECRET_KEY=$(echo "$RESPONSE" | jq -r '.Credentials.SecretAccessKey')
+          SESSION_TOKEN=$(echo "$RESPONSE" | jq -r '.Credentials.SessionToken')
+          EXPIRATION=$(echo "$RESPONSE" | jq -r '.Credentials.Expiration')
+          
+          # Export to environment
+          export AWS_ACCESS_KEY_ID="$ACCESS_KEY"
+          export AWS_SECRET_ACCESS_KEY="$SECRET_KEY"
+          export AWS_SESSION_TOKEN="$SESSION_TOKEN"
+          
+          success "Role assumed successfully!"
+          log "Expires: $EXPIRATION"
+          log "Credentials exported to environment variables"
+          log "Test with: aws sts get-caller-identity"
+          
+          # Create profile
+          mkdir -p ~/.aws
+          cat > ~/.aws/credentials <<EOF
+          [assumed-role]
+          aws_access_key_id = $ACCESS_KEY
+          aws_secret_access_key = $SECRET_KEY
+          aws_session_token = $SESSION_TOKEN
+          EOF
+          
+          cat > ~/.aws/config <<EOF
+          [profile assumed-role]
+          region = us-east-1
+          output = json
+          EOF
+          
+          success "Profile 'assumed-role' created"
+          log "Use: aws --profile assumed-role sts get-caller-identity"
+        dest: "assume-role-quick.sh"
+        mode: '0755'
+
+    - name: Display completion message
+      debug:
+        msg: |
+          ✅ AWS Role Assumption completed successfully!
+          
+          📋 Available options:
+          - Environment variables exported: {{ export_to_env }}
+          - Credentials saved to file: {{ save_to_file }}
+          - AWS profile created: {{ export_to_env }}
+          - Quick script created: assume-role-quick.sh
+          
+          🚀 Next steps:
+          1. Use environment variables: export AWS_PROFILE=assumed-role
+          2. Or run: ./assume-role-quick.sh <role-arn>
+          3. Test with: aws sts get-caller-identity

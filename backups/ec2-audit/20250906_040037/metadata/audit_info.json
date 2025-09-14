@@ -1,0 +1,9 @@
+{
+  "audit_timestamp": "2025-09-06T02:00:38Z",
+  "region": "eu-north-1",
+  "profile": "eu-north-1",
+  "account_id": "690248313240",
+  "audit_type": "ec2_only_audit",
+  "purpose": "security_audit_with_limited_permissions",
+  "permissions": "EC2 only (following least privilege principle)"
+}

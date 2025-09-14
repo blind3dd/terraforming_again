@@ -1,0 +1,28 @@
+{{- if .Values.configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}-config-{{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 8 }}
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+data:
+  {{- if .Values.configMap.data }}
+  {{- toYaml .Values.configMap.data | nindent 2 }}
+  {{- end }}
+  # Application configuration
+  app.conf: |
+    [app]
+    port = {{ .Values.app.port | default "8088" }}
+    log_level = {{ .Values.env.LOG_LEVEL | default "info" }}
+    environment = {{ .Values.env.APP_ENV | default "production" }}
+    
+    [database]
+    host = {{ .Values.env.DB_HOST | default "localhost" }}
+    port = {{ .Values.env.DB_PORT | default "3306" }}
+    name = {{ .Values.env.DB_NAME | default "mock_user" }}
+    user = {{ .Values.env.DB_USER | default "db_user" }}
+    
+    [aws]
+    region = {{ .Values.env.AWS_REGION | default "us-east-1" }}
+    endpoint = {{ .Values.env.AWS_ENDPOINT | default "" }}
+{{- end }}

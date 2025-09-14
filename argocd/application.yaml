@@ -1,0 +1,103 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: secure-infrastructure
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: secure-infrastructure
+    app.kubernetes.io/part-of: database-ci
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/blind3dd/database_CI.git
+    targetRevision: HEAD
+    path: k8s-manifests  # Kubernetes manifests directory
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: secure-infrastructure
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    
+  revisionHistoryLimit: 10
+  
+  # Health checks
+  healthChecks:
+  - apiVersion: v1
+    kind: Service
+    name: secure-infrastructure-service
+    namespace: secure-infrastructure
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: secure-infrastructure-deployment
+    namespace: secure-infrastructure
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: secure-infrastructure-project
+  namespace: argocd
+spec:
+  description: Secure Infrastructure Project
+  
+  sourceRepos:
+  - 'https://github.com/blind3dd/database_CI.git'
+  
+  destinations:
+  - namespace: 'secure-infrastructure'
+    server: https://kubernetes.default.svc
+  - namespace: 'argocd'
+    server: https://kubernetes.default.svc
+    
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRole
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRoleBinding
+    
+  namespaceResourceWhitelist:
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: StatefulSet
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Secret
+  - group: 'networking.k8s.io'
+    kind: NetworkPolicy
+    
+  # Security: Restrict dangerous operations
+  roles:
+  - name: security-admin
+    description: Security administrator role
+    policies:
+    - p, proj:secure-infrastructure-project:security-admin, applications, *, secure-infrastructure-project/*, allow
+    - p, proj:secure-infrastructure-project:security-admin, repositories, *, *, allow
+    groups:
+    - security-team
+    
+  # Sync windows for maintenance
+  syncWindows:
+  - kind: allow
+    schedule: '0 2 * * *'  # Allow sync at 2 AM daily
+    duration: 1h
+    applications:
+    - secure-infrastructure
+    namespaces:
+    - secure-infrastructure
+    clusters:
+    - https://kubernetes.default.svc

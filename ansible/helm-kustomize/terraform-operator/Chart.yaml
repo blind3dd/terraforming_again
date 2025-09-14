@@ -1,0 +1,21 @@
+apiVersion: v2
+name: terraform-operator
+description: A Helm chart for Terraform Operator
+type: application
+version: 0.1.0
+appVersion: "2.0.0"
+keywords:
+  - terraform
+  - operator
+  - infrastructure
+  - gitops
+home: https://github.com/hashicorp/terraform-k8s
+sources:
+  - https://github.com/hashicorp/terraform-k8s
+maintainers:
+  - name: Database CI Team
+    email: team@database-ci.com
+dependencies: []
+annotations:
+  category: Infrastructure
+  licenses: MPL-2.0

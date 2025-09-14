@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "go-mysql-api.fullname" . }}-test-performance"
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "2"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: performance-test
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Running performance tests..."
+        
+        # Wait for application to be ready
+        echo "Waiting for application to be ready..."
+        timeout 60 sh -c "until curl -f http://localhost:{{ .Values.app.port }}/health; do echo 'Waiting for application...'; sleep 2; done"
+        
+        # Performance test parameters
+        CONCURRENT_REQUESTS=${CONCURRENT_REQUESTS:-10}
+        TOTAL_REQUESTS=${TOTAL_REQUESTS:-100}
+        TIMEOUT=${TIMEOUT:-30}
+        
+        echo "Running performance test with $CONCURRENT_REQUESTS concurrent requests, $TOTAL_REQUESTS total requests"
+        
+        # Create performance test script
+        cat > /tmp/performance_test.sh << 'EOF'
+        #!/bin/sh
+        
+        CONCURRENT_REQUESTS=$1
+        TOTAL_REQUESTS=$2
+        TIMEOUT=$3
+        ENDPOINT="http://localhost:{{ .Values.app.port }}/health"
+        
+        echo "Starting performance test..."
+        echo "Endpoint: $ENDPOINT"
+        echo "Concurrent requests: $CONCURRENT_REQUESTS"
+        echo "Total requests: $TOTAL_REQUESTS"
+        echo "Timeout: ${TIMEOUT}s"
+        
+        # Function to make a single request
+        make_request() {
+          local start_time=$(date +%s%N)
+          local response=$(curl -s -w "%{http_code},%{time_total}" -o /dev/null --max-time $TIMEOUT "$ENDPOINT")
+          local end_time=$(date +%s%N)
+          local duration=$(( (end_time - start_time) / 1000000 )) # Convert to milliseconds
+          
+          echo "$response,$duration"
+        }
+        
+        # Export function for parallel execution
+        export -f make_request
+        
+        # Run concurrent requests
+        seq 1 $TOTAL_REQUESTS | xargs -n 1 -P $CONCURRENT_REQUESTS -I {} sh -c 'make_request "$@"' _ $CONCURRENT_REQUESTS $TOTAL_REQUESTS $TIMEOUT > /tmp/results.txt
+        
+        # Analyze results
+        echo "Analyzing results..."
+        
+        # Count successful requests
+        SUCCESS_COUNT=$(grep -c "200," /tmp/results.txt || echo "0")
+        FAILED_COUNT=$((TOTAL_REQUESTS - SUCCESS_COUNT))
+        
+        # Calculate response times
+        RESPONSE_TIMES=$(grep "200," /tmp/results.txt | cut -d',' -f2 | sort -n)
+        
+        if [ -n "$RESPONSE_TIMES" ]; then
+          MIN_TIME=$(echo "$RESPONSE_TIMES" | head -1)
+          MAX_TIME=$(echo "$RESPONSE_TIMES" | tail -1)
+          
+          # Calculate average
+          AVG_TIME=$(echo "$RESPONSE_TIMES" | awk '{sum+=$1} END {print sum/NR}')
+          
+          # Calculate 95th percentile
+          P95_INDEX=$(echo "scale=0; $SUCCESS_COUNT * 0.95" | bc)
+          P95_TIME=$(echo "$RESPONSE_TIMES" | sed -n "${P95_INDEX}p")
+          
+          # Calculate 99th percentile
+          P99_INDEX=$(echo "scale=0; $SUCCESS_COUNT * 0.99" | bc)
+          P99_TIME=$(echo "$RESPONSE_TIMES" | sed -n "${P99_INDEX}p")
+        else
+          MIN_TIME="N/A"
+          MAX_TIME="N/A"
+          AVG_TIME="N/A"
+          P95_TIME="N/A"
+          P99_TIME="N/A"
+        fi
+        
+        # Print results
+        echo "=== Performance Test Results ==="
+        echo "Total Requests: $TOTAL_REQUESTS"
+        echo "Successful Requests: $SUCCESS_COUNT"
+        echo "Failed Requests: $FAILED_COUNT"
+        echo "Success Rate: $(echo "scale=2; $SUCCESS_COUNT * 100 / $TOTAL_REQUESTS" | bc)%"
+        echo ""
+        echo "Response Times (ms):"
+        echo "  Min: $MIN_TIME"
+        echo "  Max: $MAX_TIME"
+        echo "  Avg: $AVG_TIME"
+        echo "  95th: $P95_TIME"
+        echo "  99th: $P99_TIME"
+        echo "================================"
+        
+        # Check if performance meets requirements
+        SUCCESS_RATE=$(echo "scale=2; $SUCCESS_COUNT * 100 / $TOTAL_REQUESTS" | bc)
+        AVG_TIME_NUM=$(echo "$AVG_TIME" | cut -d'.' -f1)
+        
+        # Performance thresholds
+        MIN_SUCCESS_RATE=95
+        MAX_AVG_RESPONSE_TIME=500
+        
+        if [ $(echo "$SUCCESS_RATE >= $MIN_SUCCESS_RATE" | bc) -eq 1 ] && [ "$AVG_TIME_NUM" -lt $MAX_AVG_RESPONSE_TIME ]; then
+          echo "✅ Performance test PASSED"
+          echo "Success rate: ${SUCCESS_RATE}% (>= ${MIN_SUCCESS_RATE}%)"
+          echo "Average response time: ${AVG_TIME}ms (< ${MAX_AVG_RESPONSE_TIME}ms)"
+          exit 0
+        else
+          echo "❌ Performance test FAILED"
+          echo "Success rate: ${SUCCESS_RATE}% (required: >= ${MIN_SUCCESS_RATE}%)"
+          echo "Average response time: ${AVG_TIME}ms (required: < ${MAX_AVG_RESPONSE_TIME}ms)"
+          exit 1
+        fi
+        EOF
+        
+        chmod +x /tmp/performance_test.sh
+        
+        # Run performance test
+        /tmp/performance_test.sh $CONCURRENT_REQUESTS $TOTAL_REQUESTS $TIMEOUT
+        
+        echo "Performance test completed successfully!"
+    env:
+      - name: CONCURRENT_REQUESTS
+        value: {{ .Values.tests.performance.concurrentRequests | default "10" | quote }}
+      - name: TOTAL_REQUESTS
+        value: {{ .Values.tests.performance.totalRequests | default "100" | quote }}
+      - name: TIMEOUT
+        value: {{ .Values.tests.performance.timeout | default "30" | quote }}
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      seccompProfile:
+        type: RuntimeDefault
+

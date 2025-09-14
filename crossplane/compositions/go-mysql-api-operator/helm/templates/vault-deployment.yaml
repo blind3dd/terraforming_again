@@ -1,0 +1,85 @@
+{{- if .Values.vault.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}-vault
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: vault
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "go-mysql-api.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: vault
+  template:
+    metadata:
+      labels:
+        {{- include "go-mysql-api.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: vault
+    spec:
+      serviceAccountName: {{ include "go-mysql-api.fullname" . }}-vault
+      securityContext:
+        # Pod-level security hardening
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        supplementalGroups: [1000]
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: vault
+          image: "{{ .Values.vault.image.repository }}:{{ .Values.vault.image.tag }}"
+          imagePullPolicy: {{ .Values.vault.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8200
+              protocol: TCP
+            - name: https-internal
+              containerPort: 8201
+              protocol: TCP
+          env:
+            - name: VAULT_CACERT
+              value: /vault/userconfig/vault-ha-tls/vault.ca
+            - name: VAULT_SKIP_VERIFY
+              value: "true"
+            - name: VAULT_ADDR
+              value: "http://127.0.0.1:8200"
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+            - name: vault-data
+              mountPath: /vault/data
+            - name: vault-logs
+              mountPath: /vault/logs
+          command:
+            - vault
+            - server
+            - -config=/vault/config/vault-config.hcl
+          resources:
+            {{- toYaml .Values.vault.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+                - SETGID
+                - SETUID
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: vault-config
+          configMap:
+            name: {{ include "go-mysql-api.fullname" . }}-vault-config
+        - name: vault-data
+          emptyDir: {}
+        - name: vault-logs
+          emptyDir: {}
+{{- end }}

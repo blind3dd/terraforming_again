@@ -1,0 +1,128 @@
+# Development Environment Values
+environment: dev
+replicaCount: 1
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Autoscaling
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 70
+
+# Security
+security:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  seccompProfile:
+    type: RuntimeDefault
+
+# Network
+service:
+  type: ClusterIP
+  port: 8088
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: go-mysql-api-dev.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: go-mysql-api-dev-tls
+      hosts:
+        - go-mysql-api-dev.example.com
+
+# Istio
+istio:
+  enabled: true
+  gateway:
+    name: istio-ingressgateway
+    namespace: istio-system
+  virtualService:
+    hosts:
+      - go-mysql-api-dev.example.com
+    gateways:
+      - istio-ingressgateway.istio-system
+  destinationRule:
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+      connectionPool:
+        tcp:
+          maxConnections: 50
+        http:
+          http1MaxPendingRequests: 512
+          maxRequestsPerConnection: 5
+      outlierDetection:
+        consecutive5xxErrors: 3
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 10
+  authorizationPolicy:
+    enabled: true
+    action: ALLOW
+  peerAuthentication:
+    enabled: true
+    mtls:
+      mode: PERMISSIVE
+
+# Vault
+vault:
+  enabled: true
+  auth:
+    method: kubernetes
+    role: go-mysql-api-dev
+  secrets:
+    db_password: secret/data/go-mysql-api-dev/database
+    api_key: secret/data/go-mysql-api-dev/app
+    aws_credentials: secret/data/go-mysql-api-dev/aws
+
+# Database
+database:
+  host: rds-dev.example.com
+  port: 3306
+  name: mock_user_dev
+  ssl: true
+  ssl_mode: require
+
+# Application
+app:
+  port: 8088
+  log_level: debug
+  metrics_enabled: true
+  environment: dev
+
+# AWS
+aws:
+  region: us-east-1
+  endpoint: ""
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+    port: 8088
+
+# Logging
+logging:
+  level: debug
+  format: json
+  output: stdout
+

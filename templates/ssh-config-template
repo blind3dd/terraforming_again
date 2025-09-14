@@ -1,0 +1,289 @@
+# SSH Configuration Template for Secure Infrastructure Access
+# This configuration provides secure access to all instances via jump host
+# 
+# Usage: Copy this to ~/.ssh/config and update the IP addresses after deployment
+# 
+# Access Flow: Local Machine → VPN → Jump Host → Target Instance
+# 
+# Security Features:
+# - All access goes through jump host (no direct access to private instances)
+# - IMDSv2 enforcement on all instances
+# - Static private IPs for predictable access
+# - SSH key forwarding for seamless access
+
+# =============================================================================
+# JUMP HOST CONFIGURATION
+# =============================================================================
+# Jump Host: Go-MySQL instance acting as secure gateway
+# Static IP: 172.16.2.10
+# FQDN: go-mysql-jump-host.internal.coderedalarmtech.com
+# Purpose: Secure gateway to all private instances
+
+Host jump-host
+    HostName 172.16.2.10
+    User ec2-user
+    IdentityFile ~/.ssh/ec2-key-pair.pem
+    Port 22
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ForwardAgent yes
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+    
+    # Security settings
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+    
+    # Connection settings
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
+
+# =============================================================================
+# KUBERNETES CONTROL PLANE
+# =============================================================================
+# Kubernetes Control Plane: Main K8s master node
+# Static IP: 172.16.2.12
+# FQDN: kubernetes-control-plane.internal.coderedalarmtech.com
+# Purpose: Kubernetes API server and control plane
+
+Host control-plane
+    HostName 172.16.2.12
+    User k8sadmin
+    IdentityFile ~/.ssh/ec2-key-pair.pem
+    Port 22
+    ProxyJump jump-host
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ForwardAgent yes
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+    
+    # Security settings
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+    
+    # Connection settings
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
+
+# Alternative name for Kubernetes master
+Host kubernetes
+    HostName 172.16.2.12
+    User k8sadmin
+    IdentityFile ~/.ssh/ec2-key-pair.pem
+    Port 22
+    ProxyJump jump-host
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ForwardAgent yes
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+    
+    # Security settings
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+    
+    # Connection settings
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
+
+# =============================================================================
+# WIREGUARD VPN SERVER
+# =============================================================================
+# WireGuard VPN Server: VPN gateway for secure access
+# Static IP: 172.16.2.11
+# FQDN: wireguard-vpn-server.internal.coderedalarmtech.com
+# Purpose: VPN server for secure remote access
+
+Host vpn-server
+    HostName 172.16.2.11
+    User ec2-user
+    IdentityFile ~/.ssh/ec2-key-pair.pem
+    Port 22
+    ProxyJump jump-host
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ForwardAgent yes
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+    
+    # Security settings
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+    
+    # Connection settings
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
+
+# Alternative name for VPN server
+Host wireguard
+    HostName 172.16.2.11
+    User ec2-user
+    IdentityFile ~/.ssh/ec2-key-pair.pem
+    Port 22
+    ProxyJump jump-host
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ForwardAgent yes
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+    
+    # Security settings
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+    
+    # Connection settings
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
+
+# =============================================================================
+# FUTURE KUBERNETES WORKER NODES
+# =============================================================================
+# Template for future Kubernetes worker nodes
+# These will be added as the cluster scales
+
+# Host worker-1
+#     HostName 172.16.2.13
+#     User k8sadmin
+#     IdentityFile ~/.ssh/ec2-key-pair.pem
+#     Port 22
+#     ProxyJump jump-host
+#     ServerAliveInterval 60
+#     ServerAliveCountMax 3
+#     TCPKeepAlive yes
+#     Compression yes
+#     ForwardAgent yes
+#     StrictHostKeyChecking no
+#     UserKnownHostsFile /dev/null
+#     LogLevel QUIET
+#     
+#     # Security settings
+#     Protocol 2
+#     Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+#     MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+#     KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+#     
+#     # Connection settings
+#     ControlMaster auto
+#     ControlPath ~/.ssh/control-%r@%h:%p
+#     ControlPersist 10m
+
+# =============================================================================
+# GLOBAL SSH SETTINGS
+# =============================================================================
+# Global settings that apply to all hosts
+
+Host *
+    # Security settings
+    Protocol 2
+    Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr
+    MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+    KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384
+    
+    # Connection settings
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ForwardAgent yes
+    
+    # Security
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+    
+    # Connection multiplexing
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
+    
+    # Timeout settings
+    ConnectTimeout 30
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+# 
+# 1. Connect to VPN first:
+#    ./scripts/vpn-client-setup.sh connect
+#    # Or use WireGuard GUI app
+# 
+# 2. Connect to jump host:
+#    ssh jump-host
+# 
+# 3. Connect to Kubernetes master:
+#    ssh control-plane
+#    ssh kubernetes
+# 
+# 4. Connect to VPN server:
+#    ssh vpn-server
+#    ssh wireguard
+# 
+# 5. Copy files to instances:
+#    scp file.txt control-plane:/tmp/
+#    scp -r directory/ kubernetes:/opt/
+# 
+# 6. Execute commands remotely:
+#    ssh control-plane "kubectl get nodes"
+#    ssh kubernetes "docker ps"
+# 
+# 7. Port forwarding:
+#    ssh -L 8080:localhost:8080 control-plane
+#    ssh -L 6443:localhost:6443 kubernetes
+# 
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+# 
+# 1. All access goes through the jump host (172.16.2.10)
+# 2. No direct access to private instances from outside the VPC
+# 3. IMDSv2 enforcement blocks direct metadata access
+# 4. SSH key forwarding allows seamless access to all instances
+# 5. Connection multiplexing reduces connection overhead
+# 6. Strong encryption and MAC algorithms for security
+# 7. Static private IPs for predictable access patterns
+# 
+# =============================================================================
+# DEPLOYMENT NOTES
+# =============================================================================
+# 
+# 1. Copy this file to ~/.ssh/config
+# 2. Ensure ~/.ssh/ec2-key-pair.pem exists and has correct permissions (600)
+# 3. Connect to VPN first: ssh vpn-server
+# 4. Then access other instances: ssh control-plane
+# 5. Update IP addresses if they change during deployment
+# 6. Add new worker nodes using the template provided
+# 
+# =============================================================================

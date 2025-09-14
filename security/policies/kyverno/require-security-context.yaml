@@ -1,0 +1,38 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-security-context
+  annotations:
+    policies.kyverno.io/title: Require Security Context
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      All Pods must have security context configured to run as non-root user
+      with proper security settings.
+spec:
+  validationFailureAction: enforce
+  background: true
+  rules:
+  - name: check-pod-security-context
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "Pod must have securityContext with runAsNonRoot=true"
+      pattern:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: "?*"
+            fsGroup: "?*"
+          containers:
+          - name: "*"
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              capabilities:
+                drop:
+                - ALL

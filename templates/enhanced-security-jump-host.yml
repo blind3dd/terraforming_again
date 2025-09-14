@@ -1,0 +1,373 @@
+#cloud-config
+# Enhanced Security Jump Host with Multi-Factor Authentication
+# This template implements username/password + VPN + comprehensive audit security
+
+hostname: go-mysql-jump-host
+fqdn: go-mysql-jump-host.${domain_name}
+
+# Update system packages
+package_update: true
+package_upgrade: true
+
+# Install required packages including security tools
+packages:
+  - docker
+  - containerd
+  - mysql-server
+  - fail2ban
+  - bpftool
+  - libbpf-dev
+  - htop
+  - vim
+  - curl
+  - wget
+  - unzip
+  - git
+  - net-tools
+  - tcpdump
+  - clang
+  - llvm
+  - libelf-dev
+  - iptables
+  - iptables-services
+  - wireguard-tools
+  - httpd
+  - nginx
+  - createrepo
+  - yum-utils
+  - sssd
+  - sssd-tools
+  - pam_sss
+  - libpam-ldap
+  - libnss-ldap
+  - nscd
+  - audit
+  - auditd
+  - aide
+  - rkhunter
+  - chkrootkit
+  - lynis
+  - clamav
+  - clamav-update
+
+# Create system users with enhanced security
+users:
+  - name: admin
+    groups: [wheel, docker, wireguard, admins]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+    # Enhanced security
+    lock_passwd: false
+    create_home: true
+    home: /home/admin
+    # Password will be set via CloudInit
+    passwd: $6$rounds=4096$salt$hash
+
+  - name: operator
+    groups: [operators, docker]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:/usr/bin/docker, /usr/bin/systemctl
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+    lock_passwd: false
+    create_home: true
+    home: /home/operator
+    passwd: $6$rounds=4096$salt$hash
+
+# Write enhanced security configurations
+write_files:
+  # Enhanced SSH configuration with MFA
+  - path: /etc/ssh/sshd_config
+    content: |
+      Port 22
+      Protocol 2
+      HostKey /etc/ssh/ssh_host_rsa_key
+      HostKey /etc/ssh/ssh_host_ecdsa_key
+      HostKey /etc/ssh/ssh_host_ed25519_key
+      UsePrivilegeSeparation yes
+      KeyRegenerationInterval 3600
+      ServerKeyBits 4096
+      SyslogFacility AUTH
+      LogLevel VERBOSE
+      LoginGraceTime 60
+      PermitRootLogin no
+      StrictModes yes
+      RSAAuthentication yes
+      PubkeyAuthentication yes
+      AuthorizedKeysFile .ssh/authorized_keys
+      IgnoreRhosts yes
+      RhostsRSAAuthentication no
+      HostbasedAuthentication no
+      PermitEmptyPasswords no
+      ChallengeResponseAuthentication yes
+      PasswordAuthentication yes
+      KerberosAuthentication no
+      KerberosOrLocalPasswd yes
+      KerberosTicketCleanup yes
+      GSSAPIAuthentication no
+      GSSAPICleanupCredentials yes
+      X11Forwarding no
+      X11DisplayOffset 10
+      PrintMotd no
+      PrintLastLog yes
+      TCPKeepAlive yes
+      UseLogin no
+      MaxStartups 10:30:60
+      Banner /etc/ssh/banner
+      AcceptEnv LANG LC_*
+      Subsystem sftp /usr/libexec/openssh/sftp-server
+      UsePAM yes
+      # Enhanced security settings
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+      MaxAuthTries 3
+      MaxSessions 4
+      AllowUsers admin operator
+      DenyUsers root
+      # MFA settings
+      AuthenticationMethods publickey,password
+      PubkeyAuthentication yes
+      PasswordAuthentication yes
+    permissions: '0644'
+    owner: root:root
+
+  # SSH banner
+  - path: /etc/ssh/banner
+    content: |
+      ╔══════════════════════════════════════════════════════════════╗
+      ║                    SECURE INFRASTRUCTURE                    ║
+      ║                                                              ║
+      ║  WARNING: This system is for authorized users only.         ║
+      ║  All activities are logged and monitored.                   ║
+      ║  Unauthorized access is prohibited and will be prosecuted.  ║
+      ║                                                              ║
+      ║  Multi-Factor Authentication Required:                      ║
+      ║  1. WireGuard VPN connection                                ║
+      ║  2. SSH key authentication                                  ║
+      ║  3. Username/password authentication                        ║
+      ║                                                              ║
+      ╚══════════════════════════════════════════════════════════════╝
+    permissions: '0644'
+    owner: root:root
+
+  # Enhanced audit configuration for comprehensive security monitoring
+  - path: /etc/audit/rules.d/99-enhanced-security.rules
+    content: |
+      # Enhanced security audit rules for jump host
+      # Monitor all authentication and privilege escalation events
+      
+      # Authentication events
+      -w /var/log/secure -p wa -k auth_events
+      -w /var/log/audit.log -p wa -k audit_events
+      
+      # SSH and VPN access
+      -w /etc/ssh/sshd_config -p wa -k ssh_config
+      -w /etc/wireguard/ -p wa -k wireguard_config
+      
+      # User and group management
+      -w /etc/passwd -p wa -k user_management
+      -w /etc/shadow -p wa -k shadow_management
+      -w /etc/group -p wa -k group_management
+      
+      # System configuration
+      -w /etc/sudoers -p wa -k sudoers_config
+      -w /etc/sudoers.d/ -p wa -k sudoers_config
+      
+      # Network configuration
+      -w /etc/hosts -p wa -k network_config
+      -w /etc/resolv.conf -p wa -k network_config
+    permissions: '0644'
+    owner: root:root
+
+  # PAM configuration for enhanced authentication
+  - path: /etc/pam.d/sshd
+    content: |
+      # PAM configuration for SSH with MFA
+      auth       required     pam_sepermit.so
+      auth       substack     password-auth
+      auth       include      postlogin
+      # Enhanced security
+      auth       required     pam_faillock.so preauth audit silent deny=3 unlock_time=600
+      auth       sufficient   pam_faillock.so authsucc audit deny=3 unlock_time=600
+      auth       required     pam_env.so
+      auth       required     pam_faillock.so authfail audit deny=3 unlock_time=600
+      account    required     pam_faillock.so
+      account    include      password-auth
+      password   include      password-auth
+      session    required     pam_selinux.so close
+      session    required     pam_loginuid.so
+      session    optional     pam_keyinit.so force revoke
+      session    include      password-auth
+      session    include      postlogin
+      session    required     pam_selinux.so open
+    permissions: '0644'
+    owner: root:root
+
+  # Enhanced audit configuration
+  - path: /etc/audit/auditd.conf
+    content: |
+      # Audit daemon configuration
+      log_file = /var/log/audit/audit.log
+      log_format = RAW
+      log_group = root
+      priority_boost = 4
+      flush = INCREMENTAL_ASYNC
+      freq = 20
+      num_logs = 5
+      disp_qos = lossy
+      dispatcher = /sbin/audispd
+      name_format = NONE
+      max_log_file = 6
+      max_log_file_action = ROTATE
+      space_left = 75
+      space_left_action = SYSLOG
+      action_mail_acct = root
+      admin_space_left = 50
+      admin_space_left_action = SUSPEND
+      disk_full_action = SUSPEND
+      disk_error_action = SUSPEND
+      use_libwrap = yes
+      tcp_listen_port = 60
+      tcp_listen_queue = 5
+      tcp_max_per_addr = 1
+      tcp_client_ports = 1024-65535
+      tcp_client_max_idle = 0
+      enable_krb5 = no
+      krb5_principal = auditd
+      krb5_key_file = /etc/audit/audit.key
+    permissions: '0640'
+    owner: root:root
+
+  # AIDE configuration for file integrity monitoring
+  - path: /etc/aide.conf
+    content: |
+      # AIDE configuration for file integrity monitoring
+      @@define DBDIR /var/lib/aide
+      @@define LOGDIR /var/log/aide
+      
+      # Database file
+      database=file:@@{DBDIR}/aide.db.gz
+      database_out=file:@@{DBDIR}/aide.db.new.gz
+      
+      # Log file
+      gzip_dbout=yes
+      verbose=5
+      report_url=file:@@{LOGDIR}/aide.log
+      report_url=stdout
+      
+      # Rules
+      /boot   NORMAL
+      /bin    NORMAL
+      /sbin   NORMAL
+      /lib    NORMAL
+      /lib64  NORMAL
+      /opt    NORMAL
+      /usr    NORMAL
+      /root   NORMAL
+      /etc    NORMAL
+      /var    NORMAL
+      
+      # Exclude directories
+      !/var/log
+      !/var/run
+      !/var/tmp
+      !/tmp
+      !/proc
+      !/sys
+      !/dev
+    permissions: '0640'
+    owner: root:root
+
+# Configure system settings
+runcmd:
+  # Set secure passwords for users
+  - echo 'admin:${admin_password}' | chpasswd
+  - echo 'operator:${operator_password}' | chpasswd
+  
+  # Enable and start security services
+  # Load enhanced audit rules
+  - augenrules --load
+  - systemctl restart auditd
+  - systemctl enable auditd
+  - systemctl start auditd
+  - systemctl enable aide
+  - systemctl start aide
+  
+  # Initialize AIDE database
+  - aide --init
+  - mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+  
+  # Configure fail2ban with enhanced rules
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Set up file integrity monitoring
+  - chmod 600 /etc/aide.conf
+  - chmod 600 /etc/audit/auditd.conf
+  
+  # Configure audit rules
+  - echo "-w /etc/passwd -p wa -k identity" >> /etc/audit/rules.d/audit.rules
+  - echo "-w /etc/group -p wa -k identity" >> /etc/audit/rules.d/audit.rules
+  - echo "-w /etc/shadow -p wa -k identity" >> /etc/audit/rules.d/audit.rules
+  - echo "-w /etc/sudoers -p wa -k identity" >> /etc/audit/rules.d/audit.rules
+  - echo "-w /var/log/audit/ -p wa -k audit" >> /etc/audit/rules.d/audit.rules
+  - echo "-w /etc/ssh/sshd_config -p wa -k sshd" >> /etc/audit/rules.d/audit.rules
+  
+  # Restart auditd to apply rules
+  - systemctl restart auditd
+  
+  # Set up ClamAV for malware scanning
+  - freshclam
+  - systemctl enable clamd
+  - systemctl start clamd
+  
+  # Configure rkhunter
+  - rkhunter --update
+  - rkhunter --propupd
+  
+  # Set up chkrootkit
+  - chkrootkit
+  
+  # Run Lynis security audit
+  - lynis audit system --quick
+  
+  # Set secure file permissions
+  - chmod 700 /home/admin
+  - chmod 700 /home/operator
+  - chmod 600 /home/admin/.ssh/authorized_keys
+  - chmod 600 /home/operator/.ssh/authorized_keys
+  
+  # Configure firewall with enhanced rules
+  - systemctl enable firewalld
+  - systemctl start firewalld
+  - firewall-cmd --permanent --add-service=ssh
+  - firewall-cmd --permanent --add-service=wireguard
+  - firewall-cmd --permanent --add-rich-rule="rule family='ipv4' source address='10.100.0.0/24' port protocol='tcp' port='22' accept"
+  - firewall-cmd --permanent --add-rich-rule="rule family='ipv4' source address='172.16.0.0/16' port protocol='tcp' port='22' accept"
+  - firewall-cmd --reload
+  
+  # Set up log rotation for security logs
+  - echo "/var/log/audit/audit.log {" > /etc/logrotate.d/audit
+  - echo "    daily" >> /etc/logrotate.d/audit
+  - echo "    rotate 30" >> /etc/logrotate.d/audit
+  - echo "    compress" >> /etc/logrotate.d/audit
+  - echo "    delaycompress" >> /etc/logrotate.d/audit
+  - echo "    missingok" >> /etc/logrotate.d/audit
+  - echo "    notifempty" >> /etc/logrotate.d/audit
+  - echo "    create 0600 root root" >> /etc/logrotate.d/audit
+  - echo "}" >> /etc/logrotate.d/audit
+  
+  # Restart SSH with new configuration
+  - systemctl restart sshd
+  
+  # Log completion
+  - echo "Enhanced security jump host setup completed at $(date)" >> /var/log/cloud-init-output.log
+  - echo "Multi-factor authentication enabled" >> /var/log/cloud-init-output.log
+  - echo "Enhanced audit logging enabled for comprehensive security monitoring" >> /var/log/cloud-init-output.log
+  - echo "File integrity monitoring enabled" >> /var/log/cloud-init-output.log
+  - echo "Security auditing enabled" >> /var/log/cloud-init-output.log
+
+# Final message
+final_message: "Enhanced security jump host setup completed! Multi-factor authentication enabled."

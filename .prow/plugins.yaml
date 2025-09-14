@@ -1,0 +1,213 @@
+# Prow Plugins Configuration for terraforming_again
+# This follows Kubernetes community standards for automated PR management
+
+plugins:
+  blind3dd/terraforming_again:
+    - approve
+    - assign
+    - blunderbuss
+    - help
+    - hold
+    - lgtm
+    - lifecycle
+    - override
+    - size
+    - trigger
+    - wip
+    - yuks
+    - needs-rebase
+    - retitle
+    - milestone
+    - project
+    - stage
+    - cherry-pick
+    - release-note
+    - verify-owners
+    - require-matching-label
+    - sigmention
+    - slackevents
+    - updateconfig
+    - cat
+    - dog
+    - pony
+    - shrug
+    - heart
+    - label
+    - owners-label
+    - plugins
+    - refresh
+    - remove-invalid-remote-resources
+    - requiresig
+    - sigmention
+    - size
+    - slackevents
+    - stale
+    - tide
+    - trigger
+    - updateconfig
+    - verify-owners
+    - welcome
+    - wip
+    - yuks
+
+# Plugin configurations
+approve:
+  - repos:
+    - blind3dd/terraforming_again
+    require_self_approval: false
+    ignore_review_state: false
+    lgtm_acts_as_approve: true
+    review_acts_as_approve: true
+
+assign:
+  - repos:
+    - blind3dd/terraforming_again
+    max_assignees: 2
+    add_assignees_review: true
+    add_assignees_author: false
+
+blunderbuss:
+  - repos:
+    - blind3dd/terraforming_again
+    max_assignees: 2
+    add_assignees_review: true
+    add_assignees_author: false
+    exclude_approvers: false
+    exclude_reviewers: false
+
+lgtm:
+  - repos:
+    - blind3dd/terraforming_again
+    review_acts_as_lgtm: true
+    store_tree_hash: true
+    sticky_lgtm_team: terraforming-again-maintainers
+
+size:
+  - repos:
+    - blind3dd/terraforming_again
+    s: 0
+    m: 0
+    l: 0
+    xl: 0
+    xxl: 0
+
+trigger:
+  - repos:
+    - blind3dd/terraforming_again
+    trusted_org: blind3dd
+    join_org_url: https://github.com/orgs/blind3dd/people
+
+wip:
+  - repos:
+    - blind3dd/terraforming_again
+    label: "do-not-merge/work-in-progress"
+    label_aliases:
+      - "WIP"
+      - "wip"
+      - "work in progress"
+      - "work-in-progress"
+
+milestone:
+  - repos:
+    - blind3dd/terraforming_again
+    maintain_fuzzy_milestones:
+      - "v1.0"
+      - "v1.1"
+      - "v1.2"
+
+project:
+  - repos:
+    - blind3dd/terraforming_again
+    org: blind3dd
+    project: terraforming-again
+
+stage:
+  - repos:
+    - blind3dd/terraforming_again
+    stages:
+      - name: alpha
+        description: "Alpha stage - experimental features"
+        labels:
+          - "stage/alpha"
+      - name: beta
+        description: "Beta stage - features ready for testing"
+        labels:
+          - "stage/beta"
+      - name: stable
+        description: "Stable stage - production ready features"
+        labels:
+          - "stage/stable"
+
+release-note:
+  - repos:
+    - blind3dd/terraforming_again
+    branches:
+      - main
+    labels:
+      - "release-note"
+      - "release-note-action-required"
+      - "release-note-breaking-change"
+      - "release-note-deprecation"
+      - "release-note-new-feature"
+      - "release-note-none"
+
+require-matching-label:
+  - repos:
+    - blind3dd/terraforming_again
+    required_labels:
+      - "area/terraform"
+      - "area/ansible"
+      - "area/kubernetes"
+      - "area/helm"
+      - "area/kustomize"
+      - "area/webhooks"
+      - "area/operators"
+      - "area/security"
+      - "area/infrastructure"
+      - "area/ci-cd"
+    missing_label: "needs-area-label"
+
+sigmention:
+  - repos:
+    - blind3dd/terraforming_again
+    mention_teams:
+      - "sig-infrastructure"
+      - "sig-security"
+      - "sig-kubernetes"
+      - "sig-terraform"
+      - "sig-ansible"
+
+stale:
+  - repos:
+    - blind3dd/terraforming_again
+    stale_label: "lifecycle/stale"
+    exempt_labels:
+      - "lifecycle/frozen"
+      - "lifecycle/active"
+      - "priority/critical-urgent"
+      - "priority/important-soon"
+      - "priority/important-longterm"
+    stale_message: |
+      This issue has been automatically marked as stale because it has not had
+      recent activity. It will be closed if no further activity occurs.
+    close_message: |
+      This issue has been automatically closed due to inactivity.
+    days_until_stale: 30
+    days_until_close: 7
+
+welcome:
+  - repos:
+    - blind3dd/terraforming_again
+    message_template: |
+      Welcome to the terraforming_again project! 🎉
+      
+      This is an automated message to help you get started. Please:
+      
+      1. **Read the [Contributing Guide](CONTRIBUTING.md)**
+      2. **Check the [Code of Conduct](CODE_OF_CONDUCT.md)**
+      3. **Join our [Slack channel](https://kubernetes.slack.com/channels/terraforming-again)**
+      4. **Review the [project roadmap](ROADMAP.md)**
+      
+      If you have any questions, feel free to ask in the issue or reach out to the maintainers.
+      
+      Happy contributing! 🚀

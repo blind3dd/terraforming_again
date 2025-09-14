@@ -1,0 +1,195 @@
+# Prow Configuration for terraforming_again
+# This follows Kubernetes community standards for automated PR management
+
+# Webhook configuration
+webhook:
+  api-compatibility:
+    endpoint: "/api-compatibility"
+    events: ["pull_request", "push"]
+    handler: "ci-cd/prow/webhooks/api-compatibility/api-compatibility-webhook.go"
+  mutating:
+    endpoint: "/mutating"
+    events: ["pull_request"]
+    handler: "ci-cd/prow/webhooks/mutating/"
+  validating:
+    endpoint: "/validating"
+    events: ["pull_request"]
+    handler: "ci-cd/prow/webhooks/validating/"
+  authorization:
+    endpoint: "/authorization"
+    events: ["pull_request"]
+    handler: "ci-cd/prow/webhooks/authorization/"
+  terraform-apply:
+    endpoint: "/terraform-apply"
+    events: ["pull_request"]
+    handler: "ci-cd/prow/webhooks/terraform-apply/"
+
+prow_config:
+  # Presubmit jobs - run on PRs
+  presubmits:
+    blind3dd/terraforming_again:
+      - name: terraform-validate
+        always_run: true
+        optional: false
+        trigger: '(?m)^/test (?:.* )?terraform-validate(?: .*)?$'
+        rerun_command: '/test terraform-validate'
+        spec:
+          containers:
+          - image: hashicorp/terraform:1.5.0
+            command:
+            - /bin/bash
+            - -c
+            - |
+              terraform init -backend=false
+              terraform validate
+              terraform fmt -check -recursive
+            workingDir: /workspace
+
+      - name: ansible-lint
+        always_run: true
+        optional: false
+        trigger: '(?m)^/test (?:.* )?ansible-lint(?: .*)?$'
+        rerun_command: '/test ansible-lint'
+        spec:
+          containers:
+          - image: cytopia/ansible-lint:latest
+            command:
+            - ansible-lint
+            - ansible/
+            workingDir: /workspace
+
+      - name: helm-lint
+        always_run: true
+        optional: false
+        trigger: '(?m)^/test (?:.* )?helm-lint(?: .*)?$'
+        rerun_command: '/test helm-lint'
+        spec:
+          containers:
+          - image: alpine/helm:3.12.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              find applications/ operators/ -name "Chart.yaml" -exec dirname {} \; | while read chart_dir; do
+                helm lint "$chart_dir"
+              done
+            workingDir: /workspace
+
+      - name: kustomize-build
+        always_run: true
+        optional: false
+        trigger: '(?m)^/test (?:.* )?kustomize-build(?: .*)?$'
+        rerun_command: '/test kustomize-build'
+        spec:
+          containers:
+          - image: k8s.gcr.io/kustomize/kustomize:v4.5.7
+            command:
+            - /bin/sh
+            - -c
+            - |
+              find applications/ operators/ -name "kustomization.yaml" -exec dirname {} \; | while read kustomize_dir; do
+                kustomize build "$kustomize_dir"
+              done
+            workingDir: /workspace
+
+      - name: go-test
+        always_run: true
+        optional: false
+        trigger: '(?m)^/test (?:.* )?go-test(?: .*)?$'
+        rerun_command: '/test go-test'
+        spec:
+          containers:
+          - image: golang:1.21
+            command:
+            - /bin/bash
+            - -c
+            - |
+              cd go-mysql-api
+              go mod tidy
+              go test -v ./...
+            workingDir: /workspace
+
+      - name: api-compatibility-check
+        always_run: true
+        optional: false
+        trigger: '(?m)^/test (?:.* )?api-compatibility-check(?: .*)?$'
+        rerun_command: '/test api-compatibility-check'
+        spec:
+          containers:
+          - image: alpine:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache bash
+              chmod +x scripts/check-api-compatibility.sh
+              ./scripts/check-api-compatibility.sh -k 1.28
+            workingDir: /workspace
+
+  # Postsubmit jobs - run after merge
+  postsubmits:
+    blind3dd/terraforming_again:
+      - name: build-and-push-images
+        spec:
+          containers:
+          - image: docker:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Build and push Docker images
+              docker build -t go-mysql-api:latest go-mysql-api/
+              docker build -t api-compatibility-webhook:latest webhooks/
+            workingDir: /workspace
+
+  # Periodic jobs - run on schedule
+  periodics:
+    - name: security-scan
+      cron: "0 2 * * 1"  # Every Monday at 2 AM
+      spec:
+        containers:
+        - image: aquasec/trivy:latest
+          command:
+          - trivy
+          - fs
+          - --format
+          - sarif
+          - --output
+          - trivy-results.sarif
+          - .
+          workingDir: /workspace
+
+    - name: dependency-update
+      cron: "0 3 * * 1"  # Every Monday at 3 AM
+      spec:
+        containers:
+        - image: golang:1.21
+          command:
+          - /bin/bash
+          - -c
+          - |
+            cd go-mysql-api
+            go mod tidy
+            go mod verify
+          workingDir: /workspace
+
+# Branch protection rules
+branch_protection:
+  protect: true
+  required_status_checks:
+    contexts:
+    - terraform-validate
+    - ansible-lint
+    - helm-lint
+    - helm-test
+    - kustomize-build
+    - go-test
+    - api-compatibility-check
+  enforce_admins: true
+  required_pull_request_reviews:
+    required_approving_review_count: 2
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+  restrictions:
+    users: []
+    teams: []

@@ -1,0 +1,41 @@
+---
+# Variables for Kubernetes Operators role
+
+# Helm repository URLs
+helm_repositories:
+  - name: "hashicorp"
+    url: "https://helm.releases.hashicorp.com"
+  - name: "terraform-operator"
+    url: "https://github.com/oam-dev/terraform-controller/releases/download/v0.8.0"
+  - name: "ansible-operator"
+    url: "https://operatorhub.io/charts"
+
+# Operator chart configurations
+operator_charts:
+  terraform:
+    name: "terraform-operator"
+    chart_ref: "terraform-operator/terraform-operator"
+    values_file: "terraform-operator-values.yml"
+  vault:
+    name: "vault-operator"
+    chart_ref: "hashicorp/vault-operator"
+    values_file: "vault-operator-values.yml"
+  ansible:
+    name: "ansible-operator"
+    chart_ref: "ansible-operator/ansible-operator"
+    values_file: "ansible-operator-values.yml"
+
+# Resource labels
+common_labels:
+  app.kubernetes.io/part-of: "kubernetes-operators"
+  app.kubernetes.io/managed-by: "ansible"
+  environment: "{{ environment | default('dev') }}"
+
+# Service account names
+service_accounts:
+  terraform_operator: "terraform-operator"
+  vault_operator: "vault-operator"
+  ansible_operator: "ansible-operator"
+
+# RBAC configuration
+rbac_enabled: true

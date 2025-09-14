@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: go-mysql-api
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    cert-manager.io/cluster-issuer: "letsencrypt-test"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - go-mysql-api-dev.example.com
+    secretName: go-mysql-api-dev-tls
+  rules:
+  - host: go-mysql-api-dev.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: go-mysql-api
+            port:
+              number: 8080

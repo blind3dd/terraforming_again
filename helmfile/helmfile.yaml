@@ -1,0 +1,163 @@
+repositories:
+  - name: stable
+    url: https://charts.helm.sh/stable
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: istio
+    url: https://istio-release.storage.googleapis.com/charts
+  - name: vault
+    url: https://helm.releases.hashicorp.com
+  - name: argo
+    url: https://argoproj.github.io/argo-helm
+  - name: karpenter
+    url: https://charts.karpenter.sh
+  - name: aws-eks
+    url: https://aws.github.io/eks-charts
+
+environments:
+  dev:
+    values:
+      - environments/dev/values.yaml
+  test:
+    values:
+      - environments/test/values.yaml
+  staging:
+    values:
+      - environments/staging/values.yaml
+  production:
+    values:
+      - environments/production/values.yaml
+
+releases:
+  # Core Infrastructure
+  - name: istio-base
+    namespace: istio-system
+    createNamespace: true
+    chart: istio/base
+    version: 1.19.0
+    values:
+      - charts/istio-base/values.yaml
+      - environments/{{ .Environment.Name }}/istio-base-values.yaml
+
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    version: 1.19.0
+    values:
+      - charts/istiod/values.yaml
+      - environments/{{ .Environment.Name }}/istiod-values.yaml
+    needs:
+      - istio-system/istio-base
+
+  - name: istio-ingressgateway
+    namespace: istio-system
+    chart: istio/gateway
+    version: 1.19.0
+    values:
+      - charts/istio-ingressgateway/values.yaml
+      - environments/{{ .Environment.Name }}/istio-ingressgateway-values.yaml
+    needs:
+      - istio-system/istiod
+
+  # Monitoring Stack
+  - name: prometheus
+    namespace: monitoring
+    createNamespace: true
+    chart: prometheus-community/kube-prometheus-stack
+    version: 55.0.0
+    values:
+      - charts/prometheus/values.yaml
+      - environments/{{ .Environment.Name }}/prometheus-values.yaml
+
+  - name: grafana
+    namespace: monitoring
+    chart: grafana/grafana
+    version: 7.0.0
+    values:
+      - charts/grafana/values.yaml
+      - environments/{{ .Environment.Name }}/grafana-values.yaml
+    needs:
+      - monitoring/prometheus
+
+  # Security & Secrets
+  - name: vault
+    namespace: vault
+    createNamespace: true
+    chart: vault/vault
+    version: 0.25.0
+    values:
+      - charts/vault/values.yaml
+      - environments/{{ .Environment.Name }}/vault-values.yaml
+
+  # Autoscaling
+  - name: cluster-autoscaler
+    namespace: kube-system
+    chart: aws-eks/cluster-autoscaler
+    version: 1.4.0
+    values:
+      - charts/cluster-autoscaler/values.yaml
+      - environments/{{ .Environment.Name }}/cluster-autoscaler-values.yaml
+
+  - name: karpenter
+    namespace: karpenter
+    createNamespace: true
+    chart: karpenter/karpenter
+    version: 0.37.0
+    values:
+      - charts/karpenter/values.yaml
+      - environments/{{ .Environment.Name }}/karpenter-values.yaml
+
+  # GitOps
+  - name: argocd
+    namespace: argocd
+    createNamespace: true
+    chart: argo/argo-cd
+    version: 5.51.0
+    values:
+      - charts/argocd/values.yaml
+      - environments/{{ .Environment.Name }}/argocd-values.yaml
+
+  # Application
+  - name: go-mysql-api
+    namespace: go-mysql-api
+    createNamespace: true
+    chart: ./charts/go-mysql-api
+    version: 1.0.0
+    values:
+      - charts/go-mysql-api/values.yaml
+      - environments/{{ .Environment.Name }}/go-mysql-api-values.yaml
+    needs:
+      - istio-system/istio-ingressgateway
+      - vault/vault
+      - argocd/argocd
+
+  # Operators
+  - name: ansible-operator
+    namespace: operators
+    createNamespace: true
+    chart: ./charts/ansible-operator
+    version: 1.0.0
+    values:
+      - charts/ansible-operator/values.yaml
+      - environments/{{ .Environment.Name }}/ansible-operator-values.yaml
+
+  - name: terraform-operator
+    namespace: operators
+    chart: ./charts/terraform-operator
+    version: 1.0.0
+    values:
+      - charts/terraform-operator/values.yaml
+      - environments/{{ .Environment.Name }}/terraform-operator-values.yaml
+
+  - name: vault-operator
+    namespace: operators
+    chart: ./charts/vault-operator
+    version: 1.0.0
+    values:
+      - charts/vault-operator/values.yaml
+      - environments/{{ .Environment.Name }}/vault-operator-values.yaml
+    needs:
+      - vault/vault
+

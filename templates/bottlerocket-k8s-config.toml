@@ -1,0 +1,146 @@
+# Bottlerocket Configuration for Kubernetes Nodes
+# Immutable, container-optimized OS with automatic updates
+
+[settings]
+# Hostname configuration
+hostname = "control-plane"
+
+# Timezone
+timezone = "UTC"
+
+# Network configuration
+[settings.network]
+# Static IP configuration (will be set by CloudInit)
+# hostname = "control-plane.internal.coderedalarmtech.com"
+
+# Kubernetes configuration
+[settings.kubernetes]
+# Cluster name
+cluster-name = "test-go-mysql-api-cluster"
+
+# API server endpoint
+api-server = "https://172.16.2.12:6443"
+
+# Pod CIDR
+pod-cidr = "10.200.0.0/24"
+
+# Service CIDR
+service-cidr = "10.150.0.0/24"
+
+# Container runtime
+container-runtime = "containerd"
+
+# CNI plugin
+cni-plugin = "cilium"
+
+# Node labels
+node-labels = ["role=master", "environment=test"]
+
+# Node taints
+node-taints = ["node-role.kubernetes.io/master:NoSchedule"]
+
+# Security configuration
+[settings.kubernetes.security]
+# Enable SELinux
+selinux = "enforcing"
+
+# Enable AppArmor
+apparmor = "enforcing"
+
+# Enable seccomp
+seccomp = "enforcing"
+
+# Audit logging
+audit-logging = true
+
+# Update configuration
+[settings.updates]
+# Automatic updates
+reboot-strategy = "off"
+
+# Update strategy
+update-strategy = "immediate"
+
+# Update server
+update-server = "https://updates.bottlerocket.aws/"
+
+# Security updates only
+security-updates-only = true
+
+# Logging configuration
+[settings.logging]
+# Log level
+level = "info"
+
+# Log destination
+destination = "journald"
+
+# Log retention
+retention = "7d"
+
+# System configuration
+[settings.system]
+# Enable systemd
+systemd = true
+
+# Enable auditd
+auditd = true
+
+# Enable rsyslog
+rsyslog = true
+
+# Security hardening
+[settings.security]
+# Enable SELinux
+selinux = "enforcing"
+
+# Enable AppArmor
+apparmor = "enforcing"
+
+# Enable seccomp
+seccomp = "enforcing"
+
+# Disable unnecessary services
+disable-services = ["ssh", "telnet", "ftp"]
+
+# Enable firewall
+firewall = true
+
+# Network security
+[settings.network.security]
+# Enable eBPF
+ebpf = true
+
+# Enable network policies
+network-policies = true
+
+# Enable service mesh
+service-mesh = "cilium"
+
+# Container security
+[settings.containers]
+# Enable container security
+security = "enforcing"
+
+# Enable image scanning
+image-scanning = true
+
+# Enable runtime security
+runtime-security = true
+
+# Enable admission controllers
+admission-controllers = ["PodSecurityPolicy", "NetworkPolicy", "ResourceQuota"]
+
+# Monitoring configuration
+[settings.monitoring]
+# Enable metrics
+metrics = true
+
+# Enable logging
+logging = true
+
+# Enable tracing
+tracing = true
+
+# Enable alerting
+alerting = true

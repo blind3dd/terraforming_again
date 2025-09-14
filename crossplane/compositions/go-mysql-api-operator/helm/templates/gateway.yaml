@@ -1,0 +1,34 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}-gateway
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+  {{- with .Values.istio.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- if .Values.istio.gateway.selector }}
+    {{- toYaml .Values.istio.gateway.selector | nindent 4 }}
+    {{- else }}
+    istio: ingressgateway
+    {{- end }}
+  servers:
+    {{- if .Values.istio.gateway.servers }}
+    {{- toYaml .Values.istio.gateway.servers | nindent 4 }}
+    {{- else }}
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - {{ include "go-mysql-api.fullname" . }}.{{ .Values.istio.gateway.namespace | default "istio-system" }}.svc.cluster.local
+      {{- if .Values.istio.gateway.tls }}
+      tls:
+        {{- toYaml .Values.istio.gateway.tls | nindent 8 }}
+      {{- end }}
+    {{- end }}
+{{- end }}

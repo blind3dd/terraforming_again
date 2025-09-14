@@ -1,0 +1,10 @@
+{
+  "analysis_timestamp": "2025-09-06T02:00:51Z",
+  "risks_found": [
+    {
+      "type": "default_vpc_usage",
+      "details": "Default VPC is being used (not recommended for production)",
+      "resources": "vpc-052d23b49de47f255"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "defaultAction": "SCMP_ACT_ALLOW",
+  "architectures": [
+    "SCMP_ARCH_X86_64",
+    "SCMP_ARCH_X86",
+    "SCMP_ARCH_X32"
+  ],
+  "syscalls": [
+    {
+      "names": [
+        "reboot",
+        "kexec_load",
+        "kexec_file_load"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "args": [],
+      "comment": "Deny system reboot and kernel execution (require explicit approval)"
+    },
+    {
+      "names": [
+        "acct",
+        "add_key",
+        "clock_adjtime",
+        "create_module",
+        "get_kernel_syms",
+        "get_mempolicy",
+        "iopl",
+        "ioperm",
+        "kcmp",
+        "keyctl",
+        "lookup_dcookie",
+        "mbind",
+        "migrate_pages",
+        "move_pages",
+        "name_to_handle_at",
+        "nfsservctl",
+        "open_by_handle_at",
+        "personality",
+        "pivot_root",
+        "process_vm_readv",
+        "process_vm_writev",
+        "query_module",
+        "quotactl",
+        "request_key",
+        "set_mempolicy",
+        "setns",
+        "swapoff",
+        "swapon",
+        "sysfs",
+        "sysctl",
+        "unshare",
+        "uselib",
+        "ustat",
+        "vm86",
+        "vm86old",
+        "vserver"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "args": [],
+      "comment": "Deny dangerous system calls that could compromise system security"
+    }
+  ]
+}

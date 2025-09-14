@@ -1,186 +1,185 @@
+# VPC Module - Creates VPC, subnets, and networking resources
+
+# VPC
 resource "aws_vpc" "main" {
-  cidr_block       = var.main_vpc_cidr
-  instance_tenancy = "default"
-  tags = {
-    Name = "${var.environment}-vpc"
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  instance_tenancy     = "default"
+
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-vpc"
     Environment = var.environment
-  }
+  })
 }
 
-resource "aws_internet_gateway" "igw" {
+# Internet Gateway
+resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-  tags = {
-    "Name" = "${var.environment}-igw"
+
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-igw"
     Environment = var.environment
-  }
-}
-resource "aws_subnet" "private_subnet_a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.private_subnet_range_a
-  map_public_ip_on_launch = false
-  availability_zone       = "us-east-1a"
-
-  tags = {
-    "Name" = "${var.environment}-public-subnet-a"
-  }
+  })
 }
 
-resource "aws_subnet" "private_subnet_b" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.private_subnet_range_b
-  map_public_ip_on_launch = false
-  availability_zone       = "us-east-1b"
-  tags = {
-    "Name" = "${var.environment}-public-subnet-b"
-  }
-}
+# Public Subnets
+resource "aws_subnet" "public" {
+  count = length(var.public_subnet_cidrs)
 
-resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_range
+  cidr_block              = var.public_subnet_cidrs[count.index]
+  availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
-  availability_zone       = "us-east-1a"
 
-  tags = {
-    "Name" = "${var.environment}-public-subnet-a"
-  }
-}
-
-# Create Route table for Private Subnets
-resource "aws_route_table" "private_rt" {
-  vpc_id = aws_vpc.main.id
-  tags = {
-    "Name" = "${var.environment}-private-route-table"
-  }
-}
-
-# Create Route table for Public Subnets
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main.id
-  route {
-    # Traffic from Public Subnet reaches Internet via Internet Gateway
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-
-  tags = {
-    "Name" = "${var.environment}-public-route-table"
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-public-subnet-${count.index + 1}"
     Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
+    Type        = "public"
+  })
+}
+
+# Private Subnets
+resource "aws_subnet" "private" {
+  count = length(var.private_subnet_cidrs)
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidrs[count.index]
+  availability_zone = var.availability_zones[count.index]
+
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-private-subnet-${count.index + 1}"
+    Environment = var.environment
+    Type        = "private"
+  })
+}
+
+# Route Table for Public Subnets
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
   }
+
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-public-rt"
+    Environment = var.environment
+    Type        = "public"
+  })
 }
 
-# Route table Association with Private Subnet A
-resource "aws_route_table_association" "private_rt_association_a" {
-  subnet_id      = aws_subnet.private_subnet_a.id
-  route_table_id = aws_route_table.private_rt.id
+# Route Table for Private Subnets
+resource "aws_route_table" "private" {
+  count = length(var.private_subnet_cidrs)
+
+  vpc_id = aws_vpc.main.id
+
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-private-rt-${count.index + 1}"
+    Environment = var.environment
+    Type        = "private"
+  })
 }
 
-# Route table Association with Private Subnet B
-resource "aws_route_table_association" "private_rt_association_b" {
-  subnet_id      = aws_subnet.private_subnet_b.id
-  route_table_id = aws_route_table.private_rt.id
+# Route Table Associations for Public Subnets
+resource "aws_route_table_association" "public" {
+  count = length(aws_subnet.public)
+
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
 }
 
-# Route table Association with Public Subnet A
-resource "aws_route_table_association" "public_rt_association_a" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
+# Route Table Associations for Private Subnets
+resource "aws_route_table_association" "private" {
+  count = length(aws_subnet.private)
+
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
-resource "aws_security_group" "default" {
-  name        = "${var.environment}-default-sg"
-  description = "Default security group to allow inbound/outbound from the VPC"
+# Security Group for EC2 instances
+resource "aws_security_group" "ec2" {
+  name_prefix = "${var.environment}-ec2-sg-"
   vpc_id      = aws_vpc.main.id
-  depends_on  = [aws_vpc.main]
-}
 
-# Allow inbound SSH for EC2 instances
-resource "aws_security_group_rule" "allow_ssh_in" {
-  description       = "Allow SSH"
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.default.id
-}
-
-resource "aws_security_group_rule" "allow_http_in_api" {
-  description       = "Allow inbound HTTPS traffic"
-  type              = "ingress"
-  from_port         = "8090"
-  to_port           = "8090"
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.default.id
-}
-
-# Allow all outbound traffic
-resource "aws_security_group_rule" "allow_all_out" {
-  description       = "Allow outbound traffic"
-  type              = "egress"
-  from_port         = "0"
-  to_port           = "0"
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.default.id
-}
-
-resource "aws_security_group" "instance" {
-  name = "${var.environment}-${var.service_name}-ec2"
-
+  # SSH access
   ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = var.ssh_cidr_blocks
+  }
+
+  # HTTP access
+  ingress {
+    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
+    cidr_blocks = var.http_cidr_blocks
+  }
+
+  # HTTPS access
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = var.https_cidr_blocks
+  }
+
+  # Custom application port
+  dynamic "ingress" {
+    for_each = var.custom_ingress_rules
+    content {
+      description = ingress.value.description
+      from_port   = ingress.value.from_port
+      to_port     = ingress.value.to_port
+      protocol    = ingress.value.protocol
+      cidr_blocks = ingress.value.cidr_blocks
+    }
+  }
+
+  # All outbound traffic
+  egress {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "${var.environment}-${var.service_name}-ec2"
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-ec2-sg"
     Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
+  })
 }
 
-resource "aws_launch_configuration" "example" {
-  image_id      = var.ec2_instance_ami.id
-  instance_type = var.ec2_instance_type.id
+# DHCP Options Set for Private FQDN Resolution
+resource "aws_vpc_dhcp_options" "main" {
+  count = var.create_dhcp_options ? 1 : 0
 
-  security_groups = ["${aws_security_group.instance.id}"]
-  # user_data = <<-EOF
-  # EOF
+  domain_name = var.domain_name != null ? "internal.${var.domain_name}" : null
+  
+  domain_name_servers = var.dhcp_domain_name_servers
+  ntp_servers         = var.dhcp_ntp_servers
+  netbios_name_servers = var.dhcp_netbios_name_servers
+  netbios_node_type   = var.dhcp_netbios_node_type
 
-  lifecycle {
-    create_before_destroy = true
-  }
+  tags = merge(var.tags, {
+    Name        = "${var.environment}-dhcp-options"
+    Environment = var.environment
+    Purpose     = "Private FQDN Resolution"
+  })
 }
 
-module "vpc" {
-  source = "../modules/vpc"
-  environment = var.environment
-  aws_region = var.region
-  main_vpc_cidr = var.main_vpc_cidr
-  private_subnet_range_a = var.private_subnet_range_a
-  private_subnet_range_b = var.private_subnet_range_b
-  public_subnet_range_a = var.public_subnet_range
-  service_name = var.service_name
-  subnet_type = var.subnet_type
-  aws_region_zones = var.aws_region_zones
-  aws_region_zones_count = var.aws_region_zones_count
-  infra_builder = var.infra_builder
-  region = var.region
-  ec2_instance_ami = var.ec2_instance_ami
-  ec2_instance_type = var.ec2_instance_type
-  ec2_instance_role_name = var.ec2_instance_role_name
-  ec2_instance_profile_name = var.ec2_instance_profile_name
-  go_mysql_api_path = var.go_mysql_api_path
-}
+# Associate DHCP Options Set with VPC
+resource "aws_vpc_dhcp_options_association" "main" {
+  count = var.create_dhcp_options ? 1 : 0
 
-module "cidr" {
-  source = "./cidr"  
-
+  vpc_id          = aws_vpc.main.id
+  dhcp_options_id = aws_vpc_dhcp_options.main[0].id
 }

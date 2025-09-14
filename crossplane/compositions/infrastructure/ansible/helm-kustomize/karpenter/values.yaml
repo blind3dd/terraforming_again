@@ -1,0 +1,91 @@
+# Default values for karpenter
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: public.ecr.aws/karpenter/karpenter
+  pullPolicy: IfNotPresent
+  tag: "v0.37.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: karpenter.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Karpenter specific configuration
+karpenter:
+  # AWS configuration
+  aws:
+    defaultRegion: "us-east-1"
+    clusterName: "database-ci-cluster"
+    interruptionQueue: "interruption-queue"
+  
+  # Node configuration
+  node:
+    instanceTypes: ["t3.small", "t3.medium", "t3.large"]
+    capacityType: ["spot", "on-demand"]
+    maxNodes: 10
+  
+  # Environment specific settings
+  environment: "dev"
+  debug: false
+  logLevel: "info"

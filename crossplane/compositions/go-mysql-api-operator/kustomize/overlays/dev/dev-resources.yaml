@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-config
+  namespace: go-mysql-api-dev
+data:
+  dev-specific-config: |
+    # Development-specific configuration
+    debug_mode: true
+    log_level: debug
+    mock_external_apis: true
+    rate_limiting: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dev-secrets
+  namespace: go-mysql-api-dev
+type: Opaque
+data:
+  # Base64 encoded values for dev
+  api-key: ZGV2LWFwaS1rZXk=  # dev-api-key
+  webhook-secret: ZGV2LXdlYmhvb2stc2VjcmV0  # dev-webhook-secret

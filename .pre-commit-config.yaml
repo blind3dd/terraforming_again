@@ -1,0 +1,82 @@
+# Pre-commit hooks for CI/CD pipeline
+# These run in isolated CI/CD environments, not on local machines
+
+repos:
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 22.0.0
+    hooks:
+      - id: black
+        language_version: python3.9
+        args: [--line-length=88]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile=black]
+
+  # Linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 5.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88, --extend-ignore=E203]
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.0.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests, types-PyYAML]
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, ., -f, json, -o, bandit-report.json]
+
+  # Terraform formatting
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.81.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_tflint
+      - id: terraform_checkov
+
+  # Ansible linting
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v6.0.0
+    hooks:
+      - id: ansible-lint
+        files: \.(yml|yaml)$
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        types: [yaml, json]
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  # Container security
+  - repo: https://github.com/aquasecurity/trivy
+    rev: v0.45.0
+    hooks:
+      - id: trivy
+        args: [fs, --exit-code, 1]
+
+  # Commit message formatting
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.5.0
+    hooks:
+      - id: commitizen
