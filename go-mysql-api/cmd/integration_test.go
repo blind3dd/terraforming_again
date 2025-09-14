@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	conff "command-line-arguments/Users/usualsuspectx/Development/go/src/github.com/blind3dd/goapp_CI/config.go"
+	"goapp_CI/conff"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -263,8 +263,7 @@ func (suite *IntegrationTestSuite) TestDuplicateConstraints() {
 	// Create first user
 	userData := CreateUserRequest{
 		Username: "test",
-		Email:    "test@example.com"
-		est@example.com",
+		Email:    "test@example.com",
 		Password: "password123",
 	}
 
@@ -279,7 +278,7 @@ func (suite *IntegrationTestSuite) TestDuplicateConstraints() {
 
 	// Try to create user with same username
 	duplicateUser := CreateUserRequest{
-		Username: "duplicateuser", // Same username
+		Username: "test", // Same username
 		Email:    "different@example.com",
 		Password: "password456",
 	}
