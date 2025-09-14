@@ -7,7 +7,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 
 # Base configuration
-bases:
+resources:
   - ../../base
 
 # Namespace override
@@ -28,9 +28,15 @@ images:
     newTag: v0.37.0-test
 
 # Patches for test-specific configurations
-patchesStrategicMerge:
-  - deployment-patch.yaml
-  - service-nodeport.yaml
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: karpenter
+  - path: service-nodeport.yaml
+    target:
+      kind: Service
+      name: karpenter
 
 # Replicas for test
 replicas:

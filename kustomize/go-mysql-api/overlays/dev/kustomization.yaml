@@ -7,7 +7,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 
 # Base configuration
-bases:
+resources:
   - ../../base
 
 # Namespace override
@@ -51,10 +51,19 @@ secretGenerator:
       disableNameSuffixHash: true
 
 # Patches for dev-specific configurations
-patchesStrategicMerge:
-  - deployment-patch.yaml
-  - service-patch.yaml
-  - ingress-patch.yaml
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: go-mysql-api
+  - path: service-patch.yaml
+    target:
+      kind: Service
+      name: go-mysql-api
+  - path: ingress-patch.yaml
+    target:
+      kind: Ingress
+      name: go-mysql-api
 
 # Replicas for dev (lower resource usage)
 replicas:

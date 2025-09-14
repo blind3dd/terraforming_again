@@ -108,16 +108,16 @@ resource "azurerm_network_security_group" "hybrid" {
     destination_address_prefix = "*"
   }
 
-  # Allow HTTP
+  # Allow HTTP only from specific sources (restricted from internet)
   security_rule {
-    name                       = "HTTP"
+    name                       = "HTTP-restricted"
     priority                   = 1003
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
-    source_address_prefix      = "*"
+    source_address_prefix      = "10.0.0.0/16"  # Only from AWS VPC
     destination_address_prefix = "*"
   }
 
@@ -138,8 +138,35 @@ resource "azurerm_container_registry" "hybrid" {
   name                = "${var.environment}hybridacr"
   resource_group_name = azurerm_resource_group.hybrid.name
   location            = azurerm_resource_group.hybrid.location
-  sku                 = "Standard"
-  admin_enabled       = true
+  sku                 = "Premium"  # Required for geo-replication and zone redundancy
+  admin_enabled       = false      # CKV_AZURE_137: Disable admin account
+  public_network_access_enabled = false  # CKV_AZURE_139: Disable public networking
+  zone_redundancy_enabled = true   # CKV_AZURE_233: Enable zone redundancy
+
+  # CKV_AZURE_164: Enable trusted image scanning
+  trust_policy {
+    enabled = true
+  }
+
+  # CKV_AZURE_166: Enable image quarantine and scanning
+  quarantine_policy_enabled = true
+  retention_policy {
+    enabled = true
+    days    = 7  # CKV_AZURE_167: Set retention policy for untagged manifests
+  }
+
+  # CKV_AZURE_165: Enable geo-replication (requires Premium SKU)
+  georeplications {
+    location                = "East US"
+    zone_redundancy_enabled = true
+    tags = {
+      Environment = var.environment
+      Project     = "database_CI"
+    }
+  }
+
+  # CKV_AZURE_237: Enable dedicated data endpoints
+  data_endpoint_enabled = true
 
   tags = {
     Environment = var.environment
@@ -174,6 +201,7 @@ resource "azurerm_kubernetes_cluster" "hybrid" {
   # Network profile
   network_profile {
     network_plugin = "azure"
+    network_policy = "azure"  # CKV_AZURE_7: Enable Network Policy
     service_cidr   = "10.2.0.0/24"
     dns_service_ip = "10.2.0.10"
   }

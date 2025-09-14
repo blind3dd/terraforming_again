@@ -75,9 +75,15 @@ secretGenerator:
       disableNameSuffixHash: true
 
 # Patches for common configurations
-patchesStrategicMerge:
-  - deployment-patch.yaml
-  - service-patch.yaml
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: go-mysql-api
+  - path: service-patch.yaml
+    target:
+      kind: Service
+      name: go-mysql-api
 
 # Replicas
 replicas:

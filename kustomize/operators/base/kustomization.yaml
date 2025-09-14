@@ -69,10 +69,19 @@ secretGenerator:
       disableNameSuffixHash: true
 
 # Patches for common configurations
-patchesStrategicMerge:
-  - terraform-operator-patch.yaml
-  - vault-operator-patch.yaml
-  - ansible-operator-patch.yaml
+patches:
+  - path: terraform-operator-patch.yaml
+    target:
+      kind: Deployment
+      name: terraform-operator
+  - path: vault-operator-patch.yaml
+    target:
+      kind: Deployment
+      name: vault-operator
+  - path: ansible-operator-patch.yaml
+    target:
+      kind: Deployment
+      name: ansible-operator
 
 # Replicas
 replicas:
