@@ -11,9 +11,16 @@ pytest==8.0.0
 bandit==1.7.5
 safety==3.0.1
 
-# Infrastructure tools
+# Infrastructure tools - Updated to fix CVEs
 ansible==9.0.0
+ansible-core==2.17.6  # Fixes CVE-2024-8775
 ansible-lint==24.0.0
 
 # Additional utilities
 pre-commit==3.6.0
+
+# Security updates
+cryptography>=42.0.4  # Fixes CVE-2023-50782 and CVE-2024-26130
+requests>=2.31.0
+pyyaml>=6.0.1
+jinja2>=3.1.2

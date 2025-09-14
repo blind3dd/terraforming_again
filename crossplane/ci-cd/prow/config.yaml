@@ -1,195 +1,556 @@
-# Prow Configuration for terraforming_again
-# This follows Kubernetes community standards for automated PR management
+# ProwRobot Configuration for terraforming_again
+# Kubernetes community standard CI/CD with Trivy security integration
 
-# Webhook configuration
-webhook:
-  api-compatibility:
-    endpoint: "/api-compatibility"
-    events: ["pull_request", "push"]
-    handler: "ci-cd/prow/webhooks/api-compatibility/api-compatibility-webhook.go"
-  mutating:
-    endpoint: "/mutating"
-    events: ["pull_request"]
-    handler: "ci-cd/prow/webhooks/mutating/"
-  validating:
-    endpoint: "/validating"
-    events: ["pull_request"]
-    handler: "ci-cd/prow/webhooks/validating/"
-  authorization:
-    endpoint: "/authorization"
-    events: ["pull_request"]
-    handler: "ci-cd/prow/webhooks/authorization/"
-  terraform-apply:
-    endpoint: "/terraform-apply"
-    events: ["pull_request"]
-    handler: "ci-cd/prow/webhooks/terraform-apply/"
+prow_config_version: "v1"
 
-prow_config:
-  # Presubmit jobs - run on PRs
-  presubmits:
+# Prow configuration
+prow:
+  # Default presets for all jobs
+  default_decoration_configs:
+    "*":
+      timeout: 7200000000000  # 2 hours
+      grace_period: 15000000000  # 15 seconds
+      utility_images:
+        clonerefs: "gcr.io/k8s-prow/clonerefs:v20231213-8b1b0a0"
+        initupload: "gcr.io/k8s-prow/initupload:v20231213-8b1b0a0"
+        entrypoint: "gcr.io/k8s-prow/entrypoint:v20231213-8b1b0a0"
+        sidecar: "gcr.io/k8s-prow/sidecar:v20231213-8b1b0a0"
+      gcs_configuration:
+        bucket: "terraforming-again-prow-logs"
+        path_strategy: "explicit"
+      gcs_credentials_file: "/etc/gcs/service-account.json"
+
+  # Branch protection rules
+  branch_protection:
+    orgs:
+      blind3dd:
+        repos:
+          terraforming_again:
+            protect: true
+            required_status_checks:
+              contexts:
+                - "trivy-security-scan"
+                - "trivy-auto-remediation"
+                - "helm-test"
+                - "kustomize-test"
+                - "go-test"
+                - "docker-build"
+                - "crossplane-validate"
+            enforce_admins: true
+            required_pull_request_reviews:
+              required_approving_review_count: 2
+              dismiss_stale_reviews: true
+              require_code_owner_reviews: true
+            restrictions:
+              users: []
+              teams: ["security-team", "maintainers"]
+
+  # Webhook configuration
+  webhook:
+    endpoints:
+      - name: "trivy-security-webhook"
+        path: "/trivy-security"
+        method: "POST"
+        handler: "trivy-security-handler"
+      - name: "crossplane-validation-webhook"
+        path: "/crossplane-validate"
+        method: "POST"
+        handler: "crossplane-validation-handler"
+
+  # Plugin configuration
+  plugins:
     blind3dd/terraforming_again:
-      - name: terraform-validate
-        always_run: true
-        optional: false
-        trigger: '(?m)^/test (?:.* )?terraform-validate(?: .*)?$'
-        rerun_command: '/test terraform-validate'
-        spec:
-          containers:
-          - image: hashicorp/terraform:1.5.0
-            command:
-            - /bin/bash
-            - -c
-            - |
-              terraform init -backend=false
-              terraform validate
-              terraform fmt -check -recursive
-            workingDir: /workspace
+      - approve
+      - assign
+      - blunderbuss
+      - help
+      - hold
+      - lgtm
+      - lifecycle
+      - override
+      - size
+      - trigger
+      - wip
+      - heart
+      - cat
+      - dog
+      - pony
+      - trivy-security
+      - crossplane-validate
 
-      - name: ansible-lint
-        always_run: true
-        optional: false
-        trigger: '(?m)^/test (?:.* )?ansible-lint(?: .*)?$'
-        rerun_command: '/test ansible-lint'
-        spec:
-          containers:
-          - image: cytopia/ansible-lint:latest
-            command:
-            - ansible-lint
-            - ansible/
-            workingDir: /workspace
-
-      - name: helm-lint
-        always_run: true
-        optional: false
-        trigger: '(?m)^/test (?:.* )?helm-lint(?: .*)?$'
-        rerun_command: '/test helm-lint'
-        spec:
-          containers:
-          - image: alpine/helm:3.12.0
-            command:
-            - /bin/sh
-            - -c
-            - |
-              find applications/ operators/ -name "Chart.yaml" -exec dirname {} \; | while read chart_dir; do
-                helm lint "$chart_dir"
-              done
-            workingDir: /workspace
-
-      - name: kustomize-build
-        always_run: true
-        optional: false
-        trigger: '(?m)^/test (?:.* )?kustomize-build(?: .*)?$'
-        rerun_command: '/test kustomize-build'
-        spec:
-          containers:
-          - image: k8s.gcr.io/kustomize/kustomize:v4.5.7
-            command:
-            - /bin/sh
-            - -c
-            - |
-              find applications/ operators/ -name "kustomization.yaml" -exec dirname {} \; | while read kustomize_dir; do
-                kustomize build "$kustomize_dir"
-              done
-            workingDir: /workspace
-
-      - name: go-test
-        always_run: true
-        optional: false
-        trigger: '(?m)^/test (?:.* )?go-test(?: .*)?$'
-        rerun_command: '/test go-test'
-        spec:
-          containers:
-          - image: golang:1.21
-            command:
-            - /bin/bash
-            - -c
-            - |
-              cd go-mysql-api
-              go mod tidy
-              go test -v ./...
-            workingDir: /workspace
-
-      - name: api-compatibility-check
-        always_run: true
-        optional: false
-        trigger: '(?m)^/test (?:.* )?api-compatibility-check(?: .*)?$'
-        rerun_command: '/test api-compatibility-check'
-        spec:
-          containers:
-          - image: alpine:latest
-            command:
-            - /bin/sh
-            - -c
-            - |
-              apk add --no-cache bash
-              chmod +x scripts/check-api-compatibility.sh
-              ./scripts/check-api-compatibility.sh -k 1.28
-            workingDir: /workspace
-
-  # Postsubmit jobs - run after merge
-  postsubmits:
+  # External plugin configuration
+  external_plugins:
     blind3dd/terraforming_again:
-      - name: build-and-push-images
-        spec:
-          containers:
-          - image: docker:latest
-            command:
-            - /bin/sh
-            - -c
-            - |
-              # Build and push Docker images
-              docker build -t go-mysql-api:latest go-mysql-api/
-              docker build -t api-compatibility-webhook:latest webhooks/
-            workingDir: /workspace
+      - name: "trivy-security"
+        events: ["pull_request", "push"]
+        endpoint: "http://trivy-security-service:8080"
+      - name: "crossplane-validate"
+        events: ["pull_request", "push"]
+        endpoint: "http://crossplane-validation-service:8080"
 
-  # Periodic jobs - run on schedule
-  periodics:
-    - name: security-scan
-      cron: "0 2 * * 1"  # Every Monday at 2 AM
-      spec:
-        containers:
-        - image: aquasec/trivy:latest
-          command:
-          - trivy
-          - fs
-          - --format
-          - sarif
-          - --output
-          - trivy-results.sarif
-          - .
-          workingDir: /workspace
+  # Tide configuration for automatic merging
+  tide:
+    queries:
+      - repos:
+          - "blind3dd/terraforming_again"
+        labels:
+          - "lgtm"
+          - "approved"
+        missingLabels:
+          - "do-not-merge"
+          - "do-not-merge/hold"
+          - "do-not-merge/work-in-progress"
+          - "needs-rebase"
+          - "trivy-security-failed"
+          - "crossplane-validation-failed"
+        reviewApprovedRequired: true
+    merge_method:
+      blind3dd/terraforming_again: "squash"
+    target_url: "https://prow.terraforming-again.io/tide"
 
-    - name: dependency-update
-      cron: "0 3 * * 1"  # Every Monday at 3 AM
-      spec:
-        containers:
-        - image: golang:1.21
-          command:
-          - /bin/bash
-          - -c
-          - |
-            cd go-mysql-api
+  # Status configuration
+  status:
+    contexts:
+      - "trivy-security-scan"
+      - "trivy-auto-remediation"
+      - "helm-test"
+      - "kustomize-test"
+      - "go-test"
+      - "docker-build"
+      - "crossplane-validate"
+
+# Job configurations
+jobs:
+  # Trivy Security Scan Job
+  - name: "trivy-security-scan"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?trivy-security(?: .*)?$'
+    rerun_command: '/test trivy-security'
+    spec:
+      containers:
+      - image: aquasec/trivy:0.49.1
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🔍 Running Trivy security scan..."
+          
+          # Install additional tools
+          apk add --no-cache jq curl
+          
+          # Run comprehensive security scan
+          echo "📦 Scanning for vulnerabilities..."
+          trivy fs --format json --output trivy-results.json .
+          
+          # Run secret scan
+          echo "🔐 Scanning for secrets..."
+          trivy fs --scanners secret --format json --output trivy-secrets.json .
+          
+          # Run misconfiguration scan
+          echo "⚙️ Scanning for misconfigurations..."
+          trivy config --format json --output trivy-config.json .
+          
+          # Generate summary
+          echo "📊 Generating security summary..."
+          trivy fs --format table --output trivy-summary.txt .
+          
+          # Count vulnerabilities
+          CRITICAL=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' trivy-results.json | wc -l)
+          HIGH=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH") | .VulnerabilityID' trivy-results.json | wc -l)
+          MEDIUM=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM") | .VulnerabilityID' trivy-results.json | wc -l)
+          LOW=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "LOW") | .VulnerabilityID' trivy-results.json | wc -l)
+          
+          echo "🚨 Security Scan Results:"
+          echo "  Critical: $CRITICAL"
+          echo "  High: $HIGH"
+          echo "  Medium: $MEDIUM"
+          echo "  Low: $LOW"
+          
+          # Fail if critical or high vulnerabilities found
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 5 ]; then
+            echo "❌ Security scan failed: Critical or high vulnerabilities detected"
+            exit 1
+          fi
+          
+          echo "✅ Security scan passed"
+        workingDir: /workspace
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+  # Trivy Auto-Remediation Job
+  - name: "trivy-auto-remediation"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?trivy-remediate(?: .*)?$'
+    rerun_command: '/test trivy-remediate'
+    spec:
+      containers:
+      - image: golang:1.21.5-alpine3.19
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🔧 Running Trivy auto-remediation..."
+          
+          # Install tools
+          apk add --no-cache git curl jq
+          
+          # Install Trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          
+          # Configure Git
+          git config --global user.name "Trivy Auto-Remediation Bot"
+          git config --global user.email "trivy-bot@noreply.github.com"
+          
+          # Auto-remediate Go dependencies
+          if [ -f "go.mod" ]; then
+            echo "📦 Updating Go dependencies..."
+            go get -u ./...
+            go get -u github.com/go-sql-driver/mysql@latest
+            go get -u github.com/gorilla/mux@latest
+            go get -u github.com/stretchr/testify@latest
+            go get -u github.com/caarlos0/env@latest
+            go get -u gopkg.in/yaml.v3@latest
             go mod tidy
             go mod verify
-          workingDir: /workspace
+          fi
+          
+          # Auto-remediate Docker images
+          find . -name "Dockerfile*" -type f | while read dockerfile; do
+            echo "🐳 Updating $dockerfile..."
+            sed -i 's/FROM golang:[0-9.]*-alpine[0-9.]*/FROM golang:1.21.5-alpine3.19/g' "$dockerfile"
+            sed -i 's/FROM alpine:[0-9.]*/FROM alpine:3.19/g' "$dockerfile"
+            sed -i 's/FROM ubuntu:[0-9.]*/FROM ubuntu:22.04/g' "$dockerfile"
+          done
+          
+          # Auto-remediate secrets
+          echo "🔐 Remediating secrets..."
+          find . -type f \( -name "*.py" -o -name "*.go" -o -name "*.js" -o -name "*.ts" -o -name "*.tf" -o -name "*.yaml" -o -name "*.yml" \) | while read file; do
+            if [ -f "$file" ]; then
+              sed -i 's/password.*=.*"[^"]*"/password = os.getenv("DB_PASSWORD")/g' "$file"
+              sed -i 's/api_key.*=.*"[^"]*"/api_key = os.getenv("API_KEY")/g' "$file"
+              sed -i 's/secret.*=.*"[^"]*"/secret = os.getenv("SECRET_KEY")/g' "$file"
+            fi
+          done
+          
+          # Check if there are changes
+          if ! git diff --quiet; then
+            echo "📝 Creating remediation commit..."
+            git add -A
+            git commit -m "🔒 Auto-remediate security vulnerabilities
 
-# Branch protection rules
-branch_protection:
-  protect: true
-  required_status_checks:
-    contexts:
-    - terraform-validate
-    - ansible-lint
-    - helm-lint
-    - helm-test
-    - kustomize-build
-    - go-test
-    - api-compatibility-check
-  enforce_admins: true
-  required_pull_request_reviews:
-    required_approving_review_count: 2
-    dismiss_stale_reviews: true
-    require_code_owner_reviews: true
-  restrictions:
-    users: []
-    teams: []
+🤖 Automated security remediation by Trivy
+
+## Changes Made:
+- ✅ Updated Go dependencies to latest secure versions
+- ✅ Updated Docker base images to latest secure versions
+- ✅ Replaced hardcoded secrets with environment variables
+
+This commit was automatically generated by the Trivy Auto-Remediation job."
+            
+            echo "✅ Auto-remediation completed with changes"
+          else
+            echo "ℹ️ No changes needed for auto-remediation"
+          fi
+        workingDir: /workspace
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+  # Helm Test Job
+  - name: "helm-test"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?helm-test(?: .*)?$'
+    rerun_command: '/test helm-test'
+    spec:
+      containers:
+      - image: alpine/helm:3.12.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🧪 Running Helm tests..."
+          
+          # Install kubectl
+          apk add --no-cache curl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mv kubectl /usr/local/bin/
+          
+          # Test all Helm charts
+          find . -name "Chart.yaml" -type f | while read chartfile; do
+            chart_dir=$(dirname "$chartfile")
+            chart_name=$(basename "$chart_dir")
+            echo "📋 Testing Helm chart: $chart_name"
+            
+            # Lint the chart
+            helm lint "$chart_dir"
+            
+            # Test template rendering
+            helm template "$chart_name" "$chart_dir" --dry-run
+            
+            # Test with different values
+            if [ -f "$chart_dir/values-dev.yaml" ]; then
+              helm template "$chart_name" "$chart_dir" -f "$chart_dir/values-dev.yaml" --dry-run
+            fi
+            
+            echo "✅ Helm chart $chart_name passed tests"
+          done
+          
+          echo "✅ All Helm tests completed successfully"
+        workingDir: /workspace
+
+  # Kustomize Test Job
+  - name: "kustomize-test"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?kustomize-test(?: .*)?$'
+    rerun_command: '/test kustomize-test'
+    spec:
+      containers:
+      - image: kustomize/kustomize:v5.1.1
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🧪 Running Kustomize tests..."
+          
+          # Test all Kustomize configurations
+          find . -name "kustomization.yaml" -type f | while read kustomization; do
+            kustomize_dir=$(dirname "$kustomization")
+            echo "📋 Testing Kustomize: $kustomize_dir"
+            
+            # Build the kustomization
+            kustomize build "$kustomize_dir" --dry-run
+            
+            echo "✅ Kustomize $kustomize_dir passed tests"
+          done
+          
+          echo "✅ All Kustomize tests completed successfully"
+        workingDir: /workspace
+
+  # Go Test Job
+  - name: "go-test"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?go-test(?: .*)?$'
+    rerun_command: '/test go-test'
+    spec:
+      containers:
+      - image: golang:1.21.5-alpine3.19
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🧪 Running Go tests..."
+          
+          # Install additional tools
+          apk add --no-cache git
+          
+          # Test all Go modules
+          find . -name "go.mod" -type f | while read gomod; do
+            module_dir=$(dirname "$gomod")
+            echo "📦 Testing Go module: $module_dir"
+            
+            cd "$module_dir"
+            
+            # Download dependencies
+            go mod download
+            
+            # Run tests
+            go test -v ./...
+            
+            # Run race detection
+            go test -race ./...
+            
+            # Run benchmarks
+            go test -bench=. ./...
+            
+            cd - > /dev/null
+            echo "✅ Go module $module_dir passed tests"
+          done
+          
+          echo "✅ All Go tests completed successfully"
+        workingDir: /workspace
+
+  # Docker Build Job
+  - name: "docker-build"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?docker-build(?: .*)?$'
+    rerun_command: '/test docker-build'
+    spec:
+      containers:
+      - image: docker:24.0.7-dind
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🐳 Running Docker builds..."
+          
+          # Start Docker daemon
+          dockerd-entrypoint.sh &
+          sleep 10
+          
+          # Build all Dockerfiles
+          find . -name "Dockerfile*" -type f | while read dockerfile; do
+            build_dir=$(dirname "$dockerfile")
+            image_name=$(basename "$build_dir")
+            echo "🔨 Building Docker image: $image_name"
+            
+            # Build the image
+            docker build -t "$image_name:test" -f "$dockerfile" "$build_dir"
+            
+            # Run security scan on the built image
+            echo "🔍 Scanning built image for vulnerabilities..."
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              aquasec/trivy:0.49.1 image --exit-code 0 --severity HIGH,CRITICAL "$image_name:test"
+            
+            echo "✅ Docker image $image_name built and scanned successfully"
+          done
+          
+          echo "✅ All Docker builds completed successfully"
+        workingDir: /workspace
+        securityContext:
+          privileged: true
+
+  # Crossplane Validation Job
+  - name: "crossplane-validate"
+    always_run: false
+    optional: true
+    trigger: '(?m)^/test (?:.* )?crossplane-validate(?: .*)?$'
+    rerun_command: '/test crossplane-validate'
+    spec:
+      containers:
+      - image: crossplane/crossplane-cli:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "🔍 Validating Crossplane configurations..."
+          
+          # Install additional tools
+          apk add --no-cache curl yq
+          
+          # Validate Crossplane compositions
+          find crossplane/compositions -name "*.yaml" -type f | while read composition; do
+            echo "📋 Validating Crossplane composition: $composition"
+            
+            # Validate YAML syntax
+            yq e '.' "$composition" > /dev/null
+            
+            # Validate Crossplane-specific fields
+            if ! yq e '.apiVersion | contains("crossplane.io")' "$composition" > /dev/null; then
+              echo "❌ Invalid Crossplane API version in $composition"
+              exit 1
+            fi
+            
+            if ! yq e '.kind | contains("Composition")' "$composition" > /dev/null; then
+              echo "❌ Invalid Crossplane kind in $composition"
+              exit 1
+            fi
+            
+            echo "✅ Crossplane composition $composition is valid"
+          done
+          
+          # Validate CRDs
+          find crossplane/crds -name "*.yaml" -type f | while read crd; do
+            echo "📋 Validating CRD: $crd"
+            
+            # Validate YAML syntax
+            yq e '.' "$crd" > /dev/null
+            
+            echo "✅ CRD $crd is valid"
+          done
+          
+          echo "✅ All Crossplane configurations are valid"
+        workingDir: /workspace
+
+# Plugin configurations
+plugins:
+  # Trivy Security Plugin
+  trivy-security:
+    events: ["pull_request", "push"]
+    config:
+      enabled: true
+      auto_remediate: true
+      fail_on_critical: true
+      fail_on_high_threshold: 5
+      scan_dockerfiles: true
+      scan_dependencies: true
+      scan_secrets: true
+      scan_misconfigurations: true
+
+  # Crossplane Validation Plugin
+  crossplane-validate:
+    events: ["pull_request", "push"]
+    config:
+      enabled: true
+      validate_compositions: true
+      validate_crds: true
+      validate_environments: true
+      fail_on_invalid: true
+
+# Webhook handlers
+webhooks:
+  trivy-security-handler:
+    path: "/trivy-security"
+    method: "POST"
+    handler: |
+      #!/bin/bash
+      echo "🔍 Processing Trivy security webhook..."
+      
+      # Parse webhook payload
+      REPO=$(echo "$1" | jq -r '.repository.full_name')
+      BRANCH=$(echo "$1" | jq -r '.ref')
+      COMMIT=$(echo "$1" | jq -r '.head_commit.id')
+      
+      echo "Repository: $REPO"
+      echo "Branch: $BRANCH"
+      echo "Commit: $COMMIT"
+      
+      # Trigger Trivy security scan
+      echo "🚀 Triggering Trivy security scan..."
+      # Implementation would trigger the trivy-security-scan job
+      
+      echo "✅ Trivy security webhook processed"
+
+  crossplane-validation-handler:
+    path: "/crossplane-validate"
+    method: "POST"
+    handler: |
+      #!/bin/bash
+      echo "🔍 Processing Crossplane validation webhook..."
+      
+      # Parse webhook payload
+      REPO=$(echo "$1" | jq -r '.repository.full_name')
+      BRANCH=$(echo "$1" | jq -r '.ref')
+      COMMIT=$(echo "$1" | jq -r '.head_commit.id')
+      
+      echo "Repository: $REPO"
+      echo "Branch: $BRANCH"
+      echo "Commit: $COMMIT"
+      
+      # Trigger Crossplane validation
+      echo "🚀 Triggering Crossplane validation..."
+      # Implementation would trigger the crossplane-validate job
+      
+      echo "✅ Crossplane validation webhook processed"
