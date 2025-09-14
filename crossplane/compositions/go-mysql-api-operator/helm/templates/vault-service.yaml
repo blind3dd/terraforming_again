@@ -1,0 +1,23 @@
+{{- if .Values.vault.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}-vault
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: vault
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8200
+      targetPort: 8200
+      protocol: TCP
+      name: http
+    - port: 8201
+      targetPort: 8201
+      protocol: TCP
+      name: https-internal
+  selector:
+    {{- include "go-mysql-api.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: vault
+{{- end }}

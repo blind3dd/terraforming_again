@@ -1,0 +1,55 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+  {{- with .Values.istio.virtualService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  hosts:
+    {{- if .Values.istio.virtualService.hosts }}
+    {{- toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+    {{- else }}
+    - {{ include "go-mysql-api.fullname" . }}.{{ .Values.istio.gateway.namespace | default "istio-system" }}.svc.cluster.local
+    {{- end }}
+  gateways:
+    {{- if .Values.istio.virtualService.gateways }}
+    {{- toYaml .Values.istio.virtualService.gateways | nindent 4 }}
+    {{- else }}
+    - {{ .Values.istio.gateway.name | default "istio-ingressgateway" }}.{{ .Values.istio.gateway.namespace | default "istio-system" }}
+    {{- end }}
+  http:
+    {{- if .Values.istio.virtualService.http }}
+    {{- toYaml .Values.istio.virtualService.http | nindent 4 }}
+    {{- else }}
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ include "go-mysql-api.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
+            subset: v1
+          weight: 100
+      {{- if .Values.istio.virtualService.corsPolicy }}
+      corsPolicy:
+        {{- toYaml .Values.istio.virtualService.corsPolicy | nindent 8 }}
+      {{- end }}
+      {{- if .Values.istio.virtualService.fault }}
+      fault:
+        {{- toYaml .Values.istio.virtualService.fault | nindent 8 }}
+      {{- end }}
+      {{- if .Values.istio.virtualService.retries }}
+      retries:
+        {{- toYaml .Values.istio.virtualService.retries | nindent 8 }}
+      {{- end }}
+      {{- if .Values.istio.virtualService.timeout }}
+      timeout: {{ .Values.istio.virtualService.timeout }}
+      {{- end }}
+    {{- end }}
+{{- end }}

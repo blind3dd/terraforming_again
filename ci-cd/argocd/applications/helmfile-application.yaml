@@ -1,0 +1,136 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: helmfile-application
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: helmfile-application
+    app.kubernetes.io/part-of: database-ci
+    app.kubernetes.io/component: helmfile
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: CreateNamespace=true
+    argocd.argoproj.io/sync-options: PrunePropagationPolicy=foreground
+    argocd.argoproj.io/sync-options: PruneLast=true
+spec:
+  project: database-ci-project
+  
+  source:
+    repoURL: https://github.com/blind3dd/database_CI.git
+    targetRevision: HEAD
+    path: helmfile
+    helm:
+      valueFiles:
+        - environments/${{ env.ENVIRONMENT || 'dev' }}/values.yaml
+      parameters:
+        - name: environment
+          value: ${{ env.ENVIRONMENT || 'dev' }}
+        - name: image.tag
+          value: ${{ github.sha }}
+        - name: image.repository
+          value: ${{ steps.login-ecr.outputs.registry }}/go-mysql-api
+        - name: database.host
+          value: ${{ env.RDS_ENDPOINT }}
+        - name: database.username
+          value: ${{ env.RDS_USERNAME }}
+        - name: database.password
+          value: ${{ env.RDS_PASSWORD }}
+        - name: aws.region
+          value: ${{ env.AWS_REGION }}
+        - name: aws.endpoint
+          value: ${{ env.AWS_ENDPOINT }}
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    - RespectIgnoreDifferences=true
+    - ApplyOutOfSyncOnly=true
+    - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: helmfile-application-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: helmfile-application
+    app.kubernetes.io/part-of: database-ci
+    app.kubernetes.io/component: helmfile
+    app.kubernetes.io/environment: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: CreateNamespace=true
+    argocd.argoproj.io/sync-options: PrunePropagationPolicy=foreground
+    argocd.argoproj.io/sync-options: PruneLast=true
+spec:
+  project: database-ci-project
+  
+  source:
+    repoURL: https://github.com/blind3dd/database_CI.git
+    targetRevision: HEAD
+    path: helmfile
+    helm:
+      valueFiles:
+        - environments/dev/values.yaml
+      parameters:
+        - name: environment
+          value: dev
+        - name: image.tag
+          value: ${{ github.sha }}
+        - name: image.repository
+          value: ${{ steps.login-ecr.outputs.registry }}/go-mysql-api
+        - name: database.host
+          value: ${{ env.RDS_ENDPOINT_DEV }}
+        - name: database.username
+          value: ${{ env.RDS_USERNAME_DEV }}
+        - name: database.password
+          value: ${{ env.RDS_PASSWORD_DEV }}
+        - name: aws.region
+          value: ${{ env.AWS_REGION }}
+        - name: aws.endpoint
+          value: ${{ env.AWS_ENDPOINT }}
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    - RespectIgnoreDifferences=true
+    - ApplyOutOfSyncOnly=true
+    - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    
+  revisionHistoryLimit: 10
+

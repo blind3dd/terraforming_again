@@ -1,0 +1,67 @@
+# See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
+
+# The OWNERS file is used by prow to automatically merge certain PRs.
+# See the documentation for more details:
+# https://git.k8s.io/community/contributors/guide/owners.md
+
+# This file follows the Kubernetes community standards for project governance.
+
+approvers:
+  - blind3dd
+  - terraforming-again-maintainers
+
+reviewers:
+  - blind3dd
+  - terraforming-again-maintainers
+  - sig-infrastructure
+  - sig-security
+
+# Labels that can be applied by anyone
+labels:
+  - area/terraform
+  - area/ansible
+  - area/kubernetes
+  - area/helm
+  - area/kustomize
+  - area/webhooks
+  - area/operators
+  - area/security
+  - area/infrastructure
+  - area/ci-cd
+  - kind/bug
+  - kind/feature
+  - kind/cleanup
+  - kind/documentation
+  - kind/flake
+  - kind/design
+  - kind/api-change
+  - priority/critical-urgent
+  - priority/important-soon
+  - priority/important-longterm
+  - priority/backlog
+  - sig/infrastructure
+  - sig/security
+  - sig/kubernetes
+  - sig/terraform
+  - sig/ansible
+  - stage/alpha
+  - stage/beta
+  - stage/stable
+  - lifecycle/active
+  - lifecycle/frozen
+  - lifecycle/stale
+  - lifecycle/rotten
+  - do-not-merge/work-in-progress
+  - do-not-merge/hold
+  - do-not-merge/invalid-owners-file
+  - do-not-merge/contains-merge-commits
+  - do-not-merge/release-note-label-needed
+  - do-not-merge/needs-area-label
+  - release-note
+  - release-note-action-required
+  - release-note-breaking-change
+  - release-note-deprecation
+  - release-note-new-feature
+  - release-note-none
+  - lgtm
+  - approved
