@@ -15,9 +15,8 @@ on:
   pull_request:
     branches: [ main ]
     types: [opened, synchronize, reopened]
-  workflow_dispatch:eys
-   - ju differev margit d leasow sor or Ps
-   - inputs:
+  workflow_dispatch:
+    inputs:
       remediation_type:
         description: 'Type of security remediation to run'
         required: true
