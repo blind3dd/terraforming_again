@@ -1,0 +1,22 @@
+apiVersion: v2
+name: vault-operator
+description: A Helm chart for HashiCorp Vault Operator with SSM integration
+type: application
+version: 0.1.0
+appVersion: "1.15.0"
+keywords:
+  - vault
+  - operator
+  - secrets
+  - ssm
+  - aws
+home: https://github.com/hashicorp/vault-operator
+sources:
+  - https://github.com/hashicorp/vault-operator
+maintainers:
+  - name: Database CI Team
+    email: team@database-ci.com
+dependencies: []
+annotations:
+  category: Security
+  licenses: MPL-2.0

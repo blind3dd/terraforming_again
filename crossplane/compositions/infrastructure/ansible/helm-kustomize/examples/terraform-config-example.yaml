@@ -1,0 +1,41 @@
+apiVersion: terraform.io/v1alpha1
+kind: TerraformConfig
+metadata:
+  name: database-infrastructure
+  namespace: operators
+  labels:
+    app.kubernetes.io/name: database-infrastructure
+    app.kubernetes.io/part-of: database-ci
+    app.kubernetes.io/component: terraform
+spec:
+  terraform:
+    version: "1.6.0"
+    backend:
+      type: "s3"
+      bucket: "terraform-state-bucket"
+      region: "us-east-1"
+      key: "terraform.tfstate"
+    workspace: "dev"
+  git:
+    repository: "https://github.com/blind3dd/database_CI.git"
+    branch: "main"
+    path: "terraform/"
+    credentials:
+      secretName: "terraform-git-credentials"
+      secretKey: "credentials"
+  aws:
+    region: "us-east-1"
+    credentials:
+      secretName: "terraform-aws-credentials"
+      secretKey: "credentials"
+  environment: "dev"
+  logLevel: "info"
+  debug: false
+  variables:
+    environment: "dev"
+    region: "us-east-1"
+    instance_type: "t3.medium"
+  autoApply: false
+  retryPolicy:
+    maxRetries: 3
+    backoffDuration: "30s"

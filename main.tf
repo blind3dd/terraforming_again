@@ -1,619 +1,267 @@
+# Main Terraform configuration for terraforming_again
+# This file consolidates all infrastructure components
 
+terraform {
+  required_version = ">= 1.0"
+  
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 4.0"
+    }
+    ibm = {
+      source  = "IBM-Cloud/ibm"
+      version = "~> 1.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+  }
+}
+
+# Data sources for common resources
 data "aws_availability_zones" "available" {
   state = "available"
-  filter {
-    name = "opt-in-status"
-    values = ["opt-in-not-required"]
-  }
 }
 
-resource "aws_subnet" "private_subnets" {
-  count = length(data.aws_availability_zones.available.names)
-  vpc_id = aws_vpc.main.id
-  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index)
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = false
+data "aws_caller_identity" "current" {}
 
-  tags = {
-    Name = "${var.environment}-private-subnet-${count.index}"
+data "aws_region" "current" {}
+
+# Local values for common configurations
+locals {
+  common_tags = {
+    Project     = var.project_name
     Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
-}
-
-# EC2 instance is now defined in cloudinit.tf with CloudInit configuration
-  
-  resource "tls_private_key" "private_rsa_pair" {
-	  algorithm = var.key_algorithm
-	  rsa_bits  = var.key_bits_size
-  }
-
-# AWS Key Pair is now defined in cloudinit.tf
-
-  resource "local_sensitive_file" "tf_key" {
-	  content              = tls_private_key.private_rsa_pair.private_key_pem
-	  file_permission      = "0600"
-	  directory_permission = "0700"
-	  filename             = "${var.aws_key_pair_name}.pem"
+    ManagedBy   = "terraform"
+    Repository  = "terraforming_again"
   }
   
-  resource "aws_ssm_parameter" "db_password" {
-  name        = var.db_password_param
-  description = "Database password for ${var.environment} environment"
-  type        = "SecureString"
-  value       = "mock_password_123"  # In production, use a secure password
-
-  lifecycle {
-    ignore_changes = [
-      value # Prevent updates to sensitive values unless explicitly changed
-    ]
-  }
+  # Common naming convention
+  name_prefix = "${var.project_name}-${var.environment}"
 }
+
+# Random password for databases
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
+}
+
+# Store password in AWS SSM Parameter Store
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/${local.name_prefix}/database/password"
+  type  = "SecureString"
+  value = random_password.db_password.result
   
-  # IAM Role for EC2 Instance with IAMv2 authentication
-  resource "aws_iam_role" "instance_role" {
-    name = "${var.environment}-${var.service_name}-instance-role"
-    
-    assume_role_policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Principal = {
-            Service = "ec2.amazonaws.com"
-          }
-          Action = "sts:AssumeRole"
-        }
-      ]
-    })
+  tags = local.common_tags
+}
 
-    tags = {
-      Name        = "${var.environment}-${var.service_name}-instance-role"
-      Environment = var.environment
-      Service     = var.service_name
-      CreatedBy   = var.infra_builder
-    }
-  }
-
-  # IAM Instance Profile
-  resource "aws_iam_instance_profile" "instance_profile" {
-    name = "${var.environment}-${var.service_name}-instance-profile"
-    role = aws_iam_role.instance_role.name
-    
-    tags = {
-      Name        = "${var.environment}-${var.service_name}-instance-profile"
-      Environment = var.environment
-      Service     = var.service_name
-      CreatedBy   = var.infra_builder
-    }
-  }
-
-  # Custom IAM Policy for EC2 Instance
-  resource "aws_iam_policy" "ec2_custom_policy" {
-    name        = "${var.environment}-${var.service_name}-ec2-custom-policy"
-    description = "Custom policy for EC2 instance to access RDS, SSM, and other services"
-
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "ssm:GetParameter",
-            "ssm:GetParameters",
-            "ssm:GetParametersByPath",
-            "kms:Decrypt",
-            "kms:DescribeKey"
-          ]
-          Resource = [
-            "arn:aws:ssm:${var.region}:*:parameter${var.db_password_param}",
-            "arn:aws:kms:${var.region}:*:key/*"
-          ]
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "ec2:DescribeInstances",
-            "ec2:DescribeTags",
-            "ec2:DescribeSecurityGroups",
-            "ec2:DescribeVpcs",
-            "ec2:DescribeSubnets"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "rds:DescribeDBInstances",
-            "rds:DescribeDBClusters"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "logs:CreateLogGroup",
-            "logs:CreateLogStream",
-            "logs:PutLogEvents",
-            "logs:DescribeLogGroups",
-            "logs:DescribeLogStreams"
-          ]
-          Resource = [
-            "arn:aws:logs:${var.region}:*:log-group:/aws/ec2/${var.environment}-${var.service_name}*",
-            "arn:aws:logs:${var.region}:*:log-group:/aws/ec2/${var.environment}-${var.service_name}*:log-stream:*"
-          ]
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "s3:GetObject",
-            "s3:GetObjectVersion",
-            "s3:ListBucket"
-          ]
-          Resource = [
-            "arn:aws:s3:::${var.environment}-${var.service_name}-*",
-            "arn:aws:s3:::${var.environment}-${var.service_name}-*/*"
-          ]
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "sts:GetCallerIdentity",
-            "sts:GetSessionToken",
-            "sts:AssumeRole"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "ecr:GetAuthorizationToken",
-            "ecr:BatchCheckLayerAvailability",
-            "ecr:GetDownloadUrlForLayer",
-            "ecr:BatchGetImage",
-            "ecr:DescribeRepositories",
-            "ecr:ListImages",
-            "ecr:DescribeImages"
-          ]
-          Resource = "*"
-        }
-      ]
-    })
-
-    tags = {
-      Name        = "${var.environment}-${var.service_name}-ec2-custom-policy"
-      Environment = var.environment
-      Service     = var.service_name
-      CreatedBy   = var.infra_builder
-    }
-  }
-
-  # Attach custom policy to the role
-  resource "aws_iam_role_policy_attachment" "ec2_custom_policy_attachment" {
-    role       = aws_iam_role.instance_role.name
-    policy_arn = aws_iam_policy.ec2_custom_policy.arn
-  }
-
-  # Attach SSM managed policy for additional SSM access
-  resource "aws_iam_role_policy_attachment" "ssm_managed_policy_attachment" {
-    role       = aws_iam_role.instance_role.name
-    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  }
-
-  # Attach CloudWatch agent policy for logging
-  resource "aws_iam_role_policy_attachment" "cloudwatch_policy_attachment" {
-    role       = aws_iam_role.instance_role.name
-    policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-  }
-
-  # CloudWatch Log Group for application logs
-  resource "aws_cloudwatch_log_group" "application_logs" {
-    name              = "/aws/ec2/${var.environment}-${var.service_name}/application"
-    retention_in_days = 14
-
-    tags = {
-      Name        = "${var.environment}-${var.service_name}-application-logs"
-      Environment = var.environment
-      Service     = var.service_name
-      CreatedBy   = var.infra_builder
-    }
-  }
-
-  # CloudWatch Log Group for system logs
-  resource "aws_cloudwatch_log_group" "system_logs" {
-    name              = "/aws/ec2/${var.environment}-${var.service_name}/system"
-    retention_in_days = 14
-
-    tags = {
-      Name        = "${var.environment}-${var.service_name}-system-logs"
-      Environment = var.environment
-      Service     = var.service_name
-      CreatedBy   = var.infra_builder
-    }
-  }
-
-  # IAM Policy for Secrets Manager access (if needed in the future)
-  resource "aws_iam_policy" "secrets_manager_policy" {
-    name        = "${var.environment}-${var.service_name}-secrets-manager-policy"
-    description = "Policy for accessing Secrets Manager"
-
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "secretsmanager:GetSecretValue",
-            "secretsmanager:DescribeSecret"
-          ]
-          Resource = [
-            "arn:aws:secretsmanager:${var.region}:*:secret:${var.environment}-${var.service_name}-*"
-          ]
-        }
-      ]
-    })
-
-    tags = {
-      Name        = "${var.environment}-${var.service_name}-secrets-manager-policy"
-      Environment = var.environment
-      Service     = var.service_name
-      CreatedBy   = var.infra_builder
-    }
-  }
-
-  # Attach Secrets Manager policy (optional - uncomment if needed)
-  # resource "aws_iam_role_policy_attachment" "secrets_manager_policy_attachment" {
-  #   role       = aws_iam_role.instance_role.name
-  #   policy_arn = aws_iam_policy.secrets_manager_policy.arn
-  # }
-
-resource "aws_db_subnet_group" "private_db_subnet" {
-  name        = "${var.environment}-${var.service_name}-rds-private-subnet-group"
-  description = "Private subnets for RDS instance"
-  subnet_ids = [
-    for subnet in aws_subnet.private_subnets : subnet.id
-  ]
+# SSH Key Pair for EC2 instances
+resource "aws_key_pair" "main" {
+  key_name   = "${local.name_prefix}-key"
+  public_key = var.ssh_public_key
   
-  tags = {
-    Name = "${var.environment}-${var.service_name}-rds-private-subnet-group"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
+  tags = local.common_tags
 }
 
-resource "aws_subnet" "cidr" {
-  count = length(data.aws_availability_zones.available.names)
-  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index)
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-  vpc_id = aws_vpc.main.id
-  
-  tags = {
-    Name = "${var.environment}-${var.service_name}-rds-private-subnet-group"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
-}
-
-resource "aws_security_group" "rds_sg" {
-  name        = "${var.environment}-rds-sg"
-  description = "Allow inbound/outbound MySQL traffic"
-  vpc_id      = aws_vpc.main.id
-  depends_on  = [aws_vpc.main ]
-}
-
-resource "aws_security_group_rule" "allow_mysql_in" {
-  description              = "Allow inbound MySQL connections"
-  type                     = "ingress"
-  from_port                = "3306"
-  to_port                  = "3306"
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.main_vpc_sg.id
-  security_group_id        = aws_security_group.rds_sg.id
-}
-
-resource "aws_db_instance" "aws_rds_mysql_8" {
-  allocated_storage = 10
-  identifier = "${var.environment}-${var.service_name}-rds"
-  storage_type = "gp2"
-  engine = "mysql"
-  
-  engine_version = var.rds_engine_version
-  instance_class = var.instance_type
-  multi_az = true
-
-  db_name  = var.db_name
-  username = var.db_username
-  password = data.aws_ssm_parameter.db_password.value
-
-  db_subnet_group_name = aws_db_subnet_group.private_db_subnet.name 
-  skip_final_snapshot = true
-
-  vpc_security_group_ids = [
-    aws_security_group.rds_sg.id
-  ]
-}
-
+# VPC for the infrastructure
 resource "aws_vpc" "main" {
-  cidr_block       = var.main_vpc_cidr
-  instance_tenancy = "default"
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
   
-  tags = {  
-    Name = "${var.environment}-${var.service_name}-vpc"
-	  Instance_OS   = var.instance_os
-	  Environment = var.environment
-	  Service = var.service_name
-	  CreatedBy = var.infra_builder
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-vpc"
+  })
 }
 
-resource "aws_internet_gateway" "internet_gateway" {
+# Internet Gateway
+resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "${var.environment}-${var.service_name}-igw"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
-}
-
-# Create 3 subnets: two private and one public
-resource "aws_subnet" "private_subnet_a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.private_subnet_range_a
-  map_public_ip_on_launch = false
-  availability_zone       = data.aws_availability_zones.available.names[0]
-
-  tags = {
-    Name = "${var.environment}-private-subnet-a"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
-}
-
-# resource "aws_subnet" "private_subnets" {
-#   count = length(data.aws_availability_zones.available.names)
-#   vpc_id                  = aws_vpc.main.id 
-#   cidr_block              = cidrsubnet(var.main_vpc_cidr, 4, count.index)
-#   map_public_ip_on_launch = false
-#   availability_zone       = data.aws_availability_zones.available.names[count.index]
   
-#   tags = {
-#     "Name" = "${var.environment}-private-subnet-b"
-#     Environment = var.environment
-#     Service = var.service_name
-#     CreatedBy = var.infra_builder
-#   }
-# }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-igw"
+  })
+}
 
-resource "aws_subnet" "public_subnet" {
+# Public Subnets
+resource "aws_subnet" "public" {
+  count = length(var.public_subnet_cidrs)
+  
   vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.public_subnet_cidrs[count.index]
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
-  count = length(data.aws_availability_zones.available.names)
-  cidr_block = cidrsubnet(var.main_vpc_cidr, 8, count.index)
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-
-  tags = {
-    "Name" = "${var.environment}-public-subnet-${count.index}"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-public-subnet-${count.index + 1}"
+    Type = "public"
+  })
 }
 
-# resource "vpc_peering_connection_id" "peering_connection" {
-#   vpc_id = aws_vpc.main.id
-#   peer_vpc_id = aws_vpc.peer.id
-#   peer_owner_id = aws_vpc.peer.owner_id
-#   peer_region = var.region
-#   tags = {
-#     "Name" = "${var.environment}-peering-connection"
-#   }
+# Private Subnets
+resource "aws_subnet" "private" {
+  count = length(var.private_subnet_cidrs)
   
-//}
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidrs[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-private-subnet-${count.index + 1}"
+    Type = "private"
+  })
+}
 
-# Create EIP for NAT Gateway
+# Route Table for Public Subnets
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-public-rt"
+  })
+}
+
+# Route Table Associations for Public Subnets
+resource "aws_route_table_association" "public" {
+  count = length(aws_subnet.public)
+  
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+# NAT Gateway for Private Subnets
 resource "aws_eip" "nat" {
-  count = length(data.aws_availability_zones.available.names)
+  count = var.enable_nat_gateway ? length(aws_subnet.public) : 0
+  
   domain = "vpc"
   
-  tags = {
-    Name = "${var.environment}-nat-eip-${count.index}"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-nat-eip-${count.index + 1}"
+  })
 }
 
 resource "aws_nat_gateway" "main" {
-  count         = length(data.aws_availability_zones.available.names)
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public_subnet[count.index].id
+  count = var.enable_nat_gateway ? length(aws_subnet.public) : 0
   
-  tags = {
-    Name = "${var.environment}-nat-gateway-${count.index}"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-nat-gateway-${count.index + 1}"
+  })
+  
+  depends_on = [aws_internet_gateway.main]
 }
 
-resource "aws_route_table" "nat" {
-  count = length(data.aws_availability_zones.available.names)
-  vpc_id   = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.main[count.index].id
-  }
-
-  tags = {
-    "Name" = "${var.environment}-${var.service_name}-private-route-table-${count.index}"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
-}
-
-# Note: Removed non-existent data sources "subnets" and "cidr"
-# These were referencing providers that don't exist
-
-resource "aws_route_table" "private_route_table" {
+# Route Table for Private Subnets
+resource "aws_route_table" "private" {
+  count = var.enable_nat_gateway ? length(aws_subnet.private) : 0
+  
   vpc_id = aws_vpc.main.id
+  
   route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.main[0].id
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
-  tags = {
-    "Name" = "${var.environment}-private-route-table"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
-  }
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-private-rt-${count.index + 1}"
+  })
 }
 
-resource "aws_route_table" "public_route_table" {
-  vpc_id = aws_vpc.main.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.internet_gateway.id
-  }
-
-  tags = {
-    "Name" = "${var.environment}-public-route-table"
-  }
+# Route Table Associations for Private Subnets
+resource "aws_route_table_association" "private" {
+  count = var.enable_nat_gateway ? length(aws_subnet.private) : 0
+  
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
-resource "aws_route_table_association" "private_rt_association_a" {
-  subnet_id      = aws_subnet.private_subnet_a.id
-  route_table_id = aws_route_table.private_route_table.id
-}
-
-resource "aws_route_table_association" "private_rt_association_b" {
-  subnet_id      = aws_subnet.private_subnets[0].id
-  route_table_id = aws_route_table.private_route_table.id
-}
-
-resource "aws_route_table_association" "public_rt_association" {
-  count          = length(data.aws_availability_zones.available.names)
-  subnet_id      = aws_subnet.public_subnet[count.index].id
-  route_table_id = aws_route_table.public_route_table.id
-}
-
-resource "aws_security_group" "main_vpc_sg" {
-  name        = "${var.environment}-main-vpc-sg"
-  description = "Default security group to allow inbound/outbound from the VPC"
+# Security Group for Web Servers
+resource "aws_security_group" "web" {
+  name_prefix = "${local.name_prefix}-web-"
   vpc_id      = aws_vpc.main.id
-  depends_on  = [aws_vpc.main]
-}
-
-resource "aws_security_group_rule" "inbound_traffic_ssh" {
-  description       = "Allow SSH"
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.main_vpc_sg.id
-}
-
-resource "aws_security_group_rule" "inbound_traffic_http" {
-  description       = "Allow inbound HTTPS traffic"
-  type              = "ingress"
-  from_port         = "3306"
-  to_port           = "3306"
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.main_vpc_sg.id
-}
-
-resource "aws_security_group_rule" "outbound_traffic" {
-  description       = "Allow outbound traffic"
-  type              = "egress"
-  from_port         = "0"
-  to_port           = "0"
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.main_vpc_sg.id
-}
-
-resource "aws_security_group" "instance_sg" {
-  name = "${var.environment}-${var.service_name}-instance-sg"
-
+  
   ingress {
-    from_port   = 8088
-    to_port     = 8088
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "${var.environment}-${var.service_name}-instance-sg"
-    Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
+  
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
+  
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+  
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-sg"
+  })
 }
 
-resource "aws_launch_configuration" "instance_lc" {
-  image_id      = var.instance_ami
-  instance_type = var.instance_type
-
-  security_groups = ["${aws_security_group.instance_sg.id}"]
-  # user_data = <<-EOF
-  # EOF
-
-  lifecycle {
-    create_before_destroy = true
+# Security Group for Database
+resource "aws_security_group" "database" {
+  name_prefix = "${local.name_prefix}-db-"
+  vpc_id      = aws_vpc.main.id
+  
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.web.id]
   }
+  
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-db-sg"
+  })
 }
-
-#   module "vpc" {
-#   source = ""
-#   environment = var.environment
-#   aws_region = var.region
-#   main_vpc_cidr = var.main_vpc_cidr
-#   private_subnet_range_a = var.private_subnet_range_a
-#   private_subnet_range_b = var.private_subnet_range_b
-#   public_subnet_range_a = var.public_subnet_range
-#   service_name = var.service_name
-#   subnet_type = var.subnet_type
-#   aws_region_zones = var.aws_region_zones
-#   aws_region_zones_count = var.aws_region_zones_count
-#   infra_builder = var.infra_builder
-#   region = var.region
-#   ec2_instance_ami = var.ec2_instance_ami
-#   ec2_instance_type = var.ec2_instance_type
-#   ec2_instance_role_name = var.ec2_instance_role_name
-#   ec2_instance_profile_name = var.ec2_instance_profile_name
-#   go_mysql_api_path = var.go_mysql_api_path
-
-# }
-
-# module "rds" {
-#     source = "../../modules/rds"
-#     environment = var.environment
-#     service_name = var.service_name
-#     infra_builder = var.infra_builder
-#     aws_region = var.aws_region
-#     main_vpc_cidr = var.main_vpc_cidr
-#     private_subnet_range_a = var.private_subnet_range_a
-#     private_subnet_range_b = var.private_subnet_range_b
-#     public_subnet_range_a = var.public_subnet_range
-#f }
-
-# module "ec2" {
-#   source = "../../modules/ec2"
-#   environment = var.environment
-#   aws_region = var.region
-#   main_vpc_cidr = var.main_vpc_cidr
-#   private_subnet_range_a = var.private_subnet_range_a
-#   private_subnet_range_b = var.private_subnet_range_b
-#   public_subnet_range_a = var.public_subnet_range
-# }
-
-

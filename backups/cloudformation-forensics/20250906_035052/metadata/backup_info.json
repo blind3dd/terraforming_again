@@ -1,0 +1,8 @@
+{
+  "backup_timestamp": "2025-09-06T01:50:53Z",
+  "region": "eu-north-1",
+  "profile": "eu-north-1",
+  "account_id": "690248313240",
+  "backup_type": "cloudformation_forensics",
+  "purpose": "forensic_analysis_and_disaster_recovery"
+}

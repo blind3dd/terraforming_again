@@ -1,0 +1,65 @@
+---
+# Default variables for Kubernetes Resources role
+
+# Namespace configuration
+k8s_namespace: "default"
+
+# Deployment flags
+deploy_istio_ambient: true
+deploy_istio_secure_connection: true
+deploy_macos_security: false
+deploy_rds_service_catalog: true
+deploy_secure_pod_example: true
+deploy_service_catalog_rds_secure: true
+
+# AWS Configuration
+aws_account_id: "{{ aws_account_id | default('123456789012') }}"
+aws_region: "{{ aws_region | default('us-west-2') }}"
+
+# RDS Configuration
+rds_endpoint: "{{ rds_endpoint | default('rds-endpoint.amazonaws.com') }}"
+rds_fqdn: "{{ rds_fqdn | default('rds-fqdn.amazonaws.com') }}"
+rds_port: "{{ rds_port | default('3306') }}"
+rds_database: "{{ rds_database | default('mydb') }}"
+rds_username: "{{ rds_username | default('admin') }}"
+
+# Security Configuration
+enable_tls: true
+enable_mtls: true
+enable_network_policies: true
+
+# Resource limits
+default_cpu_request: "100m"
+default_memory_request: "128Mi"
+default_cpu_limit: "500m"
+default_memory_limit: "512Mi"
+
+# Istio Configuration
+istio_profile: "ambient"
+istio_version: "1.19.0"
+enable_istio_ingress: true
+enable_istio_egress: true
+
+# Service Mesh Configuration
+enable_outbound_policy: true
+default_outbound_policy: "DENY"
+
+# Allowed endpoints for outbound policy
+allowed_registries:
+  - "registry-1.docker.io"
+  - "registry.k8s.io"
+  - "quay.io"
+  - "ghcr.io"
+
+allowed_aws_services:
+  - "*.amazonaws.com"
+  - "*.aws.amazon.com"
+
+allowed_dns_servers:
+  - "169.254.169.253"
+  - "8.8.8.8"
+  - "8.8.4.4"
+
+allowed_ntp_servers:
+  - "169.254.169.123"
+  - "pool.ntp.org"

@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "go-mysql-api.fullname" . }}-test-connection"
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: connection-test
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Testing database connection..."
+        
+        # Test database connectivity
+        if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ]; then
+          echo "Testing connection to $DB_HOST:$DB_PORT"
+          timeout 30 sh -c "until nc -z $DB_HOST $DB_PORT; do echo 'Waiting for database...'; sleep 2; done"
+          echo "Database connection successful"
+        else
+          echo "Database connection test skipped (no DB_HOST/DB_PORT)"
+        fi
+        
+        # Test HTTP endpoint
+        echo "Testing HTTP endpoint..."
+        timeout 30 sh -c "until curl -f http://localhost:{{ .Values.app.port }}/health; do echo 'Waiting for application...'; sleep 2; done"
+        echo "HTTP endpoint test successful"
+        
+        # Test metrics endpoint
+        if [ "$METRICS_ENABLED" = "true" ]; then
+          echo "Testing metrics endpoint..."
+          curl -f http://localhost:{{ .Values.app.port }}/metrics
+          echo "Metrics endpoint test successful"
+        fi
+        
+        echo "All tests passed!"
+    env:
+      - name: DB_HOST
+        value: {{ .Values.env.DB_HOST | quote }}
+      - name: DB_PORT
+        value: {{ .Values.env.DB_PORT | quote }}
+      - name: DB_NAME
+        value: {{ .Values.env.DB_NAME | quote }}
+      - name: DB_USER
+        value: {{ .Values.env.DB_USER | quote }}
+      - name: DB_PASSWORD
+        value: {{ .Values.env.DB_PASSWORD | quote }}
+      - name: APP_PORT
+        value: {{ .Values.app.port | quote }}
+      - name: APP_ENV
+        value: {{ .Values.env.APP_ENV | quote }}
+      - name: LOG_LEVEL
+        value: {{ .Values.env.LOG_LEVEL | quote }}
+      - name: METRICS_ENABLED
+        value: {{ .Values.env.METRICS_ENABLED | default "true" | quote }}
+      - name: AWS_REGION
+        value: {{ .Values.env.AWS_REGION | quote }}
+      - name: AWS_ENDPOINT
+        value: {{ .Values.env.AWS_ENDPOINT | quote }}
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      seccompProfile:
+        type: RuntimeDefault
+

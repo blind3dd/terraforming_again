@@ -1,0 +1,34 @@
+{{- if .Values.vault.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "go-mysql-api.fullname" . }}-vault-config
+  labels:
+    {{- include "go-mysql-api.labels" . | nindent 4 }}
+data:
+  vault-config.hcl: |
+    # Vault configuration for Go MySQL API
+    storage "file" {
+      path = "/vault/data"
+    }
+    
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    
+    api_addr = "http://0.0.0.0:8200"
+    cluster_addr = "https://0.0.0.0:8201"
+    
+    ui = true
+    
+    # Enable audit logging
+    audit "file" {
+      file_path = "/vault/logs/audit.log"
+    }
+    
+    # Enable metrics
+    telemetry {
+      prometheus_retention_time = "24h"
+    }
+{{- end }}

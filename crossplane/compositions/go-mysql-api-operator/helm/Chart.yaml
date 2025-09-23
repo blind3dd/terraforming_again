@@ -1,0 +1,18 @@
+apiVersion: v2
+name: go-mysql-api
+description: A Helm chart for Go MySQL API application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - go
+  - mysql
+  - api
+  - rest
+home: https://github.com/blind3dd/database_CI
+sources:
+  - https://github.com/blind3dd/database_CI
+maintainers:
+  - name: DevOps Team
+    email: devops@coderedalarmtech.com
+icon: https://golang.org/lib/godoc/images/go-logo-blue.svg

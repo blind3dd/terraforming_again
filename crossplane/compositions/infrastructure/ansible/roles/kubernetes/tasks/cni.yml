@@ -1,0 +1,130 @@
+---
+# CNI Configuration tasks for Kubernetes role
+- name: Install Calico CNI
+  block:
+    - name: Download Calico manifest
+      get_url:
+        url: "https://raw.githubusercontent.com/projectcalico/calico/v{{ calico_version }}/manifests/tigera-operator.yaml"
+        dest: "/tmp/tigera-operator.yaml"
+        mode: '0644'
+
+    - name: Apply Calico operator
+      kubernetes.core.k8s:
+        state: present
+        src: "/tmp/tigera-operator.yaml"
+
+    - name: Wait for Calico operator to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: tigera-operator
+        name: tigera-operator
+      register: calico_operator
+      until: calico_operator.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+      retries: 30
+      delay: 10
+
+    - name: Create Calico installation manifest
+      template:
+        src: calico-installation.yml.j2
+        dest: "/tmp/calico-installation.yml"
+        mode: '0644'
+
+    - name: Apply Calico installation
+      kubernetes.core.k8s:
+        state: present
+        src: "/tmp/calico-installation.yml"
+
+    - name: Wait for Calico pods to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: DaemonSet
+        namespace: calico-system
+        name: calico-node
+      register: calico_daemonset
+      until: calico_daemonset.resources | selectattr('status.numberReady') | first >= calico_daemonset.resources | selectattr('status.desiredNumberScheduled') | first
+      retries: 30
+      delay: 10
+
+    - name: Display Calico status
+      debug:
+        msg: "Calico CNI is ready with {{ calico_daemonset.resources[0].status.numberReady }} nodes"
+
+  when: install_calico | default(true)
+  tags: [cni, calico]
+
+- name: Install Flannel CNI
+  block:
+    - name: Download Flannel manifest
+      get_url:
+        url: "https://raw.githubusercontent.com/flannel-io/flannel/v{{ flannel_version }}/Documentation/kube-flannel.yml"
+        dest: "/tmp/kube-flannel.yml"
+        mode: '0644'
+
+    - name: Apply Flannel CNI
+      kubernetes.core.k8s:
+        state: present
+        src: "/tmp/kube-flannel.yml"
+
+    - name: Wait for Flannel pods to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: DaemonSet
+        namespace: kube-flannel
+        name: kube-flannel-ds
+      register: flannel_daemonset
+      until: flannel_daemonset.resources | selectattr('status.numberReady') | first >= flannel_daemonset.resources | selectattr('status.desiredNumberScheduled') | first
+      retries: 30
+      delay: 10
+
+    - name: Display Flannel status
+      debug:
+        msg: "Flannel CNI is ready with {{ flannel_daemonset.resources[0].status.numberReady }} nodes"
+
+  when: install_flannel | default(true)
+  tags: [cni, flannel]
+
+- name: Configure CNI network policies
+  block:
+    - name: Create default deny network policy
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../templates/default-deny-network-policy.yml.j2"
+
+    - name: Create allow DNS network policy
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../templates/allow-dns-network-policy.yml.j2"
+
+    - name: Create allow ingress network policy
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../templates/allow-ingress-network-policy.yml.j2"
+
+  when: enable_network_policies | default(true)
+  tags: [cni, network-policies]
+
+- name: Verify CNI installation
+  block:
+    - name: Check CNI pods
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ item.namespace }}"
+        label_selectors:
+          - "{{ item.label }}"
+      register: cni_pods
+      loop:
+        - namespace: "calico-system"
+          label: "k8s-app=calico-node"
+        - namespace: "kube-flannel"
+          label: "app=flannel"
+
+    - name: Display CNI pod status
+      debug:
+        msg: "CNI Pod {{ item.metadata.name }} in {{ item.metadata.namespace }} is {{ item.status.phase }}"
+      loop: "{{ cni_pods.results | map(attribute='resources') | flatten }}"
+      when: cni_pods.results | map(attribute='resources') | flatten | length > 0
+
+  when: verify_cni | default(true)
+  tags: [cni, verification]

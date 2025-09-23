@@ -1,0 +1,71 @@
+# SELinux Policy for Authentication Audit Logging
+# This policy ensures SSHD, SSSD, and PAM authentication events are properly logged
+
+policy_module(audit_security, 1.0.0)
+
+require {
+    type auditd_t;
+    type auditd_exec_t;
+    type auditd_config_t;
+    type auditd_log_t;
+    type sshd_t;
+    type sssd_t;
+    type pam_t;
+    type systemd_t;
+    type unconfined_t;
+    type user_t;
+    type staff_t;
+    class file { read write create getattr append };
+    class process signal;
+    class service { start stop status };
+}
+
+# Use standard SELinux types for audit logs and configs
+
+# Allow audit daemon to write authentication logs
+allow auditd_t auditd_log_t:file { write append create getattr };
+allow auditd_t auditd_config_t:file { read getattr };
+
+# Allow systemd to manage authentication services
+allow systemd_t sshd_t:service { start stop status };
+allow systemd_t sssd_t:service { start stop status };
+allow systemd_t pam_t:service { start stop status };
+allow systemd_t auditd_t:service { start stop status };
+
+# Allow systemd to signal authentication services
+allow systemd_t sshd_t:process signal;
+allow systemd_t sssd_t:process signal;
+allow systemd_t pam_t:process signal;
+allow systemd_t auditd_t:process signal;
+
+# Allow authentication services to write to audit logs (separate permissions)
+allow sshd_t auditd_log_t:file { write append };
+allow sssd_t auditd_log_t:file { write append };
+allow pam_t auditd_log_t:file { write append };
+
+# Prevent cross-service communication (proper separation)
+neverallow sshd_t sssd_t:process transition;
+neverallow sshd_t pam_t:process transition;
+neverallow sssd_t sshd_t:process transition;
+neverallow sssd_t pam_t:process transition;
+neverallow pam_t sshd_t:process transition;
+neverallow pam_t sssd_t:process transition;
+
+# Only allow root and wheel group to read authentication logs
+allow unconfined_t auditd_log_t:file { read getattr };
+allow staff_t auditd_log_t:file { read getattr };
+
+# Allow root and sudoers to check service status (for monitoring/compliance)
+allow unconfined_t sshd_t:service status;
+allow unconfined_t sssd_t:service status;
+allow unconfined_t pam_t:service status;
+allow unconfined_t auditd_t:service status;
+allow staff_t sshd_t:service status;
+allow staff_t sssd_t:service status;
+allow staff_t pam_t:service status;
+allow staff_t auditd_t:service status;
+
+# Note: auditd_t typically runs as root and has necessary capabilities by default
+
+# Allow audit to access minimal system resources
+allow auditd_t self:process signal;

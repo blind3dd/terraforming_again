@@ -1,0 +1,25 @@
+# Test stage
+FROM golang:1.21.5-alpine3.19 AS test
+
+# Install git, ca-certificates, and test dependencies
+RUN apk add --no-cache && apk upgrade --no-cache git ca-certificates tzdata
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Install testify for testing
+RUN go get github.com/stretchr/testify/assert
+RUN go get github.com/stretchr/testify/require
+RUN go get github.com/stretchr/testify/suite
+
+# Run tests
+CMD ["go", "test", "-v", "./..."]

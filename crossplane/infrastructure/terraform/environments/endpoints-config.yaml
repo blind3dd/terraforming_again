@@ -1,0 +1,105 @@
+# Internal Domain Endpoints Configuration
+# This file defines the endpoints for internal.coderedalarmtech.com
+
+endpoints:
+  # API Endpoints
+  dev-api:
+    path: "/dev/api"
+    service: "go-mysql-api"
+    port: 8080
+    health_check: "/dev/api/health"
+    description: "Main API service for database operations (dev environment)"
+    
+  # Web Interface
+  dev-web:
+    path: "/dev/web"
+    service: "web-interface"
+    port: 3000
+    health_check: "/dev/web/health"
+    description: "Web interface for monitoring and management (dev environment)"
+    
+  # Database Admin
+  dev-rds:
+    path: "/dev/rds"
+    service: "mysql-database"
+    port: 3306
+    health_check: "/dev/rds/ping"
+    description: "Database connection endpoint (dev environment)"
+    
+  # Monitoring
+  dev-monitoring:
+    path: "/dev/monitoring"
+    service: "prometheus"
+    port: 9090
+    health_check: "/dev/monitoring/-/healthy"
+    description: "System monitoring and metrics (dev environment)"
+    
+  # Logs
+  dev-logs:
+    path: "/dev/logs"
+    service: "kibana"
+    port: 5601
+    health_check: "/dev/logs/api/status"
+    description: "Log aggregation and analysis (dev environment)"
+    
+  # Kubernetes Dashboard
+  dev-k8s-dashboard:
+    path: "/dev/k8s-dashboard"
+    service: "kubernetes-dashboard"
+    port: 443
+    health_check: "/dev/k8s-dashboard/api/v1/status"
+    description: "Kubernetes cluster dashboard (dev environment)"
+    
+  # Webhook Service
+  dev-webhook:
+    path: "/dev/webhook"
+    service: "api-compatibility-webhook"
+    port: 8080
+    health_check: "/dev/webhook/health"
+    description: "API compatibility webhook service (dev environment)"
+    
+  # Test Environment Endpoints
+  test-api:
+    path: "/test/api"
+    service: "go-mysql-api"
+    port: 8080
+    health_check: "/test/api/health"
+    description: "Main API service for database operations (test environment)"
+    
+  test-web:
+    path: "/test/web"
+    service: "web-interface"
+    port: 3000
+    health_check: "/test/web/health"
+    description: "Web interface for monitoring and management (test environment)"
+    
+  test-rds:
+    path: "/test/rds"
+    service: "mysql-database"
+    port: 3306
+    health_check: "/test/rds/ping"
+    description: "Database connection endpoint (test environment)"
+
+# DNS Configuration
+dns:
+  base_domain: "internal.coderedalarmtech.com"
+  ttl: 300
+  zone_type: "private"
+  
+# Load Balancer Configuration
+load_balancer:
+  type: "application"
+  scheme: "internal"
+  health_check:
+    enabled: true
+    interval: 30
+    timeout: 5
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+    path: "/health"
+    
+# SSL Configuration
+ssl:
+  enabled: true
+  certificate_arn: "arn:aws:acm:us-east-1:ACCOUNT:certificate/CERT-ID"
+  redirect_http_to_https: true

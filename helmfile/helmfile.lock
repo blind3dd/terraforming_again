@@ -1,0 +1,44 @@
+version: v0.156.0
+dependencies:
+- name: istio-base
+  repository: https://istio-release.storage.googleapis.com/charts
+  version: 1.19.0
+- name: istiod
+  repository: https://istio-release.storage.googleapis.com/charts
+  version: 1.19.0
+- name: istio-ingressgateway
+  repository: https://istio-release.storage.googleapis.com/charts
+  version: 1.19.0
+- name: prometheus
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 55.0.0
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 7.0.0
+- name: vault
+  repository: https://helm.releases.hashicorp.com
+  version: 0.25.0
+- name: cluster-autoscaler
+  repository: https://aws.github.io/eks-charts
+  version: 1.4.0
+- name: karpenter
+  repository: https://charts.karpenter.sh
+  version: 0.37.0
+- name: argocd
+  repository: https://argoproj.github.io/argo-helm
+  version: 5.51.0
+- name: go-mysql-api
+  repository: file://./charts/go-mysql-api
+  version: 1.0.0
+- name: ansible-operator
+  repository: file://./charts/ansible-operator
+  version: 1.0.0
+- name: terraform-operator
+  repository: file://./charts/terraform-operator
+  version: 1.0.0
+- name: vault-operator
+  repository: file://./charts/vault-operator
+  version: 1.0.0
+digest: sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+generated: "2024-01-15T10:30:00Z"
+

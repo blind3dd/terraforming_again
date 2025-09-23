@@ -1,0 +1,74 @@
+# Ansible Vault - Sensitive Configuration Variables
+# This file contains encrypted sensitive data
+# 
+# To edit this file:
+#   ansible-vault edit group_vars/vault.yml
+#
+# To view this file:
+#   ansible-vault view group_vars/vault.yml
+#
+# To encrypt a new file:
+#   ansible-vault encrypt group_vars/vault.yml
+#
+# To decrypt a file:
+#   ansible-vault decrypt group_vars/vault.yml
+
+# Database Configuration (Sensitive)
+rds_host: "rds-endpoint.example.com"
+rds_username: "admin"
+rds_password: "your-secure-password-here"
+
+# AWS Configuration (Sensitive)
+aws_access_key_id: "blah"
+aws_secret_access_key: "blah"
+aws_session_token: "your-session-token-here"
+
+# SSH Keys (Sensitive)
+ssh_private_key: |
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  your-private-key-content-here
+  -----END OPENSSH PRIVATE KEY-----
+
+ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... your-public-key-here"
+
+# SSL/TLS Certificates (Sensitive)
+ssl_certificate: |
+  -----BEGIN CERTIFICATE-----
+  your-ssl-certificate-content-here
+  -----END CERTIFICATE-----
+
+ssl_private_key: |
+  -----BEGIN PRIVATE KEY-----
+  your-ssl-private-key-content-here
+  -----END PRIVATE KEY-----
+
+# API Keys and Tokens (Sensitive)
+api_key: "your-api-key-here"
+jwt_secret: "your-jwt-secret-here"
+oauth_client_secret: "your-oauth-client-secret-here"
+
+# Database Connection Strings (Sensitive)
+database_url: "mysql://username:password@host:port/database"
+redis_url: "redis://username:password@host:port"
+
+# Third-party Service Credentials (Sensitive)
+github_token: "ghp_your-github-token-here"
+docker_registry_password: "your-docker-registry-password"
+slack_webhook_url: "https://hooks.slack.com/services/your/webhook/url"
+
+# Kubernetes Secrets (Sensitive)
+k8s_service_account_token: "your-k8s-service-account-token"
+k8s_ca_certificate: |
+  -----BEGIN CERTIFICATE-----
+  your-k8s-ca-certificate-content-here
+  -----END CERTIFICATE-----
+
+# Monitoring and Logging (Sensitive)
+datadog_api_key: "your-datadog-api-key"
+newrelic_license_key: "your-newrelic-license-key"
+splunk_token: "your-splunk-token"
+
+# Backup and Storage (Sensitive)
+backup_encryption_key: "your-backup-encryption-key"
+s3_backup_access_key: "your-s3-backup-access-key"
+s3_backup_secret_key: "your-s3-backup-secret-key"

@@ -1,0 +1,46 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+# AWS SDK for Python
+boto3 = ">=1.34.0"
+botocore = ">=1.34.0"
+
+# Ansible - Updated to fix CVE-2024-8775
+ansible = ">=9.0.0"
+ansible-core = ">=2.17.6"
+
+# Additional useful packages for infrastructure automation
+requests = ">=2.31.0"
+pyyaml = ">=6.0.1"
+jinja2 = ">=3.1.2"
+cryptography = ">=42.0.4"  # Fixes CVE-2023-50782 and CVE-2024-26130
+
+[dev-packages]
+# Development and testing dependencies
+pytest = ">=8.0.0"
+pytest-cov = ">=4.0.0"
+black = ">=24.0.0"
+flake8 = ">=7.0.0"
+mypy = ">=1.8.0"
+pre-commit = ">=3.6.0"
+
+# Documentation
+sphinx = ">=7.0.0"
+sphinx-rtd-theme = ">=2.0.0"
+
+[requires]
+python_version = "3.11"
+
+[scripts]
+# Convenience scripts
+test = "pytest"
+format = "black ."
+lint = "flake8 ."
+type-check = "mypy ."
+inventory-list = "python ec2.py --list --pretty"
+inventory-host = "python ec2.py --host"
+ansible-ping = "ansible webservers -m ping"
+ansible-playbook = "ansible-playbook"
