@@ -1,0 +1,206 @@
+name: Secure CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: "1.6.0"
+  ANSIBLE_VERSION: "7.0.0"
+
+jobs:
+  # Security: Code Quality and Linting
+  security-scan:
+    name: Security & Code Quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for security analysis
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install pipenv
+      run: |
+        pip install pipenv
+    
+    - name: Install development tools
+      run: |
+        pipenv install --dev
+        pipenv install black==22.0.0 flake8==5.0.0 mypy==1.0.0 pytest==7.0.0
+        pipenv install bandit==1.7.5 safety==2.3.5  # Security scanning
+    
+    - name: Code formatting check
+      run: |
+        pipenv run black --check --diff .
+    
+    - name: Linting
+      run: |
+        pipenv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: Type checking
+      run: |
+        pipenv run mypy . --ignore-missing-imports
+    
+    - name: Security scan with Bandit
+      run: |
+        pipenv run bandit -r . -f json -o bandit-report.json || true
+    
+    - name: Dependency vulnerability scan
+      run: |
+        pipenv run safety check --json --output safety-report.json || true
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # Infrastructure: Terraform Validation
+  terraform-validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+    
+    - name: Terraform Init
+      run: terraform init -backend=false
+    
+    - name: Terraform Validate
+      run: terraform validate
+    
+    - name: Terraform Plan (Dry Run)
+      run: terraform plan -var-file="terraform.tfvars.example" -out=tfplan
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  # Configuration: Ansible Validation
+  ansible-validate:
+    name: Ansible Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install pipenv
+      run: |
+        pip install pipenv
+    
+    - name: Install Ansible and dependencies
+      run: |
+        pipenv install ansible==${{ env.ANSIBLE_VERSION }}
+        pipenv install ansible-lint==6.0.0
+        pipenv install -r ansible/requirements.txt
+    
+    - name: Ansible Lint
+      run: |
+        pipenv run ansible-lint ansible/
+    
+    - name: Ansible Syntax Check
+      run: |
+        pipenv run find ansible/ -name "*.yml" -exec ansible-playbook --syntax-check {} \;
+
+  # Security: SELinux Policy Validation
+  selinux-validate:
+    name: SELinux Policy Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install SELinux tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y selinux-policy-dev checkpolicy
+    
+    - name: Validate SELinux policies
+      run: |
+        cd selinux/
+        for policy in *.te; do
+          echo "Validating $policy"
+          checkmodule -M -m -o ${policy%.te}.mod $policy
+        done
+
+  # Deployment: ArgoCD Integration (if enabled)
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [security-scan, terraform-validate, ansible-validate, selinux-validate]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to ArgoCD
+      run: |
+        echo "Triggering ArgoCD deployment..."
+        # ArgoCD will handle the actual deployment
+        # This step would typically trigger ArgoCD sync
+        curl -X POST "${{ secrets.ARGOCD_WEBHOOK_URL }}" \
+          -H "Authorization: Bearer ${{ secrets.ARGOCD_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{"ref": "main"}'
+
+  # Security: Compliance Check
+  compliance-check:
+    name: Compliance & Security Standards
+    runs-on: ubuntu-latest
+    needs: [security-scan]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download security reports
+      uses: actions/download-artifact@v3
+      with:
+        name: security-reports
+    
+    - name: Compliance validation
+      run: |
+        echo "Checking compliance standards..."
+        # Check for hardcoded secrets
+        if grep -r "password\|secret\|key" --include="*.tf" --include="*.yml" . | grep -v "example\|placeholder"; then
+          echo "ERROR: Potential hardcoded secrets found"
+          exit 1
+        fi
+        
+        # Check for dangerous configurations
+        if grep -r "protocol.*-1" --include="*.tf" .; then
+          echo "ERROR: Dangerous protocol -1 found"
+          exit 1
+        fi
+        
+        echo "Compliance check passed"
