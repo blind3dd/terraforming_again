@@ -71,23 +71,23 @@ jobs:
       id: scan
       run: |
         echo "🔍 Running comprehensive Trivy security scan..."
-        
+
         # Create results directory
         mkdir -p trivy-results
-        
+
         # Scan for vulnerabilities in dependencies
         echo "📦 Scanning Go dependencies..."
         if [ -f "go.mod" ]; then
           trivy fs --format json --output trivy-results/go-deps.json . --scanners vuln
         fi
-        
+
         # Scan for vulnerabilities in Docker images
         echo "🐳 Scanning Docker images..."
         find . -name "Dockerfile*" -type f | while read dockerfile; do
           echo "Scanning $dockerfile"
           trivy config --format json --output "trivy-results/docker-$(basename $dockerfile).json" "$dockerfile"
         done
-        
+
         # Scan for secrets
         echo "🔐 Scanning for secrets..."
         trivy fs --format json --output trivy-results/secrets.json . --scanners secret
@@ -100,26 +100,30 @@ jobs:
         echo "📊 Generating vulnerability summary..."
         trivy fs --format table --output trivy-results/summary.txt .
         
+        # Generate SARIF report for GitHub Security tab
+        echo "📝 Generating SARIF report..."
+        trivy fs --format sarif --output trivy-results/trivy-results.sarif . || true
+
         # Count vulnerabilities
         CRITICAL=$(trivy fs --format json . | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' | wc -l)
         HIGH=$(trivy fs --format json . | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH") | .VulnerabilityID' | wc -l)
         MEDIUM=$(trivy fs --format json . | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM") | .VulnerabilityID' | wc -l)
         LOW=$(trivy fs --format json . | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "LOW") | .VulnerabilityID' | wc -l)
-        
+
         TOTAL=$((CRITICAL + HIGH + MEDIUM + LOW))
-        
+
         echo "critical-count=$CRITICAL" >> $GITHUB_OUTPUT
         echo "high-count=$HIGH" >> $GITHUB_OUTPUT
         echo "medium-count=$MEDIUM" >> $GITHUB_OUTPUT
         echo "low-count=$LOW" >> $GITHUB_OUTPUT
         echo "vulnerabilities-found=$TOTAL" >> $GITHUB_OUTPUT
-        
+
         echo "🚨 Found $TOTAL vulnerabilities: $CRITICAL critical, $HIGH high, $MEDIUM medium, $LOW low"
-        
+
         # Upload results as artifacts
         echo "📤 Uploading scan results..."
         tar -czf trivy-results.tar.gz trivy-results/
-        
+
         # Always upload results, even if no vulnerabilities found
         echo "vulnerabilities-found=true" >> $GITHUB_OUTPUT
 
@@ -133,7 +137,7 @@ jobs:
 
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('trivy-results/*.json') != ''
+      if: always() && hashFiles('trivy-results/trivy-results.sarif') != ''
       with:
         sarif_file: trivy-results/trivy-results.sarif
         category: trivy
