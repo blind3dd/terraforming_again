@@ -2,12 +2,16 @@ name: Automated Security Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, working_branch ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, working_branch ]
   schedule:
     # Run security scans daily at 2 AM UTC
     - cron: '0 2 * * *'
+  repository_dispatch:
+    types: [security-alert, dependabot-alert, trivy-scan]
+  issues:
+    types: [opened, edited, labeled]
   workflow_dispatch:
     inputs:
       security_scan_type:
@@ -21,6 +25,17 @@ on:
           - compliance
           - policy
           - secrets
+      remediation_type:
+        description: 'Type of remediation to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - dependencies
+          - docker
+          - secrets
+          - configs
 
 env:
   SECURITY_SCAN_VERSION: "v1.0.0"
@@ -209,7 +224,11 @@ jobs:
   security-remediation:
     name: Automated Security Remediation
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event_name == 'schedule'
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'repository_dispatch' ||
+      github.event_name == 'issues' ||
+      github.event.inputs.security_scan_type == 'all'
     needs: [vulnerability-scanning, compliance-scanning, policy-enforcement, secrets-detection]
     
     steps:
