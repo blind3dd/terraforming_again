@@ -47,7 +47,11 @@ jobs:
   vulnerability-scanning:
     name: Automated Vulnerability Scanning
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'vulnerability' || github.event_name == 'pull_request'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'vulnerability' ||
+      github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -101,7 +105,10 @@ jobs:
   compliance-scanning:
     name: Automated Compliance Scanning
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'compliance'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'compliance'
     
     steps:
     - name: Checkout code
@@ -146,7 +153,10 @@ jobs:
   policy-enforcement:
     name: Automated Policy Enforcement
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'policy'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'policy'
     
     steps:
     - name: Checkout code
@@ -183,7 +193,10 @@ jobs:
   secrets-detection:
     name: Automated Secrets Detection
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'secrets'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'secrets'
     
     steps:
     - name: Checkout code
