@@ -1,15 +1,13 @@
+---
 name: Auto-Remediate Security Issues
 
 on:
   # Trigger on security alerts
   repository_dispatch:
     types: [security-alert, dependabot-alert]
-  # Trigger on Dependabot alerts
+  # Trigger on Dependabot alerts and security-related labels
   issues:
-    types: [opened, edited]
-  # Trigger on security-related labels
-  issues:
-    types: [labeled]
+    types: [opened, edited, labeled]
   # Manual trigger
   workflow_dispatch:
     inputs:
