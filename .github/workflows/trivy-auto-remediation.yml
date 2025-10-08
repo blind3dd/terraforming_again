@@ -61,11 +61,11 @@ jobs:
     - name: Install Trivy
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget apt-transport-https gnupg lsb-release jq
+        sudo apt-get install wget apt-transport-https gnupg lsb-release
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
         echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
         sudo apt-get update
-        sudo apt-get install -y trivy
+        sudo apt-get install trivy
 
     - name: Run Trivy vulnerability scanner
       id: scan
@@ -312,25 +312,24 @@ jobs:
         # Add all changes
         git add -A
         
-        # Prepare commit message safely
-        cat > .git/COMMIT_MSG << 'EOF'
-🔒 Auto-remediate security vulnerabilities
+        # Commit changes
+        git commit -m "🔒 Auto-remediate security vulnerabilities
 
 🤖 Automated security remediation by Trivy
 
 ## Vulnerabilities Fixed:
-- Critical: ${{ needs.trivy-scan.outputs.critical-count }}
-- High: ${{ needs.trivy-scan.outputs.high-count }}
-- Medium: ${{ needs.trivy-scan.outputs.medium-count }}
-- Low: ${{ needs.trivy-scan.outputs.low-count }}
+- **Critical**: ${{ needs.trivy-scan.outputs.critical-count }}
+- **High**: ${{ needs.trivy-scan.outputs.high-count }}
+- **Medium**: ${{ needs.trivy-scan.outputs.medium-count }}
+- **Low**: ${{ needs.trivy-scan.outputs.low-count }}
 
 ## Changes Made:
-- Updated Go dependencies to latest secure versions
-- Updated Docker base images to latest secure versions
-- Updated Python dependencies to latest secure versions
-- Updated Node.js dependencies to latest secure versions
-- Replaced hardcoded secrets with environment variables
-- Applied security patches and updates
+- ✅ Updated Go dependencies to latest secure versions
+- ✅ Updated Docker base images to latest secure versions
+- ✅ Updated Python dependencies to latest secure versions
+- ✅ Updated Node.js dependencies to latest secure versions
+- ✅ Replaced hardcoded secrets with environment variables
+- ✅ Applied security patches and updates
 
 ## Security Impact:
 - Reduced attack surface by updating vulnerable dependencies
