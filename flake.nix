@@ -34,7 +34,6 @@
           golangci-lint
           delve
           gotools
-          gomod2nix
         ];
 
         # Terraform/OpenTofu tools
