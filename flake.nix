@@ -226,7 +226,6 @@
             # Go cache configuration (separate from workspace)
             GOMODCACHE = "/Users/usualsuspectx/.cache/go/mod";
             GOCACHE = "/Users/usualsuspectx/.cache/go/build";
-            GOSUMDB = "sum.golang.org";
             # Git configuration
             GIT_AUTHOR_NAME = "usualsuspectx";
             GIT_AUTHOR_EMAIL = "blind3dd@gmail.com";
