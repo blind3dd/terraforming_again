@@ -26,3 +26,14 @@ devbox*
 # Temporary files
 *.tmp
 *.temp
+
+# Nix
+result
+result-*
+.direnv/
+.nix/bin/
+shell.nix.bak
+
+# Generated VSCode settings (created from .nix/dotfiles)
+.vscode/settings.json
+.vscode/extensions.json
