@@ -194,6 +194,23 @@
               echo "⚠️  YubiKey not detected - plug in and try: gpg --card-status"
               echo "   Or run: ./hack/setup-yubikey-gpg.sh"
             fi
+            
+            # Setup GPG for YubiKey signing
+            export GPG_TTY=$(tty)
+            export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+            
+            # Ensure gpg-agent is running with proper pinentry
+            if ! pgrep -x gpg-agent >/dev/null; then
+              gpgconf --kill gpg-agent 2>/dev/null || true
+              gpg-agent --daemon --enable-ssh-support >/dev/null 2>&1 || true
+            fi
+            
+            # Test GPG/YubiKey
+            if gpg --card-status >/dev/null 2>&1; then
+              echo "✅ YubiKey detected and accessible"
+            else
+              echo "⚠️  YubiKey not detected - plug in and try: gpg --card-status"
+            fi
 
             # Ensure tools are available in PATH
             export PATH="$PATH:/nix/var/nix/profiles/default/bin"
