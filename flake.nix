@@ -28,7 +28,7 @@
 
         # Go development tools
         goTools = with pkgs; [
-          go_1_23
+          go  # Latest stable Go version
           gopls
           go-tools
           golangci-lint
