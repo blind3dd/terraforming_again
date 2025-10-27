@@ -158,6 +158,15 @@
             export GPG_TTY=$(tty)
             export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
             
+            # Copy project gpg-agent.conf template to ~/.gnupg if missing
+            if [ ! -f "$HOME/.gnupg/gpg-agent.conf" ] && [ -f ".nix/dotfiles/gpg/gpg-agent.conf" ]; then
+              echo "📝 Installing gpg-agent.conf template to ~/.gnupg/..."
+              mkdir -p "$HOME/.gnupg"
+              cp .nix/dotfiles/gpg/gpg-agent.conf "$HOME/.gnupg/gpg-agent.conf"
+              chmod 600 "$HOME/.gnupg/gpg-agent.conf"
+              echo "✅ gpg-agent.conf installed (restart gpg-agent to apply)"
+            fi
+            
             # Ensure gpg-agent is running with proper pinentry
             if ! pgrep -x gpg-agent >/dev/null; then
               gpgconf --kill gpg-agent 2>/dev/null || true
@@ -167,8 +176,10 @@
             # Test GPG/YubiKey
             if gpg --card-status >/dev/null 2>&1; then
               echo "✅ YubiKey detected and accessible"
+              echo "   Signing key: $(gpg --card-status 2>/dev/null | grep 'Signature key' | awk '{print $NF}' | tr -d ':')"
             else
               echo "⚠️  YubiKey not detected - plug in and try: gpg --card-status"
+              echo "   Or run: ./hack/setup-yubikey-gpg.sh"
             fi
 
             # Ensure tools are available in PATH
