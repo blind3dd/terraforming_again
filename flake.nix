@@ -142,17 +142,15 @@
             fi
 
             # Setup git configuration for this project
-            if ! git config user.name >/dev/null 2>&1; then
-              echo "📝 Setting up git configuration..."
-              git config user.name "usualsuspectx"
-              git config user.email "blind3dd@gmail.com"
-              git config user.signingkey "CDC126861493EA959E66EA7DB712F8BABBAF0120"
-              git config commit.gpgsign true
-              git config tag.gpgsign true
-              git config core.editor "$(which nano)"
-              git config gpg.program "$(which gpg)"
-              echo "✅ Git configuration applied"
-            fi
+            echo "📝 Configuring Git for this repository..."
+            git config --local user.name "usualsuspectx" 2>/dev/null || true
+            git config --local user.email "blind3dd@gmail.com" 2>/dev/null || true
+            # Use the actual YubiKey signing key
+            git config --local user.signingkey "1DEA2A6DFB339158" 2>/dev/null || true
+            git config --local commit.gpgsign true 2>/dev/null || true
+            git config --local tag.gpgsign true 2>/dev/null || true
+            git config --local gpg.program "$(which gpg)" 2>/dev/null || true
+            echo "✅ Git signing enabled for this repository"
             
             # Setup GPG for YubiKey signing
             export GPG_TTY=$(tty)
