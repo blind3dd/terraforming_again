@@ -1,0 +1,820 @@
+[1;33m🔍 DRY RUN MODE - No changes will be made[0m
+
+[0;34m╔═══════════════════════════════════════════════════════════╗[0m
+[0;34m║   Terraforming Again - Structure Migration Script        ║[0m
+[0;34m╚═══════════════════════════════════════════════════════════╝[0m
+
+[0;34m▶[0m  Creating new directory structure...
+[0;35m[DRY-RUN][0m Create directory: applications/go-mysql-api
+[0;35m[DRY-RUN][0m Create directory: applications/webhooks
+[0;35m[DRY-RUN][0m Create directory: infrastructure/terraform/modules
+[0;35m[DRY-RUN][0m Create directory: infrastructure/terraform/providers
+[0;35m[DRY-RUN][0m Create directory: infrastructure/terraform/environments/dev
+[0;35m[DRY-RUN][0m Create directory: infrastructure/terraform/environments/test
+[0;35m[DRY-RUN][0m Create directory: infrastructure/terraform/environments/prod
+[0;35m[DRY-RUN][0m Create directory: infrastructure/terraform/environments/shared
+[0;35m[DRY-RUN][0m Create directory: infrastructure/ansible/playbooks
+[0;35m[DRY-RUN][0m Create directory: infrastructure/ansible/roles
+[0;35m[DRY-RUN][0m Create directory: infrastructure/ansible/inventory
+[0;35m[DRY-RUN][0m Create directory: infrastructure/crossplane/compositions/aws
+[0;35m[DRY-RUN][0m Create directory: infrastructure/crossplane/compositions/azure
+[0;35m[DRY-RUN][0m Create directory: infrastructure/crossplane/compositions/gcp
+[0;35m[DRY-RUN][0m Create directory: infrastructure/crossplane/providers
+[0;35m[DRY-RUN][0m Create directory: infrastructure/helm/values
+[0;35m[DRY-RUN][0m Create directory: platform/cluster-api/management
+[0;35m[DRY-RUN][0m Create directory: platform/cluster-api/workload/aws
+[0;35m[DRY-RUN][0m Create directory: platform/cluster-api/workload/azure
+[0;35m[DRY-RUN][0m Create directory: platform/cluster-api/bootstrap
+[0;35m[DRY-RUN][0m Create directory: platform/operators/ansible-operator
+[0;35m[DRY-RUN][0m Create directory: platform/operators/terraform-operator
+[0;35m[DRY-RUN][0m Create directory: platform/operators/vault-operator
+[0;35m[DRY-RUN][0m Create directory: platform/operators/karpenter
+[0;35m[DRY-RUN][0m Create directory: platform/argocd/applications
+[0;35m[DRY-RUN][0m Create directory: platform/argocd/projects
+[0;35m[DRY-RUN][0m Create directory: environments/dev
+[0;35m[DRY-RUN][0m Create directory: environments/test
+[0;35m[DRY-RUN][0m Create directory: environments/prod
+[0;35m[DRY-RUN][0m Create directory: environments/shared
+[0;35m[DRY-RUN][0m Create directory: docs/architecture
+[0;35m[DRY-RUN][0m Create directory: docs/guides
+[0;35m[DRY-RUN][0m Create directory: docs/security
+[0;35m[DRY-RUN][0m Create directory: docs/development
+[0;35m[DRY-RUN][0m Create directory: scripts/archived/device-management
+[0;35m[DRY-RUN][0m Create directory: scripts/deploy
+[0;35m[DRY-RUN][0m Create directory: scripts/security
+[0;32m✅[0m Directory structure created
+[0;34m▶[0m  Migrating applications...
+[0;35m[DRY-RUN][0m Moving Go MySQL API application
+  From: crossplane/applications/go-mysql-api
+  To:   applications/go-mysql-api
+[0;34m▶[0m  Migrating infrastructure...
+[0;35m[DRY-RUN][0m Moving Terraform config: dhcp-private-fqdn.tf
+  From: dhcp-private-fqdn.tf
+  To:   infrastructure/terraform/dhcp-private-fqdn.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: ecr.tf
+  From: ecr.tf
+  To:   infrastructure/terraform/ecr.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: kubernetes-cluster.tf
+  From: kubernetes-cluster.tf
+  To:   infrastructure/terraform/kubernetes-cluster.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: kubernetes-control-plane.tf
+  From: kubernetes-control-plane.tf
+  To:   infrastructure/terraform/kubernetes-control-plane.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: load-balancer-route53.tf
+  From: load-balancer-route53.tf
+  To:   infrastructure/terraform/load-balancer-route53.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: main-ec2-only.tf
+  From: main-ec2-only.tf
+  To:   infrastructure/terraform/main-ec2-only.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: main.tf
+  From: main.tf
+  To:   infrastructure/terraform/main.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: outputs.tf
+  From: outputs.tf
+  To:   infrastructure/terraform/outputs.tf
+[0;35m[DRY-RUN][0m Moving provider config: provider-aws.tf
+  From: provider-aws.tf
+  To:   infrastructure/terraform/providers/provider-aws.tf
+[0;35m[DRY-RUN][0m Moving provider config: provider-azure.tf
+  From: provider-azure.tf
+  To:   infrastructure/terraform/providers/provider-azure.tf
+[0;35m[DRY-RUN][0m Moving provider config: provider-gcp.tf
+  From: provider-gcp.tf
+  To:   infrastructure/terraform/providers/provider-gcp.tf
+[0;35m[DRY-RUN][0m Moving provider config: provider-ibm.tf
+  From: provider-ibm.tf
+  To:   infrastructure/terraform/providers/provider-ibm.tf
+[0;35m[DRY-RUN][0m Moving provider config: provider-local.tf
+  From: provider-local.tf
+  To:   infrastructure/terraform/providers/provider-local.tf
+[0;35m[DRY-RUN][0m Moving provider config: provider-utility.tf
+  From: provider-utility.tf
+  To:   infrastructure/terraform/providers/provider-utility.tf
+[0;35m[DRY-RUN][0m Moving provider config: providers.tf
+  From: providers.tf
+  To:   infrastructure/terraform/providers/providers.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: rds.tf
+  From: rds.tf
+  To:   infrastructure/terraform/rds.tf
+[0;35m[DRY-RUN][0m Moving Terraform config: variables.tf
+  From: variables.tf
+  To:   infrastructure/terraform/variables.tf
+[0;35m[DRY-RUN][0m Moving tfvars to dev environment
+  From: terraform.tfvars
+  To:   infrastructure/terraform/environments/dev/terraform.tfvars
+[0;35m[DRY-RUN][0m Moving variables definition
+  From: variables.tf
+  To:   infrastructure/terraform/variables.tf
+[0;35m[DRY-RUN][0m Moving outputs definition
+  From: outputs.tf
+  To:   infrastructure/terraform/outputs.tf
+[0;35m[DRY-RUN][0m Moving existing Terraform environments
+  From: crossplane/infrastructure/terraform/environments
+  To:   infrastructure/terraform/environments-old
+[0;35m[DRY-RUN][0m Moving Ansible infrastructure
+  From: crossplane/compositions/infrastructure/ansible
+  To:   infrastructure/ansible
+[0;36mℹ️[0m  Would remove: ansible (symlink/directory)
+[0;35m[DRY-RUN][0m Moving operator Helm chart to application
+  From: crossplane/compositions/go-mysql-api-operator/helm
+  To:   applications/go-mysql-api/operator-helm
+[0;35m[DRY-RUN][0m Moving operator Kustomize to application
+  From: crossplane/compositions/go-mysql-api-operator/kustomize
+  To:   applications/go-mysql-api/operator-kustomize
+[0;35m[DRY-RUN][0m Moving security policies
+  From: crossplane/security
+  To:   infrastructure/crossplane/security
+[0;35m[DRY-RUN][0m Moving SELinux policies to Ansible
+  From: crossplane/selinux
+  To:   infrastructure/ansible/files/selinux
+[0;35m[DRY-RUN][0m Moving Helmfile configs
+  From: helmfile
+  To:   infrastructure/helm
+[0;34m▶[0m  Migrating platform services...
+[0;35m[DRY-RUN][0m Moving CAPI hybrid cluster config
+  From: capi/hybrid-cluster.yaml
+  To:   platform/cluster-api/workload/hybrid-cluster.yaml
+[0;35m[DRY-RUN][0m Moving CAPI deployment script
+  From: deploy-capi.sh
+  To:   platform/cluster-api/deploy-capi.sh
+[0;35m[DRY-RUN][0m Moving CAPI simple deployment script
+  From: deploy-capi-simple.sh
+  To:   platform/cluster-api/deploy-capi-simple.sh
+[0;35m[DRY-RUN][0m Moving K8s control plane deployment
+  From: deploy-kubernetes-control-plane.sh
+  To:   platform/cluster-api/deploy-control-plane.sh
+[0;35m[DRY-RUN][0m Moving cloud-init and K8s bootstrap configs
+  From: cloud_init_and_k8s
+  To:   platform/cluster-api/bootstrap
+[0;34m▶[0m  Migrating environment configurations...
+[0;36mℹ️[0m  Environment configs will be extracted from existing files
+[0;34m▶[0m  Migrating documentation...
+[0;35m[DRY-RUN][0m Moving architecture doc: HYBRID_ARCHITECTURE.md
+  From: HYBRID_ARCHITECTURE.md
+  To:   docs/architecture/HYBRID_ARCHITECTURE.md
+[0;35m[DRY-RUN][0m Moving architecture doc: HYBRID_CLOUD_SETUP.md
+  From: HYBRID_CLOUD_SETUP.md
+  To:   docs/architecture/HYBRID_CLOUD_SETUP.md
+[0;35m[DRY-RUN][0m Moving architecture doc: CROSSPLANE_STRUCTURE.md
+  From: CROSSPLANE_STRUCTURE.md
+  To:   docs/architecture/CROSSPLANE_STRUCTURE.md
+[0;35m[DRY-RUN][0m Moving architecture doc: CROSSPLANE_TERRAFORM_ALIGNED.md
+  From: CROSSPLANE_TERRAFORM_ALIGNED.md
+  To:   docs/architecture/CROSSPLANE_TERRAFORM_ALIGNED.md
+[0;35m[DRY-RUN][0m Moving architecture doc: FINAL_CROSSPLANE_STRUCTURE.md
+  From: FINAL_CROSSPLANE_STRUCTURE.md
+  To:   docs/architecture/FINAL_CROSSPLANE_STRUCTURE.md
+[0;35m[DRY-RUN][0m Moving security doc: AUDIT_LOGGING_CONFIGURATION.md
+  From: AUDIT_LOGGING_CONFIGURATION.md
+  To:   docs/security/AUDIT_LOGGING_CONFIGURATION.md
+[0;35m[DRY-RUN][0m Moving security doc: COMPLETE_SECURITY_INVESTIGATION_SUMMARY.md
+  From: COMPLETE_SECURITY_INVESTIGATION_SUMMARY.md
+  To:   docs/security/COMPLETE_SECURITY_INVESTIGATION_SUMMARY.md
+[0;35m[DRY-RUN][0m Moving security doc: KUBERNETES_SECCOMP_PROFILES.md
+  From: KUBERNETES_SECCOMP_PROFILES.md
+  To:   docs/security/KUBERNETES_SECCOMP_PROFILES.md
+[0;35m[DRY-RUN][0m Moving security doc: ISTIO_RDS_SECURITY_GUIDE.md
+  From: ISTIO_RDS_SECURITY_GUIDE.md
+  To:   docs/security/ISTIO_RDS_SECURITY_GUIDE.md
+[0;35m[DRY-RUN][0m Moving security doc: POLKIT_SECURITY_CONFIGURATION.md
+  From: POLKIT_SECURITY_CONFIGURATION.md
+  To:   docs/security/POLKIT_SECURITY_CONFIGURATION.md
+[0;35m[DRY-RUN][0m Moving security doc: SECCOMP_PROFILES.md
+  From: SECCOMP_PROFILES.md
+  To:   docs/security/SECCOMP_PROFILES.md
+[0;35m[DRY-RUN][0m Moving guide: IAMV2_AUTH_SETUP.md
+  From: IAMV2_AUTH_SETUP.md
+  To:   docs/guides/IAMV2_AUTH_SETUP.md
+[0;35m[DRY-RUN][0m Moving guide: DUAL_AUTHENTICATION_SETUP.md
+  From: DUAL_AUTHENTICATION_SETUP.md
+  To:   docs/guides/DUAL_AUTHENTICATION_SETUP.md
+[0;35m[DRY-RUN][0m Moving guide: DHCP_PRIVATE_FQDN_GUIDE.md
+  From: DHCP_PRIVATE_FQDN_GUIDE.md
+  To:   docs/guides/DHCP_PRIVATE_FQDN_GUIDE.md
+[0;35m[DRY-RUN][0m Moving guide: VPN_ACCESS_GUIDE.md
+  From: VPN_ACCESS_GUIDE.md
+  To:   docs/guides/VPN_ACCESS_GUIDE.md
+[0;35m[DRY-RUN][0m Moving guide: KUBERNETES_IAM_AUTHENTICATION.md
+  From: KUBERNETES_IAM_AUTHENTICATION.md
+  To:   docs/guides/KUBERNETES_IAM_AUTHENTICATION.md
+[0;35m[DRY-RUN][0m Moving guide: DATABASE_SCHEMA_SETUP.md
+  From: DATABASE_SCHEMA_SETUP.md
+  To:   docs/guides/DATABASE_SCHEMA_SETUP.md
+[0;35m[DRY-RUN][0m Moving guide: PIPENV_SETUP.md
+  From: PIPENV_SETUP.md
+  To:   docs/guides/PIPENV_SETUP.md
+[0;35m[DRY-RUN][0m Moving guide: RDS_VPC_ASSOCIATION.md
+  From: RDS_VPC_ASSOCIATION.md
+  To:   docs/guides/RDS_VPC_ASSOCIATION.md
+[0;35m[DRY-RUN][0m Moving guide: SERVICE_CATALOG_RDS_SECURITY_ANALYSIS.md
+  From: SERVICE_CATALOG_RDS_SECURITY_ANALYSIS.md
+  To:   docs/guides/SERVICE_CATALOG_RDS_SECURITY_ANALYSIS.md
+[0;35m[DRY-RUN][0m Moving guide: WEBHOOK_API_COMPATIBILITY_SOLUTION.md
+  From: WEBHOOK_API_COMPATIBILITY_SOLUTION.md
+  To:   docs/guides/WEBHOOK_API_COMPATIBILITY_SOLUTION.md
+[0;35m[DRY-RUN][0m Moving NIX_SETUP.md to docs/development/NIX_SETUP.md
+  From: NIX_SETUP.md
+  To:   docs/development/NIX_SETUP.md
+[0;35m[DRY-RUN][0m Moving QUICK_START.md to docs/development/QUICK_START.md
+  From: QUICK_START.md
+  To:   docs/development/QUICK_START.md
+[0;35m[DRY-RUN][0m Moving CONTRIBUTING.md to docs/development/CONTRIBUTING.md
+  From: CONTRIBUTING.md
+  To:   docs/development/CONTRIBUTING.md
+[0;34m▶[0m  Migrating Kubernetes manifests...
+[0;35m[DRY-RUN][0m Moving Kubernetes manifests
+  From: kubernetes
+  To:   infrastructure/kubernetes/manifests
+[0;34m▶[0m  Archiving unrelated device management scripts...
+[0;35m[DRY-RUN][0m Create directory: /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/android
+[0;35m[DRY-RUN][0m Moving Android script: aggressive_android_cleanup.sh
+  From: aggressive_android_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/android/aggressive_android_cleanup.sh
+[0;35m[DRY-RUN][0m Moving Android script: android_device_audit.sh
+  From: android_device_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/android/android_device_audit.sh
+[0;35m[DRY-RUN][0m Moving Android script: android_manual_audit_checklist.md
+  From: android_manual_audit_checklist.md
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/android/android_manual_audit_checklist.md
+[0;35m[DRY-RUN][0m Moving Android script: comprehensive_android_security_audit.sh
+  From: comprehensive_android_security_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/android/comprehensive_android_security_audit.sh
+[0;35m[DRY-RUN][0m Moving Android script: remove_work_profile.sh
+  From: remove_work_profile.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/android/remove_work_profile.sh
+[0;35m[DRY-RUN][0m Create directory: /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios
+[0;35m[DRY-RUN][0m Moving iOS script: apple_device_audit.sh
+  From: apple_device_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/apple_device_audit.sh
+[0;35m[DRY-RUN][0m Moving iOS script: apple_id_mayhem_fix.sh
+  From: apple_id_mayhem_fix.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/apple_id_mayhem_fix.sh
+[0;35m[DRY-RUN][0m Moving iOS script: apple_id_sync_script.sh
+  From: apple_id_sync_script.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/apple_id_sync_script.sh
+[0;35m[DRY-RUN][0m Moving iOS script: emergency_ios_cleanup.sh
+  From: emergency_ios_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/emergency_ios_cleanup.sh
+[0;35m[DRY-RUN][0m Moving iOS script: enhanced_emergency_ios_cleanup.sh
+  From: enhanced_emergency_ios_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/enhanced_emergency_ios_cleanup.sh
+[0;35m[DRY-RUN][0m Moving iOS script: enhanced_ios_device_audit.sh
+  From: enhanced_ios_device_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/enhanced_ios_device_audit.sh
+[0;35m[DRY-RUN][0m Moving iOS script: enhanced_selective_ios_cleanup.sh
+  From: enhanced_selective_ios_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/enhanced_selective_ios_cleanup.sh
+[0;35m[DRY-RUN][0m Moving iOS script: ios_apple_configurator_cleanup.sh
+  From: ios_apple_configurator_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/ios_apple_configurator_cleanup.sh
+[0;35m[DRY-RUN][0m Moving iOS script: IOS_AUDIT_AND_CLEANUP_GUIDE.md
+  From: IOS_AUDIT_AND_CLEANUP_GUIDE.md
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/IOS_AUDIT_AND_CLEANUP_GUIDE.md
+[0;35m[DRY-RUN][0m Moving iOS script: ios_automation_tools.sh
+  From: ios_automation_tools.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/ios_automation_tools.sh
+[0;35m[DRY-RUN][0m Moving iOS script: ios_check.sh
+  From: ios_check.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/ios_check.sh
+[0;35m[DRY-RUN][0m Moving iOS script: ios_device_verification.sh
+  From: ios_device_verification.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/ios_device_verification.sh
+[0;35m[DRY-RUN][0m Moving iOS script: ios_ipad_audit_script.sh
+  From: ios_ipad_audit_script.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/ios_ipad_audit_script.sh
+[0;35m[DRY-RUN][0m Moving iOS script: selective_ios_cleanup.sh
+  From: selective_ios_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/selective_ios_cleanup.sh
+[0;35m[DRY-RUN][0m Moving iOS script: unmount_simulators.sh
+  From: unmount_simulators.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/ios/unmount_simulators.sh
+[0;35m[DRY-RUN][0m Create directory: /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos
+[0;35m[DRY-RUN][0m Moving macOS script: emergency_mac_cleanup.sh
+  From: emergency_mac_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos/emergency_mac_cleanup.sh
+[0;35m[DRY-RUN][0m Moving macOS script: mac_battery_fix.sh
+  From: mac_battery_fix.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos/mac_battery_fix.sh
+[0;35m[DRY-RUN][0m Moving macOS script: mac_cleanup_script.sh
+  From: mac_cleanup_script.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos/mac_cleanup_script.sh
+[0;35m[DRY-RUN][0m Moving macOS script: MACOS_K8S_SECURITY_QUICK_REFERENCE.md
+  From: MACOS_K8S_SECURITY_QUICK_REFERENCE.md
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos/MACOS_K8S_SECURITY_QUICK_REFERENCE.md
+[0;35m[DRY-RUN][0m Moving macOS script: post_nvram_reset.sh
+  From: post_nvram_reset.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos/post_nvram_reset.sh
+[0;35m[DRY-RUN][0m Moving macOS script: factory_reset_new_setup.sh
+  From: factory_reset_new_setup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/macos/factory_reset_new_setup.sh
+[0;35m[DRY-RUN][0m Create directory: /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general
+[0;35m[DRY-RUN][0m Moving general security script: browser_profile_security_audit.sh
+  From: browser_profile_security_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/browser_profile_security_audit.sh
+[0;35m[DRY-RUN][0m Moving general security script: comprehensive_security_audit.sh
+  From: comprehensive_security_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/comprehensive_security_audit.sh
+[0;35m[DRY-RUN][0m Moving general security script: rootkit_detection_removal_toolkit.sh
+  From: rootkit_detection_removal_toolkit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/rootkit_detection_removal_toolkit.sh
+[0;35m[DRY-RUN][0m Moving general security script: complete_investigation_commands.sh
+  From: complete_investigation_commands.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/complete_investigation_commands.sh
+[0;35m[DRY-RUN][0m Moving general security script: crash_investigation.sh
+  From: crash_investigation.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/crash_investigation.sh
+[0;35m[DRY-RUN][0m Moving general security script: device_cleanup_script.sh
+  From: device_cleanup_script.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/device_cleanup_script.sh
+[0;35m[DRY-RUN][0m Moving general security script: keychain_cleanup_script.sh
+  From: keychain_cleanup_script.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/keychain_cleanup_script.sh
+[0;35m[DRY-RUN][0m Moving general security script: keychain_apple_id_audit.sh
+  From: keychain_apple_id_audit.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/keychain_apple_id_audit.sh
+[0;35m[DRY-RUN][0m Moving general security script: complete_account_logout.sh
+  From: complete_account_logout.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/complete_account_logout.sh
+[0;35m[DRY-RUN][0m Moving general security script: complete_account_removal.sh
+  From: complete_account_removal.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/complete_account_removal.sh
+[0;35m[DRY-RUN][0m Moving general security script: complete_device_wipe.sh
+  From: complete_device_wipe.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/complete_device_wipe.sh
+[0;35m[DRY-RUN][0m Moving general security script: multi_user_cleanup.sh
+  From: multi_user_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/multi_user_cleanup.sh
+[0;35m[DRY-RUN][0m Moving general security script: standard_account_cleanup.sh
+  From: standard_account_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/standard_account_cleanup.sh
+[0;35m[DRY-RUN][0m Moving general security script: intune_microsoft_cleanup.sh
+  From: intune_microsoft_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/intune_microsoft_cleanup.sh
+[0;35m[DRY-RUN][0m Moving general security script: emergency_kerberos_cleanup.sh
+  From: emergency_kerberos_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/emergency_kerberos_cleanup.sh
+[0;35m[DRY-RUN][0m Moving general security script: emergency_icloud_security.sh
+  From: emergency_icloud_security.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/emergency_icloud_security.sh
+[0;35m[DRY-RUN][0m Moving general security script: box_cleanup.sh
+  From: box_cleanup.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/box_cleanup.sh
+[0;35m[DRY-RUN][0m Moving general security script: unlink_all_emails.sh
+  From: unlink_all_emails.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/unlink_all_emails.sh
+[0;35m[DRY-RUN][0m Moving general security script: remove_all_connections.sh
+  From: remove_all_connections.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/remove_all_connections.sh
+[0;35m[DRY-RUN][0m Moving general security script: remove_connections_safe.sh
+  From: remove_connections_safe.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/remove_connections_safe.sh
+[0;35m[DRY-RUN][0m Moving general security script: force_remove_sockets.sh
+  From: force_remove_sockets.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/force_remove_sockets.sh
+[0;35m[DRY-RUN][0m Moving general security script: kill_all_terminals.sh
+  From: kill_all_terminals.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/kill_all_terminals.sh
+[0;35m[DRY-RUN][0m Moving general security script: consolidate_terminal_history.sh
+  From: consolidate_terminal_history.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/consolidate_terminal_history.sh
+[0;35m[DRY-RUN][0m Moving general security script: remove-xcode-completely.sh
+  From: remove-xcode-completely.sh
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/remove-xcode-completely.sh
+[0;35m[DRY-RUN][0m Moving general security script: README_ROOTKIT_TOOLKIT.md
+  From: README_ROOTKIT_TOOLKIT.md
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/general/README_ROOTKIT_TOOLKIT.md
+[0;35m[DRY-RUN][0m Create directory: /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/reports
+[0;35m[DRY-RUN][0m Moving audit report: rootkit_audit_20250922_135212.log
+  From: rootkit_audit_20250922_135212.log
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/reports/rootkit_audit_20250922_135212.log
+[0;35m[DRY-RUN][0m Moving audit report: security_report_20250922_135521.txt
+  From: security_report_20250922_135521.txt
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/reports/security_report_20250922_135521.txt
+[0;35m[DRY-RUN][0m Moving audit report: intune_cleanup_summary_20250909_161944.txt
+  From: intune_cleanup_summary_20250909_161944.txt
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/reports/intune_cleanup_summary_20250909_161944.txt
+[0;35m[DRY-RUN][0m Moving audit report: keychain_summary_20250909_161708.txt
+  From: keychain_summary_20250909_161708.txt
+  To:   /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/reports/keychain_summary_20250909_161708.txt
+[0;34m▶[0m  Migrating deployment and utility scripts...
+[0;35m[DRY-RUN][0m Moving setup script: setup-actual-networking.sh
+  From: setup-actual-networking.sh
+  To:   hack/setup-actual-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-aws-cost-check.sh
+  From: setup-aws-cost-check.sh
+  To:   hack/setup-aws-cost-check.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-aws-fido2-terminal.sh
+  From: setup-aws-fido2-terminal.sh
+  To:   hack/setup-aws-fido2-terminal.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-aws-fido2.sh
+  From: setup-aws-fido2.sh
+  To:   hack/setup-aws-fido2.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-aws-nix-fido2.sh
+  From: setup-aws-nix-fido2.sh
+  To:   hack/setup-aws-nix-fido2.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-backend.sh
+  From: setup-backend.sh
+  To:   hack/setup-backend.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-cilium-veth-networking.sh
+  From: setup-cilium-veth-networking.sh
+  To:   hack/setup-cilium-veth-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-container-runtime.sh
+  From: setup-container-runtime.sh
+  To:   hack/setup-container-runtime.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-cross-cloud-networking.sh
+  From: setup-cross-cloud-networking.sh
+  To:   hack/setup-cross-cloud-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-dynamic-inventory.sh
+  From: setup-dynamic-inventory.sh
+  To:   hack/setup-dynamic-inventory.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-iacrunner-security-admin.sh
+  From: setup-iacrunner-security-admin.sh
+  To:   hack/setup-iacrunner-security-admin.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-macos-networking.sh
+  From: setup-macos-networking.sh
+  To:   hack/setup-macos-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-multi-account.sh
+  From: setup-multi-account.sh
+  To:   hack/setup-multi-account.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-pipenv.sh
+  From: setup-pipenv.sh
+  To:   hack/setup-pipenv.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-provider-networking.sh
+  From: setup-provider-networking.sh
+  To:   hack/setup-provider-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-proxy-networking.sh
+  From: setup-proxy-networking.sh
+  To:   hack/setup-proxy-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-simple-networking.sh
+  From: setup-simple-networking.sh
+  To:   hack/setup-simple-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-simple-proxy.sh
+  From: setup-simple-proxy.sh
+  To:   hack/setup-simple-proxy.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-ssh-keys.sh
+  From: setup-ssh-keys.sh
+  To:   hack/setup-ssh-keys.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-volume-networking.sh
+  From: setup-volume-networking.sh
+  To:   hack/setup-volume-networking.sh
+[0;35m[DRY-RUN][0m Moving setup script: setup-workspaces.sh
+  From: setup-workspaces.sh
+  To:   hack/setup-workspaces.sh
+[0;35m[DRY-RUN][0m Moving setup script: configure-eks.sh
+  From: configure-eks.sh
+  To:   hack/configure-eks.sh
+[0;35m[DRY-RUN][0m Moving setup script: workspace-setup.sh
+  From: workspace-setup.sh
+  To:   hack/workspace-setup.sh
+[0;35m[DRY-RUN][0m Moving setup script: switch-environment.sh
+  From: switch-environment.sh
+  To:   hack/switch-environment.sh
+[0;35m[DRY-RUN][0m Moving nix-complete-setup.sh to hack/nix-complete-setup.sh
+  From: nix-complete-setup.sh
+  To:   hack/nix-complete-setup.sh
+[0;35m[DRY-RUN][0m Moving nix-multi-volume-setup.sh to hack/nix-multi-volume-setup.sh
+  From: nix-multi-volume-setup.sh
+  To:   hack/nix-multi-volume-setup.sh
+[0;35m[DRY-RUN][0m Moving user_data.sh to infrastructure/terraform/templates/user_data.sh
+  From: user_data.sh
+  To:   infrastructure/terraform/templates/user_data.sh
+[0;35m[DRY-RUN][0m Moving cloudinit_script.sh to infrastructure/terraform/templates/cloudinit_script.sh
+  From: cloudinit_script.sh
+  To:   infrastructure/terraform/templates/cloudinit_script.sh
+[0;35m[DRY-RUN][0m Moving cloudinit.yml to infrastructure/terraform/templates/cloudinit.yml
+  From: cloudinit.yml
+  To:   infrastructure/terraform/templates/cloudinit.yml
+[0;35m[DRY-RUN][0m Moving generate-yubikey-certs-simple.sh to hack/generate-yubikey-certs-simple.sh
+  From: generate-yubikey-certs-simple.sh
+  To:   hack/generate-yubikey-certs-simple.sh
+[0;35m[DRY-RUN][0m Moving generate-yubikey-piv-certs.sh to hack/generate-yubikey-piv-certs.sh
+  From: generate-yubikey-piv-certs.sh
+  To:   hack/generate-yubikey-piv-certs.sh
+[0;35m[DRY-RUN][0m Moving manage-aws-users.sh to hack/manage-aws-users.sh
+  From: manage-aws-users.sh
+  To:   hack/manage-aws-users.sh
+[0;35m[DRY-RUN][0m Moving status.sh to hack/status.sh
+  From: status.sh
+  To:   hack/status.sh
+[0;34m▶[0m  Migrating CI/CD configurations...
+[0;36mℹ️[0m  Would archive: crossplane/ci-cd/github-actions → scripts/archived/old-workflows
+[0;35m[DRY-RUN][0m Moving Prow configuration to platform
+  From: crossplane/ci-cd/prow
+  To:   platform/prow
+[0;35m[DRY-RUN][0m Moving CI/CD script: analyze-devnull-security.sh
+  From: crossplane/ci-cd/scripts/analyze-devnull-security.sh
+  To:   hack/analyze-devnull-security.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: analyze-suspicious-processes.sh
+  From: crossplane/ci-cd/scripts/analyze-suspicious-processes.sh
+  To:   hack/analyze-suspicious-processes.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: audit-disks-network.sh
+  From: crossplane/ci-cd/scripts/audit-disks-network.sh
+  To:   hack/audit-disks-network.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: audit-kernel-extensions.sh
+  From: crossplane/ci-cd/scripts/audit-kernel-extensions.sh
+  To:   hack/audit-kernel-extensions.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: audit-smb-versions.sh
+  From: crossplane/ci-cd/scripts/audit-smb-versions.sh
+  To:   hack/audit-smb-versions.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: check-api-compatibility.sh
+  From: crossplane/ci-cd/scripts/check-api-compatibility.sh
+  To:   hack/check-api-compatibility.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: check-aws-permissions.sh
+  From: crossplane/ci-cd/scripts/check-aws-permissions.sh
+  To:   hack/check-aws-permissions.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: cleanup-eu-north-1-resources.sh
+  From: crossplane/ci-cd/scripts/cleanup-eu-north-1-resources.sh
+  To:   hack/cleanup-eu-north-1-resources.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: cloudformation-forensics-backup.sh
+  From: crossplane/ci-cd/scripts/cloudformation-forensics-backup.sh
+  To:   hack/cloudformation-forensics-backup.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: compile-selinux-policies.sh
+  From: crossplane/ci-cd/scripts/compile-selinux-policies.sh
+  To:   hack/compile-selinux-policies.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: comprehensive-resource-audit.sh
+  From: crossplane/ci-cd/scripts/comprehensive-resource-audit.sh
+  To:   hack/comprehensive-resource-audit.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: critical-security-response.sh
+  From: crossplane/ci-cd/scripts/critical-security-response.sh
+  To:   hack/critical-security-response.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: deploy-ec2-only.sh
+  From: crossplane/ci-cd/scripts/deploy-ec2-only.sh
+  To:   hack/deploy-ec2-only.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: deploy-existing-vpc.sh
+  From: crossplane/ci-cd/scripts/deploy-existing-vpc.sh
+  To:   hack/deploy-existing-vpc.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: deploy-istio-ambient-rds.sh
+  From: crossplane/ci-cd/scripts/deploy-istio-ambient-rds.sh
+  To:   hack/deploy-istio-ambient-rds.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: ebpf-metadata-blocker.c
+  From: crossplane/ci-cd/scripts/ebpf-metadata-blocker.c
+  To:   hack/ebpf-metadata-blocker.c
+[0;35m[DRY-RUN][0m Moving CI/CD script: ec2-only-audit.sh
+  From: crossplane/ci-cd/scripts/ec2-only-audit.sh
+  To:   hack/ec2-only-audit.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: emergency-box-malware-response.sh
+  From: crossplane/ci-cd/scripts/emergency-box-malware-response.sh
+  To:   hack/emergency-box-malware-response.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: emergency-mitigation-io-error.sh
+  From: crossplane/ci-cd/scripts/emergency-mitigation-io-error.sh
+  To:   hack/emergency-mitigation-io-error.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: emergency-mitigation.sh
+  From: crossplane/ci-cd/scripts/emergency-mitigation.sh
+  To:   hack/emergency-mitigation.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: enforce-imdsv2.sh
+  From: crossplane/ci-cd/scripts/enforce-imdsv2.sh
+  To:   hack/enforce-imdsv2.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: fix-kustomize-deprecations.sh
+  From: crossplane/ci-cd/scripts/fix-kustomize-deprecations.sh
+  To:   hack/fix-kustomize-deprecations.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: imdsv2-helper.sh
+  From: crossplane/ci-cd/scripts/imdsv2-helper.sh
+  To:   hack/imdsv2-helper.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: imdsv2-local.sh
+  From: crossplane/ci-cd/scripts/imdsv2-local.sh
+  To:   hack/imdsv2-local.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: imdsv2-security.sh
+  From: crossplane/ci-cd/scripts/imdsv2-security.sh
+  To:   hack/imdsv2-security.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: install-aws-iam-authenticator.sh
+  From: crossplane/ci-cd/scripts/install-aws-iam-authenticator.sh
+  To:   hack/install-aws-iam-authenticator.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: install-nix-secure.sh
+  From: crossplane/ci-cd/scripts/install-nix-secure.sh
+  To:   hack/install-nix-secure.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: mac-security-hardening.sh
+  From: crossplane/ci-cd/scripts/mac-security-hardening.sh
+  To:   hack/mac-security-hardening.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: no-sudo-security-check.sh
+  From: crossplane/ci-cd/scripts/no-sudo-security-check.sh
+  To:   hack/no-sudo-security-check.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: secure-dbus-setup.sh
+  From: crossplane/ci-cd/scripts/secure-dbus-setup.sh
+  To:   hack/secure-dbus-setup.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: secure-macos-k8s.sh
+  From: crossplane/ci-cd/scripts/secure-macos-k8s.sh
+  To:   hack/secure-macos-k8s.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: security-automation.sh
+  From: crossplane/ci-cd/scripts/security-automation.sh
+  To:   hack/security-automation.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: security-incident-analysis.sh
+  From: crossplane/ci-cd/scripts/security-incident-analysis.sh
+  To:   hack/security-incident-analysis.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: setup-aws.sh
+  From: crossplane/ci-cd/scripts/setup-aws.sh
+  To:   hack/setup-aws.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: setup-k8s-seccomp-profiles.sh
+  From: crossplane/ci-cd/scripts/setup-k8s-seccomp-profiles.sh
+  To:   hack/setup-k8s-seccomp-profiles.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: setup-ssm-parameters.sh
+  From: crossplane/ci-cd/scripts/setup-ssm-parameters.sh
+  To:   hack/setup-ssm-parameters.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: setup-vault-ssm-parameters.sh
+  From: crossplane/ci-cd/scripts/setup-vault-ssm-parameters.sh
+  To:   hack/setup-vault-ssm-parameters.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: simple-macos-k8s-security.sh
+  From: crossplane/ci-cd/scripts/simple-macos-k8s-security.sh
+  To:   hack/simple-macos-k8s-security.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: ssh-helper.sh
+  From: crossplane/ci-cd/scripts/ssh-helper.sh
+  To:   hack/ssh-helper.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: test-vault-operator.sh
+  From: crossplane/ci-cd/scripts/test-vault-operator.sh
+  To:   hack/test-vault-operator.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: trigger-security-remediation.sh
+  From: crossplane/ci-cd/scripts/trigger-security-remediation.sh
+  To:   hack/trigger-security-remediation.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: update-terraform-vars.sh
+  From: crossplane/ci-cd/scripts/update-terraform-vars.sh
+  To:   hack/update-terraform-vars.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: usb-c-troubleshoot.sh
+  From: crossplane/ci-cd/scripts/usb-c-troubleshoot.sh
+  To:   hack/usb-c-troubleshoot.sh
+[0;35m[DRY-RUN][0m Moving CI/CD script: yubikey-assume-role.sh
+  From: crossplane/ci-cd/scripts/yubikey-assume-role.sh
+  To:   hack/yubikey-assume-role.sh
+[0;34m▶[0m  Cleaning up empty directories...
+[0;36mℹ️[0m  Would clean up empty directories
+[0;34m▶[0m  Updating file references...
+[0;36mℹ️[0m  Would update references in:
+[0;36mℹ️[0m    - Terraform files (provider paths)
+[0;36mℹ️[0m    - GitHub workflows (script paths)
+[0;36mℹ️[0m    - Documentation (cross-references)
+
+[0;36m═══════════════════════════════════════════════════════════[0m
+[0;36m                  DRY RUN COMPLETE                         [0m
+[0;36m═══════════════════════════════════════════════════════════[0m
+
+[1;33mNo changes were made. Review the migration plan above.[0m
+[1;33mRun without --dry-run to execute the migration.[0m
+
+# Migration Report: Terraforming Again Refactor
+
+**Date**: $(date)
+**Mode**: $([ "$DRY_RUN" = true ] && echo "DRY RUN" || echo "EXECUTED")
+
+## Migration Summary
+
+### Structure Changes
+
+#### New Directory Layout
+```
+terraforming_again/
+├── applications/       # Application code
+├── infrastructure/     # IaC (Terraform, Ansible, Crossplane)
+├── platform/          # Platform services (CAPI, operators)
+├── environments/      # Environment configs
+├── .github/           # CI/CD
+├── hack/              # Developer scripts
+├── docs/              # Documentation
+└── scripts/archived/  # Old scripts
+```
+
+### File Movements
+
+#### Applications
+- crossplane/applications/go-mysql-api → applications/go-mysql-api
+
+#### Terraform Infrastructure
+
+- dhcp-private-fqdn.tf → infrastructure/terraform/dhcp-private-fqdn.tf
+
+- ecr.tf → infrastructure/terraform/ecr.tf
+
+- kubernetes-cluster.tf → infrastructure/terraform/kubernetes-cluster.tf
+
+- kubernetes-control-plane.tf → infrastructure/terraform/kubernetes-control-plane.tf
+
+- load-balancer-route53.tf → infrastructure/terraform/load-balancer-route53.tf
+
+- main-ec2-only.tf → infrastructure/terraform/main-ec2-only.tf
+
+- main.tf → infrastructure/terraform/main.tf
+
+- outputs.tf → infrastructure/terraform/outputs.tf
+
+- provider-aws.tf → infrastructure/terraform/providers/provider-aws.tf
+
+- provider-azure.tf → infrastructure/terraform/providers/provider-azure.tf
+
+- provider-gcp.tf → infrastructure/terraform/providers/provider-gcp.tf
+
+- provider-ibm.tf → infrastructure/terraform/providers/provider-ibm.tf
+
+- provider-local.tf → infrastructure/terraform/providers/provider-local.tf
+
+- provider-utility.tf → infrastructure/terraform/providers/provider-utility.tf
+
+- providers.tf → infrastructure/terraform/providers/providers.tf
+
+- rds.tf → infrastructure/terraform/rds.tf
+
+- variables.tf → infrastructure/terraform/variables.tf
+
+
+#### Ansible Configuration
+
+- crossplane/compositions/infrastructure/ansible → infrastructure/ansible
+
+
+#### Crossplane Compositions
+
+
+#### Platform Services (CAPI & Operators)
+
+- capi/ → platform/cluster-api/
+- deploy-capi*.sh → platform/cluster-api/
+- cloud_init_and_k8s/ → platform/cluster-api/bootstrap/
+
+
+#### Environment Configurations
+
+- Environment configs will be created in environments/{dev,test,prod}/
+
+
+#### Documentation
+
+- Architecture docs → docs/architecture/
+- Security docs → docs/security/
+- Setup guides → docs/guides/
+- Development docs → docs/development/
+
+
+#### Kubernetes Manifests
+
+- kubernetes/ → infrastructure/kubernetes/manifests/
+
+
+#### Unrelated Scripts (Moving to sec_scripts repo)
+
+
+#### Crossplane
+
+- crossplane/compositions → infrastructure/crossplane/compositions/
+- Device scripts → /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts/
+
+
+#### Deployment Scripts
+
+- setup-*.sh → hack/
+- CloudInit templates → infrastructure/terraform/templates/
+- Utility scripts → hack/
+
+
+#### CI/CD Workflows
+
+- crossplane/ci-cd/github-actions/ → scripts/archived/ (duplicates removed)
+- crossplane/ci-cd/prow/ → platform/prow/
+- crossplane/ci-cd/scripts/ → hack/
+
+
+#### Reference Updates Needed
+
+
+## Post-Migration Tasks
+
+### Required Manual Updates
+
+1. **Terraform Backend**: Update backend configuration in infrastructure/terraform/
+2. **GitHub Secrets**: Verify all secrets are still accessible
+3. **CI/CD Paths**: Test all workflow paths
+4. **Documentation**: Update any hardcoded paths in docs
+
+### Testing Checklist
+
+- [ ] Terraform init/plan works in infrastructure/terraform/
+- [ ] Ansible playbooks run from infrastructure/ansible/
+- [ ] Go app builds from applications/go-mysql-api/
+- [ ] GitHub workflows execute successfully
+- [ ] CAPI configs apply from platform/cluster-api/
+- [ ] All documentation links work
+
+### Verification Commands
+
+```bash
+# Test Terraform
+cd infrastructure/terraform
+terraform init
+terraform validate
+
+# Test Ansible
+cd infrastructure/ansible
+ansible-playbook --syntax-check playbooks/site.yml
+
+# Test Go application
+cd applications/go-mysql-api
+go build -v ./cmd
+
+# Test Nix environment
+nix develop --command go version
+```
+
+## File Statistics
+
+**Moved**: N/A (dry run)
+**Archived**: Device management scripts → /Users/usualsuspectx/Development/go/src/github.com/blind3dd/sec_scripts
+**Consolidated**: Multiple Terraform and workflow locations
+
+---
+Generated: Mon Oct 27 20:08:36 CET 2025
+

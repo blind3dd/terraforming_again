@@ -1,0 +1,233 @@
+name: Infrastructure Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '*.tf'
+      - '*.tfvars'
+      - '.github/workflows/infrastructure.yml'
+      - 'templates/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '*.tf'
+      - '*.tfvars'
+      - '.github/workflows/infrastructure.yml'
+      - 'templates/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - staging
+          - production
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  TF_VERSION: "1.5.0"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event.inputs.action == 'plan'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Terraform Init
+      run: terraform init
+      
+    - name: Terraform Format Check
+      run: terraform fmt -check
+      
+    - name: Terraform Validate
+      run: terraform validate
+      
+    - name: Terraform Plan
+      run: terraform plan -out=tfplan
+      env:
+        TF_VAR_environment: ${{ github.event.inputs.environment || 'test' }}
+        TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        TF_VAR_route53_zone_id: ${{ secrets.ROUTE53_ZONE_ID }}
+        TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
+        
+    - name: Upload Terraform Plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-plan
+        path: tfplan
+        
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const output = `#### Terraform Plan 📋
+          *Workflow: \`${{ github.workflow }}\`*
+          
+          <details><summary>Show Plan</summary>
+          
+          \`\`\`\n
+          ${process.env.PLAN || 'No changes. Infrastructure is up-to-date.'}
+          \`\`\`
+          
+          </details>
+          
+          *Pusher: @${{ github.actor }}, Action: \`plan\`*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main' && github.event.inputs.action == 'apply'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Terraform Init
+      run: terraform init
+      
+    - name: Download Terraform Plan
+      uses: actions/download-artifact@v4
+      with:
+        name: terraform-plan
+        
+    - name: Terraform Apply
+      run: terraform apply -auto-approve tfplan
+      env:
+        TF_VAR_environment: ${{ github.event.inputs.environment || 'test' }}
+        TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        TF_VAR_route53_zone_id: ${{ secrets.ROUTE53_ZONE_ID }}
+        TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
+        
+    - name: Get Terraform Outputs
+      run: |
+        echo "KUBERNETES_API_ENDPOINT=$(terraform output -raw kubernetes_api_endpoint)" >> $GITHUB_ENV
+        echo "KUBERNETES_CLUSTER_NAME=$(terraform output -raw kubernetes_cluster_name)" >> $GITHUB_ENV
+        echo "KUBERNETES_LOAD_BALANCER_DNS=$(terraform output -raw kubernetes_load_balancer_dns)" >> $GITHUB_ENV
+        
+    - name: Configure kubectl
+      run: |
+        # Get kubeconfig from control plane
+        CONTROL_PLANE_IP=$(aws ec2 describe-instances \
+          --filters "Name=tag:Role,Values=kubernetes-control-plane" \
+          --query 'Reservations[0].Instances[0].[PublicIpAddress]' \
+          --output text)
+        
+        mkdir -p ~/.kube
+        scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+          ec2-user@${CONTROL_PLANE_IP}:/home/ec2-user/.kube/config ~/.kube/config
+        
+    - name: Verify Kubernetes Cluster
+      run: |
+        kubectl get nodes
+        kubectl get pods --all-namespaces
+        
+    - name: Create GitHub Secret for ArgoCD
+      if: github.event.inputs.environment == 'production'
+      run: |
+        # Create kubeconfig secret for ArgoCD
+        kubectl create secret generic argocd-repo-credentials \
+          --from-literal=username=${{ secrets.GITHUB_TOKEN }} \
+          --from-literal=password=${{ secrets.GITHUB_TOKEN }} \
+          --namespace argocd \
+          --dry-run=client -o yaml | kubectl apply -f -
+          
+  build-and-push-image:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    if: github.ref == 'refs/heads/main' && github.event.inputs.action == 'apply'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: go-mysql-api
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd go-mysql-api
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        
+    - name: Update Helm values
+      run: |
+        # Update image tag in Helm values
+        sed -i "s|tag: \".*\"|tag: \"${{ github.sha }}\"|g" go-mysql-api/chart/values.yaml
+        sed -i "s|repository: \".*\"|repository: \"${{ steps.login-ecr.outputs.registry }}/go-mysql-api\"|g" go-mysql-api/chart/values.yaml
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add go-mysql-api/chart/values.yaml
+        git commit -m "Update image tag to ${{ github.sha }}" || exit 0
+        git push
