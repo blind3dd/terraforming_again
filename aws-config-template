@@ -1,0 +1,30 @@
+[default]
+region = us-east-1
+output = json
+
+# Development Account (AssumeRole) - CLI Access
+[profile dev]
+region = us-east-1
+output = json
+role_arn = arn:aws:iam::690248313240:role/iacrole
+source_profile = default
+mfa_serial = arn:aws:iam::690248313240:mfa/iacrunner
+duration_seconds = 3600
+
+# Development Account (AssumeRole) - Console Access (FIDO2)
+[profile dev-console]
+region = us-east-1
+output = json
+role_arn = arn:aws:iam::690248313240:role/iacrole
+source_profile = default
+mfa_serial = arn:aws:iam::690248313240:u2f/user/iacrunner/fido-key-3MPFODX5WZH27BLUTGSB22VEZE
+duration_seconds = 3600
+
+# Production Account (AssumeRole)
+[profile prod]
+region = us-east-1
+output = json
+role_arn = arn:aws:iam::987654321098:role/TerraformProdRole
+source_profile = default
+mfa_serial = arn:aws:iam::123456789012:mfa/your-username
+duration_seconds = 3600

@@ -16,10 +16,10 @@
         "gopls": "${workspaceFolder}/.nix/bin/gopls",
         "gofmt": "${workspaceFolder}/.nix/bin/go"
     },
-    "go.gopath": "/Users/usualsuspectx/Development/go",
     "go.goroot": "",
+    "go.gopath": "${workspaceFolder}",
     "go.inferGopath": false,
-    "go.toolsGopath": "/Users/usualsuspectx/Development/go",
+    "go.toolsGopath": "${workspaceFolder}",
     "go.editorContextMenuCommands": {
         "removeTags": true,
         "generateTestForFile": true,
@@ -38,37 +38,59 @@
     "go.inlayHints.parameterNames": true,
     "go.inlayHints.rangeVariableTypes": true,
     "gopls": {
-        "ui.semanticTokens": true,
-        "ui.codelenses": {
-            "gc_details": false,
-            "generate": true,
-            "regenerate_cgo": true,
-            "tidy": true,
-            "upgrade_dependency": true,
-            "vendor": true,
-            "run_govulncheck": true,
-            "test": true
-        },
-        "ui.diagnostic.analyses": {
-            "fieldalignment": false,
-            "nilness": true,
+        "analyses": {
             "unusedparams": true,
-            "unusedwrite": true,
+            "shadow": true,
+            "fieldalignment": false,
+            "unusedresult": true,
             "useany": true
         },
-        "ui.completion.usePlaceholders": true,
-        "ui.navigation.importShortcut": "Both",
-        "formatting.gofumpt": false,
-        "formatting.local": "github.com/blind3dd/terraforming_again"
+        "staticcheck": true,
+        "gofumpt": true,
+        "usePlaceholders": true,
+        "completionBudget": "100ms",
+        "semanticTokens": true,
+        "experimentalPostfixCompletions": true,
+        "local": "",
+        "verboseOutput": false,
+        "hints": {
+            "assignVariableTypes": true,
+            "compositeLiteralFields": true,
+            "compositeLiteralTypes": true,
+            "constantValues": true,
+            "functionTypeParameters": true,
+            "parameterNames": true,
+            "rangeVariableTypes": true
+        },
+        "env": {
+            "GOROOT": "/nix/store/nkhf1yv637cp91y79zap7jxmm98v8pvj-go-1.25.2/share/go",
+            "GOPATH": "/Users/usualsuspectx/Development/go",
+            "GO111MODULE": "on"
+        }
     },
     "terraform.languageServer": {
         "enabled": true,
-        "args": [],
-        "path": "${workspaceFolder}/.nix/bin/terraform"
+        "args": [
+            "serve"
+        ],
+        "path": "terraform-ls"
     },
     "terraform.experimentalFeatures": {
         "validateOnSave": true,
         "prefillRequiredFields": true
+    },
+    "terraform.format": {
+        "enable": true,
+        "ignoreExtensionsOnSave": [
+            ".terraform.lock.hcl"
+        ]
+    },
+    "terraform.validation": {
+        "enable": true,
+        "lint": {
+            "enable": true,
+            "path": "tflint"
+        }
     },
     "ansible.ansible.path": "${workspaceFolder}/.nix/bin/ansible",
     "ansible.ansibleLint.enabled": true,
@@ -86,16 +108,24 @@
         "source.organizeImports": "explicit",
         "source.fixAll": "explicit"
     },
-    "editor.rulers": [80, 120],
+    "editor.rulers": [
+        80,
+        120
+    ],
     "files.associations": {
         "*.tf": "terraform",
         "*.tfvars": "terraform",
         "*.hcl": "terraform",
+        "*.tf.json": "terraform",
+        "*.tfstate": "terraform",
+        "*.tfstate.backup": "terraform",
         "*.yaml": "yaml",
         "*.yml": "yaml",
         "Dockerfile*": "dockerfile",
         "*.sh": "shellscript",
-        ".envrc": "shellscript"
+        ".envrc": "shellscript",
+        "terraform.rc": "terraform",
+        ".terraformrc": "terraform"
     },
     "files.exclude": {
         "**/.terraform": true,
@@ -130,12 +160,18 @@
     "git.enableSmartCommit": true,
     "terminal.integrated.shellIntegration.enabled": true,
     "terminal.integrated.env.osx": {
-        "PATH": "${env:PATH}:/nix/var/nix/profiles/default/bin:${workspaceFolder}/.nix/bin"
+        "PATH": "${workspaceFolder}/.nix/bin:/nix/var/nix/profiles/default/bin:${env:PATH}",
+        "NIX_PROFILES": "/nix/var/nix/profiles/default ${workspaceFolder}/.nix",
+        "GOROOT": "",
+        "GOPATH": "${workspaceFolder}",
+        "TERRAFORM_LS": "terraform-ls"
     },
     "terminal.integrated.profiles.osx": {
         "nix-zsh": {
             "path": "zsh",
-            "args": ["-l"]
+            "args": [
+                "-l"
+            ]
         }
     },
     "terminal.integrated.defaultProfile.osx": "nix-zsh",
@@ -152,7 +188,19 @@
     "[terraform]": {
         "editor.defaultFormatter": "hashicorp.terraform",
         "editor.formatOnSave": true,
-        "editor.tabSize": 2
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false,
+        "editor.suggest.insertMode": "replace",
+        "editor.wordWrap": "off",
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": true
+    },
+    "[hcl]": {
+        "editor.defaultFormatter": "hashicorp.terraform",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
     },
     "[go]": {
         "editor.formatOnSave": true,
@@ -171,4 +219,3 @@
         }
     }
 }
-

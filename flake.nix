@@ -67,6 +67,7 @@
           awscli2
           azure-cli
           google-cloud-sdk
+          aws-vault
         ];
 
         # Security and Authentication tools
@@ -81,7 +82,7 @@
           krb5
           libkrb5
           trivy
-          checkov
+          # checkov - removed due to sbcl build issues, use in CI/CD instead
           semgrep
         ];
 
@@ -91,6 +92,17 @@
           docker-compose
           dive
           skopeo
+        ];
+
+        # Python tools
+        pythonTools = with pkgs; [
+          python3
+          python3Packages.pip
+          python3Packages.setuptools
+          python3Packages.wheel
+          python3Packages.cryptography
+          python3Packages.boto3
+          python3Packages.botocore
         ];
 
         # Additional development tools
@@ -118,7 +130,7 @@
           name = "terraforming-again-dev";
 
           buildInputs = goTools ++ terraformTools ++ kubernetesTools ++ ansibleTools
-            ++ cloudTools ++ securityTools ++ containerTools ++ devTools;
+            ++ cloudTools ++ securityTools ++ containerTools ++ pythonTools ++ devTools;
 
           shellHook = ''
             echo "🚀 Entering Terraforming Again development environment"

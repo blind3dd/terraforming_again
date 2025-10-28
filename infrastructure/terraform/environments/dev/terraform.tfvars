@@ -1,15 +1,21 @@
 # AWS Configuration
 region = "us-east-1"
-environment = "test"
+environment = "dev"
 service_name = "go-mysql-api"
+project_name = "terraforming-again"
 
-# VPC Configuration
-main_vpc_cidr = "172.31.0.0/16"
-private_subnet_range_a = "172.31.16.0/20"
-private_subnet_range_b = "172.31.32.0/20"
-public_subnet_range = "172.31.48.0/20"
+# VPC Configuration (Private IP ranges like Azure)
+vpc_cidr = "172.16.0.0/16"
+public_subnet_cidrs = ["172.16.10.0/24", "172.16.11.0/24", "172.16.12.0/24"]
+private_subnet_cidrs = ["172.16.1.0/24", "172.16.2.0/24", "172.16.3.0/24"]
 
-# Existing VPC ID (use your existing VPC)
+# DHCP Options for Private FQDNs (like Azure)
+create_dhcp_options = true
+domain_name = "internal.coderedalarmtech.com"
+dhcp_domain_name_servers = ["AmazonProvidedDNS"]
+dhcp_ntp_servers = ["169.254.169.123"]
+
+# Existing VPC ID (use your existing VPC if needed)
 existing_vpc_id = "vpc-0d3809169f49c513a"
 existing_subnet_ids = ["subnet-000bc8b855976960c", "subnet-0050057a15b4d9842", "subnet-04cb4552dbf592d86", "subnet-0339e68281f11b772", "subnet-0d0d7a12505354fec", "subnet-0fdc39554271a86fa"]
 
@@ -35,8 +41,12 @@ key_bits_size = 4096
 infra_builder = "terraform"
 db_password_param = "/test/go-mysql-api/db/password"
 
-# AWS Credentials (you'll need to set these)
-aws_access_key_id = ""
-aws_secret_access_key = ""
-route53_zone_id = ""
-domain_name = "coderedalarmtech.com"
+# Tailscale Configuration
+tailscale_auth_key = ""  # Set this in your environment or SSM
+enable_tailscale = true
+
+# SSH Configuration
+ssh_public_key = ""  # Set this in your environment or SSM
+
+# Enable NAT Gateway for private subnets
+enable_nat_gateway = true
