@@ -22,7 +22,12 @@
         namespace: tigera-operator
         name: tigera-operator
       register: calico_operator
-      until: calico_operator.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+      until: >-
+        calico_operator.resources |
+        selectattr('status.conditions') |
+        selectattr('type', 'equalto', 'Available') |
+        map(attribute='status') |
+        first == 'True'
       retries: 30
       delay: 10
 
