@@ -11,6 +11,11 @@ env:
   TERRAFORM_VERSION: "1.6.0"
   ANSIBLE_VERSION: "7.0.0"
 
+# OIDC permissions for AWS federation
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   # Security: Code Quality and Linting
   security-scan:
@@ -143,11 +148,11 @@ jobs:
         echo "Running terraform validate..."
         terraform validate
     
-    - name: Configure AWS credentials
+    - name: Configure AWS credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-session-name: github-actions-${{ github.run_id }}
         aws-region: ${{ env.AWS_REGION || 'us-east-1' }}
 
     - name: Terraform Plan (Dry Run)
@@ -164,9 +169,7 @@ jobs:
           echo "Warning: terraform.tfvars not found, running plan without var file"
           terraform plan -out=tfplan
         fi
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      # Credentials provided by OIDC session above
 
   # Configuration: Ansible Validation
   ansible-validate:
