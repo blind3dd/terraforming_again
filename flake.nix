@@ -122,6 +122,9 @@
           nix-direnv
           watchman
           pre-commit
+          gnused      # GNU sed (gsed on macOS)
+          gawk        # GNU awk (gawk on macOS)
+          coreutils   # GNU coreutils (gdate, gls, etc. on macOS)
         ];
 
       in
@@ -239,6 +242,22 @@ EOF
                 }
                 echo "✅ OpenTofu available (terraform commands work)"
                 echo "   terraform → tofu (alias and function)"
+            fi
+
+            # Alias GNU tools for macOS compatibility
+            if command -v gsed >/dev/null 2>&1; then
+                alias sed='gsed'
+                echo "✅ GNU sed available (sed → gsed alias)"
+            fi
+            
+            if command -v gawk >/dev/null 2>&1; then
+                alias awk='gawk'
+                echo "✅ GNU awk available (awk → gawk alias)"
+            fi
+            
+            if command -v gdate >/dev/null 2>&1; then
+                alias date='gdate'
+                echo "✅ GNU date available (date → gdate alias)"
             fi
 
             # Setup AWS profile helper
