@@ -149,6 +149,18 @@ jobs:
         echo "Running terraform validate..."
         terraform validate
     
+    - name: Debug - Check secret availability
+      run: |
+        echo "Checking if AWS_ROLE_TO_ASSUME secret is available..."
+        if [ -z "${{ secrets.AWS_ROLE_TO_ASSUME }}" ]; then
+          echo "❌ AWS_ROLE_TO_ASSUME is EMPTY or NOT SET"
+        else
+          echo "✅ AWS_ROLE_TO_ASSUME is set"
+          echo "Value length: ${#AWS_ROLE_TO_ASSUME}"
+        fi
+      env:
+        AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+    
     - name: Configure AWS credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
       with:
