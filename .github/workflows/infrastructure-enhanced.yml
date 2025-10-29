@@ -140,7 +140,7 @@ jobs:
           exit 1
         fi
         echo "Checksum OK"
-        unzip -q "${TOFU_FILE}"
+        unzip -o -q "${TOFU_FILE}"  # -o to overwrite without prompting
         sudo mv tofu /usr/local/bin/
         sudo chmod +x /usr/local/bin/tofu
         sudo ln -sf /usr/local/bin/tofu /usr/local/bin/terraform
@@ -428,7 +428,7 @@ jobs:
           exit 1
         fi
         echo "Checksum OK"
-        unzip -q "${TOFU_FILE}"
+        unzip -o -q "${TOFU_FILE}"  # -o to overwrite without prompting
         sudo mv tofu /usr/local/bin/
         sudo chmod +x /usr/local/bin/tofu
         sudo ln -sf /usr/local/bin/tofu /usr/local/bin/terraform
