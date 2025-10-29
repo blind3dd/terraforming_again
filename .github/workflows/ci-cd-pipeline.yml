@@ -79,22 +79,82 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    - name: Setup OpenTofu
+      run: |
+        set -euo pipefail
+        sudo apt-get update && sudo apt-get install -y wget unzip coreutils curl
+        TOFU_VERSION="1.10.6"
+        TOFU_FILE="tofu_${TOFU_VERSION}_linux_amd64.zip"
+        TOFU_URL="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/${TOFU_FILE}"
+        echo "Downloading ${TOFU_FILE} ..."
+        wget -q "${TOFU_URL}"
+        echo "Verifying SHA256 checksum..."
+        SHA_URL_1="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_SHA256SUMS"
+        SHA_URL_2="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/SHA256SUMS"
+        SHA_URL_3="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/checksums.txt"
+        CHECKSUMS=$(curl -fsSL "${SHA_URL_1}" || curl -fsSL "${SHA_URL_2}" || curl -fsSL "${SHA_URL_3}")
+        if [ -z "${CHECKSUMS}" ]; then
+          echo "Failed to download checksum list for OpenTofu v${TOFU_VERSION}" >&2
+          exit 1
+        fi
+        EXPECTED_SHA=$(echo "${CHECKSUMS}" | grep "${TOFU_FILE}$" | awk '{print $1}')
+        if [ -z "${EXPECTED_SHA}" ]; then
+          echo "Failed to find expected SHA for ${TOFU_FILE}" >&2
+          exit 1
+        fi
+        ACTUAL_SHA=$(sha256sum "${TOFU_FILE}" | awk '{print $1}')
+        if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
+          echo "SHA256 mismatch for ${TOFU_FILE}" >&2
+          echo "Expected: ${EXPECTED_SHA}" >&2
+          echo "Actual:   ${ACTUAL_SHA}" >&2
+          exit 1
+        fi
+        echo "Checksum OK"
+        unzip -q "${TOFU_FILE}"
+        sudo mv tofu /usr/local/bin/
+        sudo chmod +x /usr/local/bin/tofu
+        sudo ln -sf /usr/local/bin/tofu /usr/local/bin/terraform
+        terraform version
     
     - name: Terraform Format Check
       run: terraform fmt -check -recursive
     
     - name: Terraform Init
-      run: terraform init -backend=false
+      working-directory: infrastructure/terraform/environments/test
+      run: |
+        set -e
+        echo "Initializing Terraform providers..."
+        terraform init -backend=false -input=false -get=true -get-plugins=true
+        echo "Terraform init completed"
+        if [ ! -d ".terraform/providers" ]; then
+          echo "ERROR: .terraform/providers directory not found after init!"
+          exit 1
+        fi
     
     - name: Terraform Validate
-      run: terraform validate
+      working-directory: infrastructure/terraform/environments/test
+      run: |
+        set -e
+        # Ensure providers are initialized - reinit if needed
+        if [ ! -d ".terraform/providers" ] || [ -z "$(ls -A .terraform/providers 2>/dev/null)" ]; then
+          echo "Providers not found, reinitializing..."
+          terraform init -backend=false -input=false -get=true -get-plugins=true
+        fi
+        echo "Running terraform validate..."
+        terraform validate
     
     - name: Terraform Plan (Dry Run)
-      run: terraform plan -var-file="terraform.tfvars.example" -out=tfplan
+      working-directory: infrastructure/terraform/environments/test
+      run: |
+        set -e
+        terraform init -backend=false -input=false
+        terraform workspace select test || terraform workspace new test
+        if [ -f "terraform.tfvars" ]; then
+          terraform plan -var-file="terraform.tfvars" -out=tfplan
+        else
+          echo "Warning: terraform.tfvars not found, running plan without var file"
+          terraform plan -out=tfplan
+        fi
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
