@@ -2,9 +2,9 @@ name: Secure CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, working_branch ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, working_branch ]
 
 env:
   AWS_REGION: us-east-1
