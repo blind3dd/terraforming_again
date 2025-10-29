@@ -23,7 +23,7 @@
     msg: "Istio CLI version: {{ istioctl_version.stdout }}"
 
 - name: Create istio-system namespace
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     name: istio-system
     api_version: v1
     kind: Namespace
@@ -33,7 +33,7 @@
       istio-injection: enabled
 
 - name: Install Istio using istioctl
-  ansible.builtin.shell: |
+    ansible.builtin.shell: |
     istioctl install --set values.pilot.env.PILOT_ENABLE_OUTBOUND_POLICY=true \
       --set values.global.outboundPolicy.defaultPolicy=DENY \
       --set values.global.meshConfig.outboundPolicy.defaultPolicy=DENY \
@@ -53,49 +53,49 @@
     notify: restart istio services
 
 - name: Deploy Istio Ambient Configuration
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-ambient-config.yml.j2"
     when: deploy_istio_ambient | default(true)
 
 - name: Deploy Istio Gateway
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-gateway.yml.j2"
     when: enable_istio_ingress | default(true)
 
 - name: Deploy Istio Egress Gateway
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-egress.yml.j2"
     when: enable_istio_egress | default(true)
 
 - name: Deploy Istio Destination Rules
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-destination-rules.yml.j2"
     when: deploy_istio_ambient | default(true)
 
 - name: Deploy Istio Virtual Services
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-virtual-services.yml.j2"
     when: deploy_istio_ambient | default(true)
 
 - name: Deploy Istio Authorization Policies
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-auth-policies.yml.j2"
     when: enable_network_policies | default(true)
 
 - name: Deploy Istio Peer Authentication
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-peer-auth.yml.j2"
     when: enable_mtls | default(true)
 
 - name: Wait for Istio deployments to be ready
-  kubernetes.core.k8s_info:
+    kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
     namespace: istio-system
@@ -109,12 +109,12 @@
     when: deploy_istio_ambient | default(true)
 
 - name: Verify Istio installation
-  ansible.builtin.shell: istioctl verify-install
+    ansible.builtin.shell: istioctl verify-install
   register: istio_verify
   failed_when: istio_verify.rc != 0
   when: deploy_istio_ambient | default(true)
 
 - name: Display Istio verification results
-  ansible.builtin.debug:
+    ansible.builtin.debug:
     msg: "{{ istio_verify.stdout_lines }}"
     when: deploy_istio_ambient | default(true)

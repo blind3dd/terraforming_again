@@ -60,7 +60,7 @@
           kubernetes.core.k8s_info:
             api_version: v1
             kind: Node
-          register: k8s_connectivity
+  register: k8s_connectivity
           failed_when: k8s_connectivity.resources | length == 0
           changed_when: false
 
@@ -101,7 +101,7 @@
               --with-decryption \
               --query 'Parameter.Value' \
               --output text
-          register: vault_token_check
+  register: vault_token_check
           failed_when: vault_token_check.rc != 0
           changed_when: false
 
@@ -113,7 +113,7 @@
               --with-decryption \
               --query 'Parameter.Value' \
               --output text
-          register: ansible_vault_password_check
+  register: ansible_vault_password_check
           failed_when: ansible_vault_password_check.rc != 0
           changed_when: false
 
@@ -208,7 +208,7 @@
             kind: Deployment
             namespace: "{{ vault_operator_namespace }}"
             name: "{{ helm_release_name }}"
-          register: vault_operator_deployment
+  register: vault_operator_deployment
           until: vault_operator_deployment.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
           retries: 30
           delay: 10
@@ -258,7 +258,7 @@
             namespace: "{{ vault_operator_namespace }}"
             label_selectors:
               - "app.kubernetes.io/name=vault-operator"
-          register: vault_operator_pods
+  register: vault_operator_pods
 
         - name: Display Vault operator pod status
           ansible.builtin.debug:
@@ -272,7 +272,7 @@
               deployment/{{ helm_release_name }} \
               -- curl -s -o /dev/null -w "%{http_code}" \
               "{{ vault_address }}/v1/sys/health"
-          register: vault_connectivity_test
+  register: vault_connectivity_test
           failed_when: vault_connectivity_test.rc != 0
           changed_when: false
 

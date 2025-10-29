@@ -247,14 +247,14 @@
             kind: ConfigMap
             name: impersonation-filter-config
             namespace: kube-system
-          register: impersonation_filter_check
+  register: impersonation_filter_check
 
         - name: Check Pod Security Standards
           k8s_info:
             api_version: v1
             kind: Namespace
             name: "{{ namespace }}"
-          register: namespace_check
+  register: namespace_check
 
         - name: Check Network Policies
           k8s_info:
@@ -262,14 +262,14 @@
             kind: NetworkPolicy
             name: default-deny-all
             namespace: default
-          register: network_policy_check
+  register: network_policy_check
 
         - name: Check RBAC
           k8s_info:
             api_version: rbac.authorization.k8s.io/v1
             kind: ClusterRole
             name: macos-restricted-user
-          register: rbac_check
+  register: rbac_check
 
     - name: Display completion message
       ansible.builtin.debug:

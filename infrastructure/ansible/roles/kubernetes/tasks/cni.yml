@@ -21,7 +21,7 @@
         kind: Deployment
         namespace: tigera-operator
         name: tigera-operator
-      register: calico_operator
+  register: calico_operator
       until: >-
         calico_operator.resources |
         selectattr('status.conditions') |
@@ -117,7 +117,7 @@
         namespace: "{{ item.namespace }}"
         label_selectors:
           - "{{ item.label }}"
-      register: cni_pods
+  register: cni_pods
       loop:
         - { namespace: "calico-system", label: "k8s-app=calico-node" }
         - { namespace: "kube-flannel", label: "app=flannel" }

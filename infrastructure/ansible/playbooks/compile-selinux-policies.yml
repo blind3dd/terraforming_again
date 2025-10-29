@@ -43,7 +43,7 @@
           find:
             paths: "{{ selinux_policies_dir }}"
             patterns: "*.te"
-          register: te_files
+  register: te_files
 
         - name: Compile each SELinux policy
           block:
