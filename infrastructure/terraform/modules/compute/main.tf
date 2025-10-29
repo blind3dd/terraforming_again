@@ -32,7 +32,7 @@ resource "aws_instance" "main" {
 
   ami                    = var.instance_ami
   instance_type          = var.instance_type
-  key_name              = aws_key_pair.main.key_name
+  key_name               = aws_key_pair.main.key_name
   vpc_security_group_ids = [var.web_security_group_id]
   subnet_id              = var.private_subnet_ids[count.index]
   private_ip             = cidrhost(var.private_subnet_cidrs[count.index], 10)
@@ -46,7 +46,7 @@ resource "aws_instance" "main" {
   }
 
   metadata_options {
-    http_tokens                 = "required"  # IMDSv2 required
+    http_tokens                 = "required" # IMDSv2 required
     http_endpoint               = "enabled"
     http_put_response_hop_limit = 1
     instance_metadata_tags      = "enabled"
@@ -62,7 +62,7 @@ resource "aws_instance" "main" {
 resource "aws_eip" "main" {
   count = var.associate_public_ip_address ? length(aws_instance.main) : 0
 
-  domain = "vpc"
+  domain   = "vpc"
   instance = aws_instance.main[count.index].id
 
   tags = merge(var.common_tags, {

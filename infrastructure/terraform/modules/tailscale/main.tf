@@ -12,14 +12,14 @@ terraform {
 
 # Tailscale subnet router for AWS VPC
 resource "aws_instance" "tailscale_subnet_router" {
-  ami                    = "ami-0c02fb55956c7d316"  # Amazon Linux 2023
+  ami                    = "ami-0c02fb55956c7d316" # Amazon Linux 2023
   instance_type          = "t3.micro"
-  key_name              = "${var.name_prefix}-key"
+  key_name               = "${var.name_prefix}-key"
   vpc_security_group_ids = [aws_security_group.tailscale.id]
   subnet_id              = var.private_subnet_ids[0]
   private_ip             = cidrhost(var.private_subnet_cidrs[0], 10)
 
-  associate_public_ip_address = false  # Private subnet only
+  associate_public_ip_address = false # Private subnet only
 
   user_data = base64encode(templatefile("${path.module}/../../templates/tailscale-subnet-router.yml", {
     tailscale_auth_key = var.tailscale_auth_key
@@ -28,7 +28,7 @@ resource "aws_instance" "tailscale_subnet_router" {
       join(",", var.public_subnet_cidrs),
       join(",", var.private_subnet_cidrs)
     ])
-    environment = var.environment
+    environment  = var.environment
     service_name = var.service_name
   }))
 
@@ -39,17 +39,17 @@ resource "aws_instance" "tailscale_subnet_router" {
   }
 
   metadata_options {
-    http_tokens                 = "required"  # IMDSv2 required
+    http_tokens                 = "required" # IMDSv2 required
     http_endpoint               = "enabled"
     http_put_response_hop_limit = 1
     instance_metadata_tags      = "enabled"
   }
 
   tags = merge(var.common_tags, {
-    Name        = "${var.name_prefix}-tailscale-router"
-    Role        = "tailscale-subnet-router"
-    Purpose     = "Hybrid Cloud Networking"
-    Security    = "high"
+    Name     = "${var.name_prefix}-tailscale-router"
+    Role     = "tailscale-subnet-router"
+    Purpose  = "Hybrid Cloud Networking"
+    Security = "high"
   })
 }
 
@@ -64,7 +64,7 @@ resource "aws_security_group" "tailscale" {
     from_port   = 41641
     to_port     = 41641
     protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]  # Tailscale manages this
+    cidr_blocks = ["0.0.0.0/0"] # Tailscale manages this
   }
 
   # SSH access from Tailscale network
@@ -73,7 +73,7 @@ resource "aws_security_group" "tailscale" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["100.64.0.0/10"]  # Tailscale network range
+    cidr_blocks = ["100.64.0.0/10"] # Tailscale network range
   }
 
   # All outbound traffic
@@ -91,8 +91,8 @@ resource "aws_security_group" "tailscale" {
 
 # Tailscale ACL configuration
 resource "aws_ssm_parameter" "tailscale_acl" {
-  name  = "/${var.name_prefix}/tailscale/acl"
-  type  = "String"
+  name = "/${var.name_prefix}/tailscale/acl"
+  type = "String"
   value = jsonencode({
     "acls" = [
       {
@@ -111,7 +111,7 @@ resource "aws_ssm_parameter" "tailscale_acl" {
       "admins"     = ["blind3dd@gmail.com"]
     },
     "hosts" = {
-      "azure-jumphost" = "100.64.0.1"
+      "azure-jumphost"    = "100.64.0.1"
       "aws-subnet-router" = "100.64.0.2"
     },
     "subnet_routes" = {

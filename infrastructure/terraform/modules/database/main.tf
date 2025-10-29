@@ -71,7 +71,7 @@ resource "aws_db_instance" "main" {
   instance_class = var.db_instance_class
 
   allocated_storage     = 20
-  max_allocated_storage  = 100
+  max_allocated_storage = 100
   storage_type          = "gp2"
   storage_encrypted     = true
 
@@ -84,12 +84,12 @@ resource "aws_db_instance" "main" {
   parameter_group_name   = aws_db_parameter_group.main.name
 
   backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
 
-  multi_az               = false
-  monitoring_interval    = 0
-  monitoring_role_arn   = null
+  multi_az            = false
+  monitoring_interval = 0
+  monitoring_role_arn = null
 
   deletion_protection = false
   skip_final_snapshot = true

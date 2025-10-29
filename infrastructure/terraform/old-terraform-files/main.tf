@@ -3,7 +3,7 @@
 
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -57,7 +57,7 @@ locals {
     ManagedBy   = "terraform"
     Repository  = "terraforming_again"
   }
-  
+
   # Common naming convention
   name_prefix = "${var.project_name}-${var.environment}"
 }
@@ -73,7 +73,7 @@ resource "aws_ssm_parameter" "db_password" {
   name  = "/${local.name_prefix}/database/password"
   type  = "SecureString"
   value = random_password.db_password.result
-  
+
   tags = local.common_tags
 }
 
@@ -81,7 +81,7 @@ resource "aws_ssm_parameter" "db_password" {
 resource "aws_key_pair" "main" {
   key_name   = "${local.name_prefix}-key"
   public_key = var.ssh_public_key
-  
+
   tags = local.common_tags
 }
 
@@ -90,7 +90,7 @@ resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-vpc"
   })
@@ -99,7 +99,7 @@ resource "aws_vpc" "main" {
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-igw"
   })
@@ -108,12 +108,12 @@ resource "aws_internet_gateway" "main" {
 # Public Subnets
 resource "aws_subnet" "public" {
   count = length(var.public_subnet_cidrs)
-  
+
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidrs[count.index]
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-public-subnet-${count.index + 1}"
     Type = "public"
@@ -123,11 +123,11 @@ resource "aws_subnet" "public" {
 # Private Subnets
 resource "aws_subnet" "private" {
   count = length(var.private_subnet_cidrs)
-  
+
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-private-subnet-${count.index + 1}"
     Type = "private"
@@ -137,12 +137,12 @@ resource "aws_subnet" "private" {
 # Route Table for Public Subnets
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
-  
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-public-rt"
   })
@@ -151,7 +151,7 @@ resource "aws_route_table" "public" {
 # Route Table Associations for Public Subnets
 resource "aws_route_table_association" "public" {
   count = length(aws_subnet.public)
-  
+
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
@@ -159,9 +159,9 @@ resource "aws_route_table_association" "public" {
 # NAT Gateway for Private Subnets
 resource "aws_eip" "nat" {
   count = var.enable_nat_gateway ? length(aws_subnet.public) : 0
-  
+
   domain = "vpc"
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-nat-eip-${count.index + 1}"
   })
@@ -169,28 +169,28 @@ resource "aws_eip" "nat" {
 
 resource "aws_nat_gateway" "main" {
   count = var.enable_nat_gateway ? length(aws_subnet.public) : 0
-  
+
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-nat-gateway-${count.index + 1}"
   })
-  
+
   depends_on = [aws_internet_gateway.main]
 }
 
 # Route Table for Private Subnets
 resource "aws_route_table" "private" {
   count = var.enable_nat_gateway ? length(aws_subnet.private) : 0
-  
+
   vpc_id = aws_vpc.main.id
-  
+
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-private-rt-${count.index + 1}"
   })
@@ -199,7 +199,7 @@ resource "aws_route_table" "private" {
 # Route Table Associations for Private Subnets
 resource "aws_route_table_association" "private" {
   count = var.enable_nat_gateway ? length(aws_subnet.private) : 0
-  
+
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
 }
@@ -208,35 +208,35 @@ resource "aws_route_table_association" "private" {
 resource "aws_security_group" "web" {
   name_prefix = "${local.name_prefix}-web-"
   vpc_id      = aws_vpc.main.id
-  
+
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-web-sg"
   })
@@ -246,21 +246,21 @@ resource "aws_security_group" "web" {
 resource "aws_security_group" "database" {
   name_prefix = "${local.name_prefix}-db-"
   vpc_id      = aws_vpc.main.id
-  
+
   ingress {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
     security_groups = [aws_security_group.web.id]
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-db-sg"
   })

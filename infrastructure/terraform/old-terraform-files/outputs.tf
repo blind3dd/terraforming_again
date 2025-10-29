@@ -172,10 +172,10 @@ output "security_groups" {
 output "network_info" {
   description = "Network configuration information"
   value = {
-    vpc_id     = aws_vpc.main.id
-    vpc_cidr   = aws_vpc.main.cidr_block
+    vpc_id   = aws_vpc.main.id
+    vpc_cidr = aws_vpc.main.cidr_block
     public_subnets = {
-      ids  = aws_subnet.public[*].id
+      ids   = aws_subnet.public[*].id
       cidrs = aws_subnet.public[*].cidr_block
     }
     private_subnets = {

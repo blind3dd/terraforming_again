@@ -9,25 +9,25 @@
 resource "aws_vpc_dhcp_options" "private_fqdn" {
   # Primary domain name for private FQDN resolution
   domain_name = "internal.${var.domain_name}"
-  
+
   # DNS servers for private FQDN resolution
   domain_name_servers = [
-    "AmazonProvidedDNS",           # AWS VPC DNS resolver (169.254.169.253)
-    "8.8.8.8",                    # Google DNS (backup)
-    "8.8.4.4"                     # Google DNS (backup)
+    "AmazonProvidedDNS", # AWS VPC DNS resolver (169.254.169.253)
+    "8.8.8.8",           # Google DNS (backup)
+    "8.8.4.4"            # Google DNS (backup)
   ]
-  
+
   # NTP servers for time synchronization
   ntp_servers = [
-    "169.254.169.123",            # AWS NTP server (primary)
-    "pool.ntp.org"                # Public NTP server (backup)
+    "169.254.169.123", # AWS NTP server (primary)
+    "pool.ntp.org"     # Public NTP server (backup)
   ]
-  
+
   # NetBIOS name servers (for Windows compatibility)
   netbios_name_servers = [
-    "169.254.169.123"             # AWS NTP server (used as placeholder)
+    "169.254.169.123" # AWS NTP server (used as placeholder)
   ]
-  
+
   # NetBIOS node type (2 = P-node for point-to-point)
   netbios_node_type = 2
 
@@ -85,7 +85,7 @@ resource "aws_route53_record" "k8s_api_private" {
   name    = "k8s-api.internal.${var.domain_name}"
   type    = "A"
   ttl     = 300
-  records = [aws_instance.kubernetes_control_plane.private_ip ]
+  records = [aws_instance.kubernetes_control_plane.private_ip]
 }
 
 # Private FQDN for VPN server
@@ -235,7 +235,7 @@ resource "aws_route53_resolver_rule" "private" {
   resolver_endpoint_id = aws_route53_resolver_endpoint.private.id
 
   target_ip {
-    ip = "169.254.169.253"  # AWS VPC DNS resolver
+    ip = "169.254.169.253" # AWS VPC DNS resolver
   }
 
   tags = {
@@ -260,15 +260,15 @@ resource "aws_route53_resolver_rule_association" "private" {
 output "private_fqdn_info" {
   description = "Private FQDN configuration information"
   value = {
-    domain_name           = "internal.${var.domain_name}"
-    rds_private_fqdn      = "mysql.internal.${var.domain_name}"
-    k8s_api_private_fqdn  = "k8s-api.internal.${var.domain_name}"
-    vpn_private_fqdn      = "vpn.internal.${var.domain_name}"
-    jump_private_fqdn     = "jump.internal.${var.domain_name}"
-    alb_private_fqdn      = "alb.internal.${var.domain_name}"
-    nlb_private_fqdn      = "nlb.internal.${var.domain_name}"
-    dhcp_options_id       = aws_vpc_dhcp_options.private_fqdn.id
-    private_zone_id       = aws_route53_zone.private.zone_id
+    domain_name          = "internal.${var.domain_name}"
+    rds_private_fqdn     = "mysql.internal.${var.domain_name}"
+    k8s_api_private_fqdn = "k8s-api.internal.${var.domain_name}"
+    vpn_private_fqdn     = "vpn.internal.${var.domain_name}"
+    jump_private_fqdn    = "jump.internal.${var.domain_name}"
+    alb_private_fqdn     = "alb.internal.${var.domain_name}"
+    nlb_private_fqdn     = "nlb.internal.${var.domain_name}"
+    dhcp_options_id      = aws_vpc_dhcp_options.private_fqdn.id
+    private_zone_id      = aws_route53_zone.private.zone_id
   }
 }
 

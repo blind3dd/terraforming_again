@@ -17,8 +17,8 @@ terraform {
 
 # AWS Provider Configuration
 provider "aws" {
-  region = "us-east-1"
-  profile = "eu-north-1"  # Use your working profile
+  region  = "us-east-1"
+  profile = "eu-north-1" # Use your working profile
 }
 
 # Data source for availability zones only
@@ -50,7 +50,7 @@ resource "aws_security_group" "ec2_security_group" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN ranges
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN ranges
   }
 
   # Kubernetes API access from VPN
@@ -59,7 +59,7 @@ resource "aws_security_group" "ec2_security_group" {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN ranges
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN ranges
   }
 
   # Go API port accessible from VPN
@@ -68,7 +68,7 @@ resource "aws_security_group" "ec2_security_group" {
     from_port   = 8088
     to_port     = 8088
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN ranges
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN ranges
   }
 
   # Private package repository access
@@ -77,7 +77,7 @@ resource "aws_security_group" "ec2_security_group" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN ranges
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN ranges
   }
 
   # MySQL port accessible from VPN
@@ -86,7 +86,7 @@ resource "aws_security_group" "ec2_security_group" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN ranges
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN ranges
   }
 
   egress {
@@ -96,7 +96,7 @@ resource "aws_security_group" "ec2_security_group" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     description = "Outbound UDP to internet"
     from_port   = 1
@@ -104,7 +104,7 @@ resource "aws_security_group" "ec2_security_group" {
     protocol    = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     description = "Outbound ICMP to internet"
     from_port   = -1
@@ -123,7 +123,7 @@ resource "aws_security_group" "ec2_security_group" {
 # Create new VPC with 172.16.0.0/16 CIDR
 # Use existing VPC
 data "aws_vpc" "main" {
-  id = "vpc-09e6df90ee7a2f9cf"  # Existing VPC with 172.16.0.0/16
+  id = "vpc-09e6df90ee7a2f9cf" # Existing VPC with 172.16.0.0/16
 }
 
 # VPC Endpoint Security Group
@@ -165,7 +165,7 @@ resource "aws_security_group" "vpc_endpoint" {
     protocol    = "tcp"
     cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]
   }
-  
+
   egress {
     description = "VPC internal UDP communication"
     from_port   = 1
@@ -173,7 +173,7 @@ resource "aws_security_group" "vpc_endpoint" {
     protocol    = "udp"
     cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]
   }
-  
+
   egress {
     description = "VPC internal ICMP communication"
     from_port   = -1
@@ -181,20 +181,20 @@ resource "aws_security_group" "vpc_endpoint" {
     protocol    = "icmp"
     cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]
   }
-  
+
   egress {
     description = "VPC internal IPSec ESP communication"
     from_port   = -1
     to_port     = -1
-    protocol    = "50"  # IPSec ESP
+    protocol    = "50" # IPSec ESP
     cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]
   }
-  
+
   egress {
     description = "VPC internal IPSec AH communication"
     from_port   = -1
     to_port     = -1
-    protocol    = "51"  # IPSec AH
+    protocol    = "51" # IPSec AH
     cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]
   }
 
@@ -210,17 +210,17 @@ resource "aws_security_group" "vpc_endpoint" {
 resource "aws_vpc_dhcp_options" "main" {
   domain_name         = "internal.${var.domain_name}"
   domain_name_servers = ["AmazonProvidedDNS"]
-  
+
   # Additional DHCP options for enhanced DNS resolution
   ntp_servers = [
-    "169.254.169.123"  # AWS NTP server
+    "169.254.169.123" # AWS NTP server
   ]
-  
+
   netbios_name_servers = [
-    "169.254.169.123"  # AWS NTP server (used as placeholder)
+    "169.254.169.123" # AWS NTP server (used as placeholder)
   ]
-  
-  netbios_node_type = 2  # P-node (point-to-point)
+
+  netbios_node_type = 2 # P-node (point-to-point)
 
   tags = {
     Name        = "main-dhcp-options"
@@ -250,7 +250,7 @@ resource "aws_internet_gateway" "main" {
 
 # Elastic IP for secure public NAT Gateway
 resource "aws_eip" "nat_gateway" {
-  domain = "vpc"
+  domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
 
   tags = {
@@ -331,9 +331,9 @@ resource "aws_vpc_endpoint" "logs" {
 # Create 1 public subnet (for secure public NAT Gateway only)
 resource "aws_subnet" "public" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "172.16.1.0/28"  # Public subnet (16 IPs)
+  cidr_block              = "172.16.1.0/28" # Public subnet (16 IPs)
   availability_zone       = "us-east-1a"
-  map_public_ip_on_launch = false  # Security: No instances should get public IPs
+  map_public_ip_on_launch = false # Security: No instances should get public IPs
 
   tags = {
     Name        = "public"
@@ -360,7 +360,7 @@ resource "aws_nat_gateway" "main" {
 # Create 1 private subnet (for all instances)
 resource "aws_subnet" "private" {
   vpc_id                  = data.aws_vpc.main.id
-  cidr_block              = "172.16.2.0/28"  # Private subnet (16 IPs)
+  cidr_block              = "172.16.2.0/28" # Private subnet (16 IPs)
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = false
   tags = {
@@ -532,40 +532,40 @@ resource "aws_route_table" "private" {
 
 # Create go-mysql instance (acts as jump host)
 resource "aws_instance" "go_mysql_jump_host" {
-  ami                    = "ami-0c02fb55956c7d316"  # Debian 12 (Bookworm) - Secure, minimal attack surface
-  instance_type          = "t3.micro"  # Small instance for jump host
-  key_name              = aws_key_pair.ec2_key_pair.key_name
+  ami                    = "ami-0c02fb55956c7d316" # Debian 12 (Bookworm) - Secure, minimal attack surface
+  instance_type          = "t3.micro"              # Small instance for jump host
+  key_name               = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.jump_host_secure.id]
-  subnet_id              = aws_subnet.private.id  # Private subnet
-  private_ip             = "172.16.2.10"  # Static private IP for predictable FQDN
+  subnet_id              = aws_subnet.private.id # Private subnet
+  private_ip             = "172.16.2.10"         # Static private IP for predictable FQDN
 
-  associate_public_ip_address = false  # No public IP - access via VPN only
+  associate_public_ip_address = false # No public IP - access via VPN only
 
   user_data = base64encode(templatefile("templates/go-mysql-jump-host.yml", {
-    environment = "test"
-    service_name = "go-mysql-api"
-    domain_name = "internal.${var.domain_name}"
+    environment    = "test"
+    service_name   = "go-mysql-api"
+    domain_name    = "internal.${var.domain_name}"
     ssh_public_key = tls_private_key.ssh_key_pair.public_key_openssh
     # Security hardening
     enable_firewall = "true"
-    restrict_ssh = "true"
-    enable_logging = "true"
+    restrict_ssh    = "true"
+    enable_logging  = "true"
     # Access to private instances
     kubernetes_private_ip = aws_instance.kubernetes_control_plane.private_ip
-    vpn_private_ip = aws_instance.wireguard_vpn_server.private_ip
-    vpc_cidr = "172.16.0.0/16"
+    vpn_private_ip        = aws_instance.wireguard_vpn_server.private_ip
+    vpc_cidr              = "172.16.0.0/16"
   }))
 
   root_block_device {
     volume_size = 20
     volume_type = "gp3"
-    encrypted   = true  # EBS encryption
+    encrypted   = true # EBS encryption
   }
 
   metadata_options {
-    http_tokens                 = "required"  # IMDSv2 required - prevents SSRF attacks
+    http_tokens                 = "required" # IMDSv2 required - prevents SSRF attacks
     http_endpoint               = "enabled"
-    http_put_response_hop_limit = 1  # Prevent SSRF attacks
+    http_put_response_hop_limit = 1 # Prevent SSRF attacks
     instance_metadata_tags      = "enabled"
   }
 
@@ -590,7 +590,7 @@ resource "aws_security_group" "jump_host_secure" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN ranges
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN ranges
   }
 
   # Restricted outbound - only to VPC and VPN
@@ -599,23 +599,23 @@ resource "aws_security_group" "jump_host_secure" {
     from_port   = 1
     to_port     = 65535
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
-  
+
   egress {
     description = "Outbound UDP to VPC and VPN only"
     from_port   = 1
     to_port     = 65535
     protocol    = "udp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
-  
+
   egress {
     description = "Outbound ICMP to VPC and VPN only"
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
 
   tags = {
@@ -634,41 +634,41 @@ resource "aws_security_group" "jump_host_secure" {
 
 # Create WireGuard VPN server in private subnet (maximum security)
 resource "aws_instance" "wireguard_vpn_server" {
-  ami                    = "ami-0c02fb55956c7d316"  # Amazon Linux 2023
-  instance_type          = "t3.micro"  # Cost-effective
-  key_name              = aws_key_pair.ec2_key_pair.key_name
+  ami                    = "ami-0c02fb55956c7d316" # Amazon Linux 2023
+  instance_type          = "t3.micro"              # Cost-effective
+  key_name               = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.wireguard_vpn_secure.id]
-  subnet_id              = aws_subnet.private.id  # Private subnet for VPN server (Zero Trust)
-  private_ip             = "172.16.2.11"  # Static private IP for predictable FQDN
+  subnet_id              = aws_subnet.private.id # Private subnet for VPN server (Zero Trust)
+  private_ip             = "172.16.2.11"         # Static private IP for predictable FQDN
 
-  associate_public_ip_address = false  # No public IP - access via jump host only
+  associate_public_ip_address = false # No public IP - access via jump host only
 
   user_data = base64encode(templatefile("templates/wireguard-server-secure.yml", {
-    environment = "test"
-    service_name = "go-mysql-api"
-    domain_name = "internal.${var.domain_name}"
-    ssh_public_key = tls_private_key.ssh_key_pair.public_key_openssh
-    vpn_subnet = "10.100.0.0/24"
-    vpn_server_ip = "10.100.0.1"
-    vpn_client_ip = "10.100.0.2"
+    environment       = "test"
+    service_name      = "go-mysql-api"
+    domain_name       = "internal.${var.domain_name}"
+    ssh_public_key    = tls_private_key.ssh_key_pair.public_key_openssh
+    vpn_subnet        = "10.100.0.0/24"
+    vpn_server_ip     = "10.100.0.1"
+    vpn_client_ip     = "10.100.0.2"
     kubernetes_subnet = "172.16.100.0/24"
-    vpc_cidr = "172.16.0.0/16"
+    vpc_cidr          = "172.16.0.0/16"
     # Security hardening
     enable_firewall = "true"
-    restrict_ssh = "true"
-    enable_logging = "true"
+    restrict_ssh    = "true"
+    enable_logging  = "true"
   }))
 
   root_block_device {
     volume_size = 20
     volume_type = "gp3"
-    encrypted   = true  # EBS encryption
+    encrypted   = true # EBS encryption
   }
 
   metadata_options {
-    http_tokens                 = "required"  # IMDSv2 required - prevents SSRF attacks
+    http_tokens                 = "required" # IMDSv2 required - prevents SSRF attacks
     http_endpoint               = "enabled"
-    http_put_response_hop_limit = 1  # Prevent SSRF attacks
+    http_put_response_hop_limit = 1 # Prevent SSRF attacks
     instance_metadata_tags      = "enabled"
   }
 
@@ -695,40 +695,40 @@ resource "aws_security_group" "wireguard_vpn_secure" {
     from_port   = 51820
     to_port     = 51820
     protocol    = "udp"
-    cidr_blocks = ["172.16.0.0/16"]  # Only VPC internal (Zero Trust)
+    cidr_blocks = ["172.16.0.0/16"] # Only VPC internal (Zero Trust)
   }
-  
+
   # IKEv2/IPSec VPN ports (alternative to WireGuard)
   ingress {
     description = "IKEv2/IPSec VPN port - Zero Trust (Private Only)"
     from_port   = 500
     to_port     = 500
     protocol    = "udp"
-    cidr_blocks = ["172.16.0.0/16"]  # IKE negotiation
+    cidr_blocks = ["172.16.0.0/16"] # IKE negotiation
   }
-  
+
   ingress {
     description = "IPSec NAT-T port - Zero Trust (Private Only)"
     from_port   = 4500
     to_port     = 4500
     protocol    = "udp"
-    cidr_blocks = ["172.16.0.0/16"]  # IPSec NAT traversal
+    cidr_blocks = ["172.16.0.0/16"] # IPSec NAT traversal
   }
-  
+
   # IPSec ESP and AH protocols
   ingress {
     description = "IPSec ESP protocol - Zero Trust (Private Only)"
     from_port   = -1
     to_port     = -1
-    protocol    = "50"  # IPSec ESP
+    protocol    = "50" # IPSec ESP
     cidr_blocks = ["172.16.0.0/16"]
   }
-  
+
   ingress {
     description = "IPSec AH protocol - Zero Trust (Private Only)"
     from_port   = -1
     to_port     = -1
-    protocol    = "51"  # IPSec AH
+    protocol    = "51" # IPSec AH
     cidr_blocks = ["172.16.0.0/16"]
   }
 
@@ -738,7 +738,7 @@ resource "aws_security_group" "wireguard_vpn_secure" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16"]  # VPC internal access only
+    cidr_blocks = ["172.16.0.0/16"] # VPC internal access only
   }
 
   # Kubernetes API access from VPN clients
@@ -747,7 +747,7 @@ resource "aws_security_group" "wireguard_vpn_secure" {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = ["10.100.0.0/24"]  # Only from VPN subnet
+    cidr_blocks = ["10.100.0.0/24"] # Only from VPN subnet
   }
 
   # Go API access from VPN clients
@@ -756,7 +756,7 @@ resource "aws_security_group" "wireguard_vpn_secure" {
     from_port   = 8088
     to_port     = 8088
     protocol    = "tcp"
-    cidr_blocks = ["10.100.0.0/24"]  # Only from VPN subnet
+    cidr_blocks = ["10.100.0.0/24"] # Only from VPN subnet
   }
 
   # MySQL access from VPN clients only
@@ -765,7 +765,7 @@ resource "aws_security_group" "wireguard_vpn_secure" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["10.100.0.0/24"]  # Only from VPN subnet
+    cidr_blocks = ["10.100.0.0/24"] # Only from VPN subnet
   }
 
   # Restricted outbound - only necessary traffic
@@ -774,39 +774,39 @@ resource "aws_security_group" "wireguard_vpn_secure" {
     from_port   = 1
     to_port     = 65535
     protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
-  
+
   egress {
     description = "Outbound UDP to VPC and VPN clients only"
     from_port   = 1
     to_port     = 65535
     protocol    = "udp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
-  
+
   egress {
     description = "Outbound ICMP to VPC and VPN clients only"
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
-  
+
   egress {
     description = "Outbound IPSec ESP to VPC and VPN clients only"
     from_port   = -1
     to_port     = -1
-    protocol    = "50"  # IPSec ESP
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    protocol    = "50"                               # IPSec ESP
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
-  
+
   egress {
     description = "Outbound IPSec AH to VPC and VPN clients only"
     from_port   = -1
     to_port     = -1
-    protocol    = "51"  # IPSec AH
-    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"]  # VPC + VPN only
+    protocol    = "51"                               # IPSec AH
+    cidr_blocks = ["172.16.0.0/16", "10.100.0.0/24"] # VPC + VPN only
   }
 
   tags = {
@@ -1196,36 +1196,36 @@ resource "aws_network_acl_association" "private" {
 
 # Create EC2 instance for Kubernetes control plane in private subnet
 resource "aws_instance" "kubernetes_control_plane" {
-  ami                    = "ami-0c02fb55956c7d316"  # Bottlerocket OS - Immutable, container-optimized, automatic updates
+  ami                    = "ami-0c02fb55956c7d316" # Bottlerocket OS - Immutable, container-optimized, automatic updates
   instance_type          = "t3.medium"
-  key_name              = aws_key_pair.ec2_key_pair.key_name
+  key_name               = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.ec2_security_group.id]
-  subnet_id              = aws_subnet.private.id  # Use private subnet
-  private_ip             = "172.16.2.12"  # Static private IP for predictable FQDN
+  subnet_id              = aws_subnet.private.id # Use private subnet
+  private_ip             = "172.16.2.12"         # Static private IP for predictable FQDN
 
   associate_public_ip_address = false
 
   user_data = base64encode(templatefile("templates/kubernetes-control-plane-cloudinit.yml", {
-    environment = "test"
-    service_name = "go-mysql-api"
-    cluster_name = "test-go-mysql-api-cluster"
-    pod_cidr = "10.200.0.0/24"
-    service_cidr = "10.150.0.0/24"
-    rds_endpoint = "mysql.${var.domain_name}"  # RDS FQDN with VPC association
-    rds_port = "3306"
-    rds_username = "admin"
-    rds_password = var.rds_password
-    rds_database = "goapp_users"
-    kubernetes_api_endpoint = "https://0.0.0.0:6443"  # Will be updated to actual IP after deployment
-    vpc_id = data.aws_vpc.main.id
-    route_table_id = data.aws_vpc.main.main_route_table_id
-    aws_access_key_id = ""
-    aws_secret_access_key = ""
-    route53_zone_id = ""
-    domain_name = "internal.${var.domain_name}"
-    ssh_public_key = tls_private_key.ssh_key_pair.public_key_openssh
+    environment                  = "test"
+    service_name                 = "go-mysql-api"
+    cluster_name                 = "test-go-mysql-api-cluster"
+    pod_cidr                     = "10.200.0.0/24"
+    service_cidr                 = "10.150.0.0/24"
+    rds_endpoint                 = "mysql.${var.domain_name}" # RDS FQDN with VPC association
+    rds_port                     = "3306"
+    rds_username                 = "admin"
+    rds_password                 = var.rds_password
+    rds_database                 = "goapp_users"
+    kubernetes_api_endpoint      = "https://0.0.0.0:6443" # Will be updated to actual IP after deployment
+    vpc_id                       = data.aws_vpc.main.id
+    route_table_id               = data.aws_vpc.main.main_route_table_id
+    aws_access_key_id            = ""
+    aws_secret_access_key        = ""
+    route53_zone_id              = ""
+    domain_name                  = "internal.${var.domain_name}"
+    ssh_public_key               = tls_private_key.ssh_key_pair.public_key_openssh
     enable_multicluster_headless = "false"
-    enable_native_sidecars = "false"
+    enable_native_sidecars       = "false"
   }))
 
   root_block_device {
@@ -1235,17 +1235,17 @@ resource "aws_instance" "kubernetes_control_plane" {
   }
 
   metadata_options {
-    http_tokens                 = "required"  # IMDSv2 required - prevents SSRF attacks
+    http_tokens                 = "required" # IMDSv2 required - prevents SSRF attacks
     http_endpoint               = "enabled"
-    http_put_response_hop_limit = 1  # Prevent SSRF attacks
+    http_put_response_hop_limit = 1 # Prevent SSRF attacks
     instance_metadata_tags      = "enabled"
   }
 
   tags = {
-    Name        = "go-mysql-api-kubernetes-control-plane"
-    Environment = "test"
-    Service     = "go-mysql-api"
-    Role        = "kubernetes-control-plane"
+    Name              = "go-mysql-api-kubernetes-control-plane"
+    Environment       = "test"
+    Service           = "go-mysql-api"
+    Role              = "kubernetes-control-plane"
     KubernetesCluster = "test-go-mysql-api-cluster"
   }
 }
@@ -1258,7 +1258,7 @@ output "vpc_id" {
 
 output "subnet_ids" {
   description = "Subnet IDs"
-  value       = {
+  value = {
     public_subnet  = aws_subnet.public.id
     private_subnet = aws_subnet.private.id
   }

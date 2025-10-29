@@ -1,47 +1,51 @@
 ---
 - name: Initialize Database Schema
   hosts: webservers
-  become: yes
+  become: true
   vars_files:
     - database-secrets.enc.yaml
   
   tasks:
     - name: Check if MySQL client is installed
-      command: which mysql
+      ansible.builtin.command: which mysql
       register: mysql_check
       failed_when: false
       changed_when: false
     
     - name: Install MySQL client if not present
-      yum:
+      ansible.builtin.yum:
         name: mysql
         state: present
       when: mysql_check.rc != 0
     
     - name: Test database connection
-      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SELECT 1;" {{ database.name }}
+      ansible.builtin.command: >-
+        mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
+        -e "SELECT 1;" {{ database.name }}
       register: db_connection_test
       failed_when: false
       changed_when: false
     
     - name: Display database connection status
-      debug:
+      ansible.builtin.debug:
         msg: "Database connection: {{ 'Success' if db_connection_test.rc == 0 else 'Failed' }}"
     
     - name: Check if users table exists
-      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SHOW TABLES LIKE 'users';" {{ database.name }}
+      ansible.builtin.command: >-
+        mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
+        -e "SHOW TABLES LIKE 'users';" {{ database.name }}
       register: table_check
       failed_when: false
       changed_when: false
     
     - name: Display table check result
-      debug:
+      ansible.builtin.debug:
         msg: "Users table exists: {{ 'Yes' if table_check.rc == 0 and table_check.stdout_lines | length > 1 else 'No' }}"
     
     - name: Initialize database schema if needed
       block:
         - name: Create init.sql file
-          copy:
+          ansible.builtin.copy:
             dest: /tmp/init.sql
             content: |
               -- Initialize database for Go application
@@ -70,41 +74,47 @@
             mode: '0644'
         
         - name: Execute database initialization script
-          command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} {{ database.name }} < /tmp/init.sql
+          ansible.builtin.command: >-
+            mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
+            {{ database.name }} < /tmp/init.sql
           register: init_result
           changed_when: init_result.rc == 0
         
         - name: Display initialization result
-          debug:
+          ansible.builtin.debug:
             msg: "Database initialization: {{ 'Success' if init_result.rc == 0 else 'Failed' }}"
         
         - name: Clean up init.sql file
-          file:
+          ansible.builtin.file:
             path: /tmp/init.sql
             state: absent
       
       when: table_check.rc != 0 or table_check.stdout_lines | length <= 1
     
     - name: Verify database schema
-      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SHOW TABLES;" {{ database.name }}
+      ansible.builtin.command: >-
+        mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
+        -e "SHOW TABLES;" {{ database.name }}
       register: schema_verification
       changed_when: false
     
     - name: Display database tables
-      debug:
+      ansible.builtin.debug:
         msg: "Database tables: {{ schema_verification.stdout_lines }}"
     
     - name: Check user count
-      command: mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }} -e "SELECT COUNT(*) as user_count FROM users;" {{ database.name }}
+      ansible.builtin.command: >-
+        mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
+        -e "SELECT COUNT(*) as user_count FROM users;" {{ database.name }}
       register: user_count
       changed_when: false
     
     - name: Display user count
-      debug:
+      ansible.builtin.debug:
         msg: "Total users in database: {{ user_count.stdout_lines[-1] if user_count.stdout_lines else 'Unknown' }}"
     
     - name: Display database initialization summary
-      debug:
+      ansible.builtin.debug:
         msg: |
           Database initialization completed!
           

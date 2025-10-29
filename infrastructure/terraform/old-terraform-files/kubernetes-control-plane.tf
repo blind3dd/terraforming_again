@@ -306,44 +306,44 @@ data "cloudinit_config" "kubernetes_control_plane" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/templates/kubernetes-control-plane-cloudinit.yml", {
-      environment = var.environment
-      service_name = var.service_name
-      cluster_name = "${var.environment}-${var.service_name}-cluster"
-      pod_cidr     = "10.244.0.0/16"
-      service_cidr = "10.96.0.0/12"
-      calico_version = "3.26.1"
-      kubernetes_version = "1.28.0"
-      aws_region = data.aws_region.current.name
-      aws_account_id = data.aws_caller_identity.current.account_id
-      rds_endpoint = aws_db_instance.aws_rds_mysql_8.endpoint
-      rds_port = aws_db_instance.aws_rds_mysql_8.port
-      rds_database = aws_db_instance.aws_rds_mysql_8.db_name
-      rds_username = aws_db_instance.aws_rds_mysql_8.username
+    content = templatefile("${path.module}/templates/kubernetes-control-plane-cloudinit.yml", {
+      environment            = var.environment
+      service_name           = var.service_name
+      cluster_name           = "${var.environment}-${var.service_name}-cluster"
+      pod_cidr               = "10.244.0.0/16"
+      service_cidr           = "10.96.0.0/12"
+      calico_version         = "3.26.1"
+      kubernetes_version     = "1.28.0"
+      aws_region             = data.aws_region.current.name
+      aws_account_id         = data.aws_caller_identity.current.account_id
+      rds_endpoint           = aws_db_instance.aws_rds_mysql_8.endpoint
+      rds_port               = aws_db_instance.aws_rds_mysql_8.port
+      rds_database           = aws_db_instance.aws_rds_mysql_8.db_name
+      rds_username           = aws_db_instance.aws_rds_mysql_8.username
       rds_password_parameter = aws_ssm_parameter.db_password.name
     })
   }
 
   part {
     content_type = "text/x-shellscript"
-    content      = templatefile("${path.module}/templates/kubernetes-control-plane-setup.sh", {
-      environment = var.environment
-      service_name = var.service_name
-      cluster_name = "${var.environment}-${var.service_name}-cluster"
-      pod_cidr     = "10.244.0.0/16"
-      service_cidr = "10.96.0.0/12"
-      calico_version = "3.26.1"
-      kubernetes_version = "1.28.0"
-      aws_region = data.aws_region.current.name
-      aws_account_id = data.aws_caller_identity.current.account_id
-      rds_endpoint = aws_db_instance.aws_rds_mysql_8.endpoint
-      rds_port = aws_db_instance.aws_rds_mysql_8.port
-      rds_database = aws_db_instance.aws_rds_mysql_8.db_name
-      rds_username = aws_db_instance.aws_rds_mysql_8.username
+    content = templatefile("${path.module}/templates/kubernetes-control-plane-setup.sh", {
+      environment            = var.environment
+      service_name           = var.service_name
+      cluster_name           = "${var.environment}-${var.service_name}-cluster"
+      pod_cidr               = "10.244.0.0/16"
+      service_cidr           = "10.96.0.0/12"
+      calico_version         = "3.26.1"
+      kubernetes_version     = "1.28.0"
+      aws_region             = data.aws_region.current.name
+      aws_account_id         = data.aws_caller_identity.current.account_id
+      rds_endpoint           = aws_db_instance.aws_rds_mysql_8.endpoint
+      rds_port               = aws_db_instance.aws_rds_mysql_8.port
+      rds_database           = aws_db_instance.aws_rds_mysql_8.db_name
+      rds_username           = aws_db_instance.aws_rds_mysql_8.username
       rds_password_parameter = aws_ssm_parameter.db_password.name
-      aws_access_key_id = var.aws_access_key_id
-      aws_secret_access_key = var.aws_secret_access_key
-      route53_zone_id = var.route53_zone_id
+      aws_access_key_id      = var.aws_access_key_id
+      aws_secret_access_key  = var.aws_secret_access_key
+      route53_zone_id        = var.route53_zone_id
     })
   }
 }
@@ -394,13 +394,13 @@ resource "aws_launch_template" "kubernetes_control_plane" {
 
 # Auto Scaling Group for Kubernetes Control Plane
 resource "aws_autoscaling_group" "kubernetes_control_plane" {
-  name                = "${var.environment}-${var.service_name}-k8s-control-plane"
-  desired_capacity    = 3
-  max_size           = 5
-  min_size           = 3
-  target_group_arns  = [aws_lb_target_group.kubernetes_api.arn]
-  vpc_zone_identifier = aws_subnet.public[*].id
-  health_check_type  = "ELB"
+  name                      = "${var.environment}-${var.service_name}-k8s-control-plane"
+  desired_capacity          = 3
+  max_size                  = 5
+  min_size                  = 3
+  target_group_arns         = [aws_lb_target_group.kubernetes_api.arn]
+  vpc_zone_identifier       = aws_subnet.public[*].id
+  health_check_type         = "ELB"
   health_check_grace_period = 300
 
   launch_template {
@@ -410,43 +410,43 @@ resource "aws_autoscaling_group" "kubernetes_control_plane" {
 
   tag {
     key                 = "Name"
-    value              = "${var.environment}-${var.service_name}-k8s-control-plane"
+    value               = "${var.environment}-${var.service_name}-k8s-control-plane"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Environment"
-    value              = var.environment
+    value               = var.environment
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Service"
-    value              = var.service_name
+    value               = var.service_name
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Role"
-    value              = "kubernetes-control-plane"
+    value               = "kubernetes-control-plane"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "kubernetes.io/cluster/${var.environment}-${var.service_name}-cluster"
-    value              = "owned"
+    value               = "owned"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "kubernetes.io/role/control-plane"
-    value              = "1"
+    value               = "1"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "k8s.io/role/control-plane"
-    value              = "1"
+    value               = "1"
     propagate_at_launch = true
   }
 }
@@ -621,31 +621,31 @@ data "cloudinit_config" "kubernetes_workers" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/templates/kubernetes-worker-cloudinit.yml", {
-      environment = var.environment
-      service_name = var.service_name
-      cluster_name = "${var.environment}-${var.service_name}-cluster"
-      pod_cidr     = "10.244.0.0/16"
-      service_cidr = "10.96.0.0/12"
-      calico_version = "3.26.1"
+    content = templatefile("${path.module}/templates/kubernetes-worker-cloudinit.yml", {
+      environment        = var.environment
+      service_name       = var.service_name
+      cluster_name       = "${var.environment}-${var.service_name}-cluster"
+      pod_cidr           = "10.244.0.0/16"
+      service_cidr       = "10.96.0.0/12"
+      calico_version     = "3.26.1"
       kubernetes_version = "1.28.0"
-      aws_region = data.aws_region.current.name
-      aws_account_id = data.aws_caller_identity.current.account_id
+      aws_region         = data.aws_region.current.name
+      aws_account_id     = data.aws_caller_identity.current.account_id
     })
   }
 
   part {
     content_type = "text/x-shellscript"
-    content      = templatefile("${path.module}/templates/kubernetes-worker-setup.sh", {
-      environment = var.environment
-      service_name = var.service_name
-      cluster_name = "${var.environment}-${var.service_name}-cluster"
-      pod_cidr     = "10.244.0.0/16"
-      service_cidr = "10.96.0.0/12"
-      calico_version = "3.26.1"
+    content = templatefile("${path.module}/templates/kubernetes-worker-setup.sh", {
+      environment        = var.environment
+      service_name       = var.service_name
+      cluster_name       = "${var.environment}-${var.service_name}-cluster"
+      pod_cidr           = "10.244.0.0/16"
+      service_cidr       = "10.96.0.0/12"
+      calico_version     = "3.26.1"
       kubernetes_version = "1.28.0"
-      aws_region = data.aws_region.current.name
-      aws_account_id = data.aws_caller_identity.current.account_id
+      aws_region         = data.aws_region.current.name
+      aws_account_id     = data.aws_caller_identity.current.account_id
     })
   }
 }
@@ -696,12 +696,12 @@ resource "aws_launch_template" "kubernetes_workers" {
 
 # Auto Scaling Group for Kubernetes Worker Nodes
 resource "aws_autoscaling_group" "kubernetes_workers" {
-  name                = "${var.environment}-${var.service_name}-workers"
-  desired_capacity    = 2
-  max_size           = 10
-  min_size           = 1
-  vpc_zone_identifier = aws_subnet.public[*].id
-  health_check_type  = "EC2"
+  name                      = "${var.environment}-${var.service_name}-workers"
+  desired_capacity          = 2
+  max_size                  = 10
+  min_size                  = 1
+  vpc_zone_identifier       = aws_subnet.public[*].id
+  health_check_type         = "EC2"
   health_check_grace_period = 300
 
   launch_template {
@@ -711,43 +711,43 @@ resource "aws_autoscaling_group" "kubernetes_workers" {
 
   tag {
     key                 = "Name"
-    value              = "${var.environment}-${var.service_name}-workers"
+    value               = "${var.environment}-${var.service_name}-workers"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Environment"
-    value              = var.environment
+    value               = var.environment
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Service"
-    value              = var.service_name
+    value               = var.service_name
     propagate_at_launch = true
   }
 
   tag {
     key                 = "Role"
-    value              = "kubernetes-workers"
+    value               = "kubernetes-workers"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "kubernetes.io/cluster/${var.environment}-${var.service_name}-cluster"
-    value              = "owned"
+    value               = "owned"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "kubernetes.io/role/worker"
-    value              = "1"
+    value               = "1"
     propagate_at_launch = true
   }
 
   tag {
     key                 = "k8s.io/role/worker"
-    value              = "1"
+    value               = "1"
     propagate_at_launch = true
   }
 }

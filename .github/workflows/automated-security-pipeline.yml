@@ -106,7 +106,7 @@ jobs:
       run: |
         # Install Grype CLI and scan filesystem to SARIF
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin || {
-          echo "⚠️ Grype install failed; skipping"; exit 0; }
+          echo "Grype install failed; skipping"; exit 0; }
         grype dir:. -o sarif > grype-results.sarif || true
         
     - name: Upload Grype scan results
@@ -150,8 +150,8 @@ jobs:
         # Install kube-bench (robust download/extract)
         set -e
         URL="https://github.com/aquasecurity/kube-bench/releases/latest/download/kube-bench_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz"
-        curl -fsSL -o kube-bench.tar.gz "$URL" || { echo "⚠️ kube-bench download failed; skipping"; exit 0; }
-        tar -xzf kube-bench.tar.gz || { echo "⚠️ kube-bench extract failed; skipping"; exit 0; }
+        curl -fsSL -o kube-bench.tar.gz "$URL" || { echo "kube-bench download failed; skipping"; exit 0; }
+        tar -xzf kube-bench.tar.gz || { echo "kube-bench extract failed; skipping"; exit 0; }
         sudo mv kube-bench /usr/local/bin/ || true
         
         # Run CIS benchmark for manifests
@@ -179,7 +179,7 @@ jobs:
       run: |
         # Install Polaris
         curl -fsSL -o polaris.tar.gz https://github.com/FairwindsOps/polaris/releases/latest/download/polaris_linux_amd64.tar.gz || { echo "⚠️ Polaris download failed; skipping"; exit 0; }
-        tar -xzf polaris.tar.gz || { echo "⚠️ Polaris extract failed; skipping"; exit 0; }
+        tar -xzf polaris.tar.gz || { echo "Polaris extract failed; skipping"; exit 0; }
         sudo mv polaris /usr/local/bin/ || true
         
         # Run Polaris on Kubernetes manifests
@@ -204,14 +204,14 @@ jobs:
       run: |
         set -e
         # Install OPA (static binary)
-        curl -fsSL -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64 || { echo "⚠️ OPA download failed"; exit 1; }
+        curl -fsSL -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64 || { echo "OPA download failed"; exit 1; }
         chmod +x opa
         sudo mv opa /usr/local/bin/opa
         opa version || true
         
         # Install Conftest
-        curl -fsSL -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz || { echo "⚠️ Conftest download failed; skipping"; exit 0; }
-        tar -xzf conftest.tar.gz || { echo "⚠️ Conftest extract failed; skipping"; exit 0; }
+        curl -fsSL -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz || { echo "Conftest download failed; skipping"; exit 0; }
+        tar -xzf conftest.tar.gz || { echo "Conftest extract failed; skipping"; exit 0; }
         sudo mv conftest /usr/local/bin/conftest || true
         conftest --version || true
         
@@ -223,8 +223,8 @@ jobs:
     - name: Run Kyverno policies
       run: |
         # Install Kyverno CLI (robust)
-        curl -fsSL -o kyverno.tar.gz https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli_linux_x86_64.tar.gz || { echo "⚠️ Kyverno download failed; skipping"; exit 0; }
-        tar -xzf kyverno.tar.gz || { echo "⚠️ Kyverno extract failed; skipping"; exit 0; }
+        curl -fsSL -o kyverno.tar.gz https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli_linux_x86_64.tar.gz || { echo "Kyverno download failed; skipping"; exit 0; }
+        tar -xzf kyverno.tar.gz || { echo "Kyverno extract failed; skipping"; exit 0; }
         sudo mv kyverno /usr/local/bin/kyverno || true
         kyverno version || true
         
@@ -342,19 +342,19 @@ jobs:
     steps:
     - name: Generate security dashboard
       run: |
-        echo "## 🔒 Security Dashboard" >> $GITHUB_STEP_SUMMARY
+        echo "## Security Dashboard" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Scan Date:** $(date)" >> $GITHUB_STEP_SUMMARY
         echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
         echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📊 Security Scan Results:" >> $GITHUB_STEP_SUMMARY
+        echo "### Security Scan Results:" >> $GITHUB_STEP_SUMMARY
         echo "- **Vulnerability Scanning:** ${{ needs.vulnerability-scanning.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Compliance Scanning:** ${{ needs.compliance-scanning.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Policy Enforcement:** ${{ needs.policy-enforcement.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Secrets Detection:** ${{ needs.secrets-detection.result }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🛡️ Security Tools Used:" >> $GITHUB_STEP_SUMMARY
+        echo "### Security Tools Used:" >> $GITHUB_STEP_SUMMARY
         echo "- Trivy (Vulnerability Scanner)" >> $GITHUB_STEP_SUMMARY
         echo "- Grype (Vulnerability Scanner)" >> $GITHUB_STEP_SUMMARY
         echo "- OWASP Dependency Check" >> $GITHUB_STEP_SUMMARY
@@ -366,7 +366,7 @@ jobs:
         echo "- GitLeaks (Secrets Detection)" >> $GITHUB_STEP_SUMMARY
         echo "- Semgrep (Code Security)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔄 Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
         echo "- Review security scan results" >> $GITHUB_STEP_SUMMARY
         echo "- Address critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
         echo "- Implement security policies" >> $GITHUB_STEP_SUMMARY

@@ -123,7 +123,7 @@ variable "instance_type" {
 variable "instance_ami" {
   description = "AMI ID for EC2 instances"
   type        = string
-  default     = "ami-0c02fb55956c7d316"  # Amazon Linux 2023
+  default     = "ami-0c02fb55956c7d316" # Amazon Linux 2023
 }
 
 variable "associate_public_ip_address" {

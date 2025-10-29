@@ -4,7 +4,7 @@
 # Default Azure Provider
 provider "azurerm" {
   features {}
-  
+
   subscription_id = var.azure_subscription_id != null ? var.azure_subscription_id : null
   tenant_id       = var.azure_tenant_id != null ? var.azure_tenant_id : null
   client_id       = var.azure_client_id != null ? var.azure_client_id : null
@@ -15,7 +15,7 @@ provider "azurerm" {
 provider "azurerm" {
   alias = "secondary"
   features {}
-  
+
   subscription_id = var.azure_secondary_subscription_id
   tenant_id       = var.azure_tenant_id
   client_id       = var.azure_client_id

@@ -12,8 +12,8 @@ module "terraform_backend" {
 
   state_bucket_name = var.state_bucket_name
   state_table_name  = var.state_table_name
-  region           = var.aws_region
-  environment      = var.environment
+  region            = var.aws_region
+  environment       = var.environment
 }
 
 # =============================================================================
@@ -32,17 +32,17 @@ module "vpc" {
   availability_zones   = var.availability_zones
 
   # DHCP Options for private FQDN resolution
-  create_dhcp_options = var.create_dhcp_options
-  domain_name        = var.domain_name
-  dhcp_domain_name_servers = var.dhcp_domain_name_servers
-  dhcp_ntp_servers         = var.dhcp_ntp_servers
+  create_dhcp_options       = var.create_dhcp_options
+  domain_name               = var.domain_name
+  dhcp_domain_name_servers  = var.dhcp_domain_name_servers
+  dhcp_ntp_servers          = var.dhcp_ntp_servers
   dhcp_netbios_name_servers = var.dhcp_netbios_name_servers
-  dhcp_netbios_node_type   = var.dhcp_netbios_node_type
+  dhcp_netbios_node_type    = var.dhcp_netbios_node_type
 
   # Security Group Rules
-  ssh_cidr_blocks   = var.ssh_cidr_blocks
-  http_cidr_blocks  = var.http_cidr_blocks
-  https_cidr_blocks = var.https_cidr_blocks
+  ssh_cidr_blocks      = var.ssh_cidr_blocks
+  http_cidr_blocks     = var.http_cidr_blocks
+  https_cidr_blocks    = var.https_cidr_blocks
   custom_ingress_rules = var.custom_ingress_rules
 
   tags = var.tags
@@ -56,13 +56,13 @@ module "vpc" {
 module "ec2" {
   source = "./modules/ec2"
 
-  environment = var.environment
+  environment  = var.environment
   service_name = var.service_name
 
   # VPC Configuration
-  vpc_id              = module.vpc.vpc_id
-  public_subnet_id    = module.vpc.public_subnet_ids[0]
-  security_group_id   = module.vpc.security_group_id
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_id  = module.vpc.public_subnet_ids[0]
+  security_group_id = module.vpc.security_group_id
 
   # Instance Configuration
   ami_id              = var.ec2_ami_id
@@ -74,15 +74,15 @@ module "ec2" {
   user_data           = var.ec2_user_data
 
   # CloudInit Configuration
-  create_cloudinit_config = var.ec2_create_cloudinit_config
+  create_cloudinit_config  = var.ec2_create_cloudinit_config
   create_ec2_user_password = var.ec2_create_ec2_user_password
 
   # Database connection for cloudinit
-  db_host = module.rds.db_instance_endpoint
-  db_port = module.rds.db_instance_port
-  db_name = module.rds.db_instance_name
-  db_user = module.rds.db_instance_username
-  db_password_param = var.rds_master_password_param
+  db_host            = module.rds.db_instance_endpoint
+  db_port            = module.rds.db_instance_port
+  db_name            = module.rds.db_instance_name
+  db_user            = module.rds.db_instance_username
+  db_password_param  = var.rds_master_password_param
   ecr_repository_url = var.ecr_repository_url
 
   tags = var.tags
@@ -96,7 +96,7 @@ module "ec2" {
 module "rds" {
   source = "./modules/RDS"
 
-  environment = var.environment
+  environment  = var.environment
   service_name = var.service_name
 
   # VPC Configuration
@@ -112,17 +112,17 @@ module "rds" {
   storage_type          = var.rds_storage_type
   storage_encrypted     = var.rds_storage_encrypted
 
-  database_name  = var.rds_database_name
+  database_name   = var.rds_database_name
   master_username = var.rds_master_username
   master_password = var.rds_master_password
 
   backup_retention_period = var.rds_backup_retention_period
-  backup_window          = var.rds_backup_window
-  maintenance_window     = var.rds_maintenance_window
-  multi_az              = var.rds_multi_az
-  monitoring_interval   = var.rds_monitoring_interval
-  deletion_protection   = var.rds_deletion_protection
-  skip_final_snapshot   = var.rds_skip_final_snapshot
+  backup_window           = var.rds_backup_window
+  maintenance_window      = var.rds_maintenance_window
+  multi_az                = var.rds_multi_az
+  monitoring_interval     = var.rds_monitoring_interval
+  deletion_protection     = var.rds_deletion_protection
+  skip_final_snapshot     = var.rds_skip_final_snapshot
 
   mysql_cidr_blocks = var.rds_mysql_cidr_blocks
 
@@ -148,9 +148,9 @@ module "route53" {
   records = var.route53_records
 
   # SSL Certificate
-  create_certificate        = var.create_certificate
-  certificate_domain_name   = var.certificate_domain_name
-  certificate_san_domains   = var.certificate_san_domains
+  create_certificate      = var.create_certificate
+  certificate_domain_name = var.certificate_domain_name
+  certificate_san_domains = var.certificate_san_domains
 
   tags = var.tags
 }
@@ -161,30 +161,30 @@ module "route53" {
 
 # Create EKS cluster (managed Kubernetes)
 module "kubernetes_eks" {
-  count = var.kubernetes_cluster_type == "eks" ? 1 : 0
+  count  = var.kubernetes_cluster_type == "eks" ? 1 : 0
   source = "./modules/kubernetes-eks"
 
-  environment = var.environment
+  environment  = var.environment
   service_name = var.service_name
 
   # VPC Configuration
-  vpc_id       = module.vpc.vpc_id
+  vpc_id             = module.vpc.vpc_id
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
   # EKS Configuration
-  kubernetes_version = var.kubernetes_version
-  eks_endpoint_private_access = var.eks_endpoint_private_access
-  eks_endpoint_public_access  = var.eks_endpoint_public_access
-  eks_public_access_cidrs     = var.eks_public_access_cidrs
-  eks_enabled_log_types       = var.eks_enabled_log_types
-  eks_capacity_type           = var.eks_capacity_type
-  eks_instance_types          = var.eks_instance_types
-  eks_ami_type                = var.eks_ami_type
-  eks_disk_size              = var.eks_disk_size
-  eks_desired_size           = var.eks_desired_size
-  eks_max_size               = var.eks_max_size
-  eks_min_size               = var.eks_min_size
+  kubernetes_version             = var.kubernetes_version
+  eks_endpoint_private_access    = var.eks_endpoint_private_access
+  eks_endpoint_public_access     = var.eks_endpoint_public_access
+  eks_public_access_cidrs        = var.eks_public_access_cidrs
+  eks_enabled_log_types          = var.eks_enabled_log_types
+  eks_capacity_type              = var.eks_capacity_type
+  eks_instance_types             = var.eks_instance_types
+  eks_ami_type                   = var.eks_ami_type
+  eks_disk_size                  = var.eks_disk_size
+  eks_desired_size               = var.eks_desired_size
+  eks_max_size                   = var.eks_max_size
+  eks_min_size                   = var.eks_min_size
   eks_max_unavailable_percentage = var.eks_max_unavailable_percentage
 
   tags = var.tags
@@ -192,14 +192,14 @@ module "kubernetes_eks" {
 
 # Create self-managed Kubernetes cluster (3 etcd, 3 control planes, 3 workers)
 module "kubernetes_self_managed" {
-  count = var.kubernetes_cluster_type == "self-managed" ? 1 : 0
+  count  = var.kubernetes_cluster_type == "self-managed" ? 1 : 0
   source = "./modules/kubernetes-self-managed"
 
-  environment = var.environment
+  environment  = var.environment
   service_name = var.service_name
 
   # VPC Configuration
-  vpc_id       = module.vpc.vpc_id
+  vpc_id             = module.vpc.vpc_id
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
@@ -208,16 +208,16 @@ module "kubernetes_self_managed" {
   domain_name   = var.domain_name
 
   # etcd Configuration
-  etcd_ami                 = var.etcd_ami
-  etcd_instance_type       = var.etcd_instance_type
-  etcd_volume_size         = var.etcd_volume_size
-  etcd_volume_type         = var.etcd_volume_type
+  etcd_ami           = var.etcd_ami
+  etcd_instance_type = var.etcd_instance_type
+  etcd_volume_size   = var.etcd_volume_size
+  etcd_volume_type   = var.etcd_volume_type
 
   # Control Plane Configuration
-  control_plane_ami         = var.control_plane_ami
+  control_plane_ami           = var.control_plane_ami
   control_plane_instance_type = var.control_plane_instance_type
-  control_plane_volume_size  = var.control_plane_volume_size
-  control_plane_volume_type  = var.control_plane_volume_type
+  control_plane_volume_size   = var.control_plane_volume_size
+  control_plane_volume_type   = var.control_plane_volume_type
 
   # Worker Configuration
   worker_ami           = var.worker_ami
@@ -226,8 +226,8 @@ module "kubernetes_self_managed" {
   worker_volume_type   = var.worker_volume_type
 
   # Kubernetes Configuration
-  pod_cidr     = var.pod_cidr
-  service_cidr = var.service_cidr
+  pod_cidr         = var.pod_cidr
+  service_cidr     = var.service_cidr
   use_bottlerocket = var.use_bottlerocket
 
   ssh_cidr_blocks = var.ssh_cidr_blocks
@@ -243,7 +243,7 @@ module "kubernetes_self_managed" {
 module "cloudwatch" {
   source = "./modules/cloudwatch"
 
-  environment = var.environment
+  environment  = var.environment
   service_name = var.service_name
   aws_region   = var.aws_region
 
@@ -260,7 +260,7 @@ module "cloudwatch" {
   log_group_kms_key_id         = var.log_group_kms_key_id
 
   # Dashboard
-  create_dashboard = var.create_dashboard
+  create_dashboard  = var.create_dashboard
   dashboard_metrics = var.dashboard_metrics
 
   # Alarms
@@ -305,7 +305,7 @@ module "cloudwatch" {
 
 # Create Kubernetes operators for Terraform and Ansible
 module "kubernetes_operators" {
-  count = var.create_kubernetes_operators ? 1 : 0
+  count  = var.create_kubernetes_operators ? 1 : 0
   source = "./modules/kubernetes-operators"
 
   environment = var.environment
@@ -316,25 +316,25 @@ module "kubernetes_operators" {
   namespace_name   = var.operators_namespace_name
 
   # Terraform Operator
-  create_terraform_operator = var.create_terraform_operator
-  terraform_operator_image  = var.terraform_operator_image
-  terraform_operator_replicas = var.terraform_operator_replicas
-  terraform_operator_cpu_request = var.terraform_operator_cpu_request
+  create_terraform_operator         = var.create_terraform_operator
+  terraform_operator_image          = var.terraform_operator_image
+  terraform_operator_replicas       = var.terraform_operator_replicas
+  terraform_operator_cpu_request    = var.terraform_operator_cpu_request
   terraform_operator_memory_request = var.terraform_operator_memory_request
-  terraform_operator_cpu_limit = var.terraform_operator_cpu_limit
-  terraform_operator_memory_limit = var.terraform_operator_memory_limit
-  terraform_state_bucket = var.state_bucket_name
-  terraform_state_table  = var.state_table_name
+  terraform_operator_cpu_limit      = var.terraform_operator_cpu_limit
+  terraform_operator_memory_limit   = var.terraform_operator_memory_limit
+  terraform_state_bucket            = var.state_bucket_name
+  terraform_state_table             = var.state_table_name
 
   # Ansible Operator
-  create_ansible_operator = var.create_ansible_operator
-  ansible_operator_image  = var.ansible_operator_image
-  ansible_operator_replicas = var.ansible_operator_replicas
-  ansible_operator_cpu_request = var.ansible_operator_cpu_request
+  create_ansible_operator         = var.create_ansible_operator
+  ansible_operator_image          = var.ansible_operator_image
+  ansible_operator_replicas       = var.ansible_operator_replicas
+  ansible_operator_cpu_request    = var.ansible_operator_cpu_request
   ansible_operator_memory_request = var.ansible_operator_memory_request
-  ansible_operator_cpu_limit = var.ansible_operator_cpu_limit
-  ansible_operator_memory_limit = var.ansible_operator_memory_limit
-  ansible_vault_password = var.ansible_vault_password
+  ansible_operator_cpu_limit      = var.ansible_operator_cpu_limit
+  ansible_operator_memory_limit   = var.ansible_operator_memory_limit
+  ansible_vault_password          = var.ansible_vault_password
 
   common_labels = var.tags
 }
@@ -345,39 +345,39 @@ module "kubernetes_operators" {
 
 # Create ELK stack for logging
 module "elk" {
-  count = var.create_elk_stack ? 1 : 0
+  count  = var.create_elk_stack ? 1 : 0
   source = "./modules/elk"
 
-  environment = var.environment
+  environment    = var.environment
   namespace_name = var.elk_namespace_name
 
   # Elasticsearch Configuration
-  create_elasticsearch = var.create_elasticsearch
-  elasticsearch_replicas = var.elasticsearch_replicas
-  elasticsearch_cluster_name = var.elasticsearch_cluster_name
-  elasticsearch_heap_size = var.elasticsearch_heap_size
-  elasticsearch_cpu_request = var.elasticsearch_cpu_request
+  create_elasticsearch         = var.create_elasticsearch
+  elasticsearch_replicas       = var.elasticsearch_replicas
+  elasticsearch_cluster_name   = var.elasticsearch_cluster_name
+  elasticsearch_heap_size      = var.elasticsearch_heap_size
+  elasticsearch_cpu_request    = var.elasticsearch_cpu_request
   elasticsearch_memory_request = var.elasticsearch_memory_request
-  elasticsearch_cpu_limit = var.elasticsearch_cpu_limit
-  elasticsearch_memory_limit = var.elasticsearch_memory_limit
-  elasticsearch_storage_size = var.elasticsearch_storage_size
+  elasticsearch_cpu_limit      = var.elasticsearch_cpu_limit
+  elasticsearch_memory_limit   = var.elasticsearch_memory_limit
+  elasticsearch_storage_size   = var.elasticsearch_storage_size
 
   # Logstash Configuration
-  create_logstash = var.create_logstash
-  logstash_replicas = var.logstash_replicas
-  logstash_heap_size = var.logstash_heap_size
-  logstash_cpu_request = var.logstash_cpu_request
+  create_logstash         = var.create_logstash
+  logstash_replicas       = var.logstash_replicas
+  logstash_heap_size      = var.logstash_heap_size
+  logstash_cpu_request    = var.logstash_cpu_request
   logstash_memory_request = var.logstash_memory_request
-  logstash_cpu_limit = var.logstash_cpu_limit
-  logstash_memory_limit = var.logstash_memory_limit
+  logstash_cpu_limit      = var.logstash_cpu_limit
+  logstash_memory_limit   = var.logstash_memory_limit
 
   # Kibana Configuration
-  create_kibana = var.create_kibana
-  kibana_replicas = var.kibana_replicas
-  kibana_cpu_request = var.kibana_cpu_request
+  create_kibana         = var.create_kibana
+  kibana_replicas       = var.kibana_replicas
+  kibana_cpu_request    = var.kibana_cpu_request
   kibana_memory_request = var.kibana_memory_request
-  kibana_cpu_limit = var.kibana_cpu_limit
-  kibana_memory_limit = var.kibana_memory_limit
+  kibana_cpu_limit      = var.kibana_cpu_limit
+  kibana_memory_limit   = var.kibana_memory_limit
 
   # Filebeat Configuration
   create_filebeat = var.create_filebeat
@@ -397,29 +397,29 @@ module "ansible_vault" {
   aws_region  = var.aws_region
 
   # Vault Configuration
-  create_vault_password = var.create_ansible_vault_password
+  create_vault_password         = var.create_ansible_vault_password
   vault_password_parameter_name = var.ansible_vault_password_parameter_name
-  vault_password_value = var.ansible_vault_password_value
-  kms_key_id = var.ansible_vault_kms_key_id
+  vault_password_value          = var.ansible_vault_password_value
+  kms_key_id                    = var.ansible_vault_kms_key_id
 
   # File Generation
   create_ansible_config = var.create_ansible_config
-  create_group_vars = var.create_group_vars
+  create_group_vars     = var.create_group_vars
   create_vault_template = var.create_vault_template
-  create_documentation = var.create_documentation
-  ansible_directory = var.ansible_directory
+  create_documentation  = var.create_documentation
+  ansible_directory     = var.ansible_directory
 
   # Database Configuration for group_vars
-  db_host = module.rds.db_instance_endpoint
-  db_port = module.rds.db_instance_port
-  db_name = module.rds.db_instance_name
-  db_user = module.rds.db_instance_username
+  db_host                  = module.rds.db_instance_endpoint
+  db_port                  = module.rds.db_instance_port
+  db_name                  = module.rds.db_instance_name
+  db_user                  = module.rds.db_instance_username
   rds_password_placeholder = var.ansible_rds_password_placeholder
 
   # AWS Credentials for vault injection
-  aws_access_key_id = var.aws_access_key_id
+  aws_access_key_id     = var.aws_access_key_id
   aws_secret_access_key = var.aws_secret_access_key
-  aws_session_token = var.aws_session_token
+  aws_session_token     = var.aws_session_token
 
   tags = var.tags
 }

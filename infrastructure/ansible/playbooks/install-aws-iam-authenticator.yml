@@ -15,40 +15,41 @@
 
   tasks:
     - name: Check if running as root
-      fail:
+      ansible.builtin.fail:
         msg: "This playbook must be run as root to install system binaries"
       when: ansible_user_id != "root"
 
     - name: Detect OS family
-      set_fact:
+      ansible.builtin.set_fact:
         os_family: "{{ ansible_os_family }}"
 
     - name: Set download URL based on OS
-      set_fact:
+      ansible.builtin.set_fact:
         download_url: >-
-          {%- if os_family == "RedHat" or os_family == "CentOS" or os_family == "Amazon" -%}
-          https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v{{ aws_iam_authenticator_version }}/aws-iam-authenticator_{{ aws_iam_authenticator_version }}_linux_amd64
-          {%- elif os_family == "Debian" or os_family == "Ubuntu" -%}
-          https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v{{ aws_iam_authenticator_version }}/aws-iam-authenticator_{{ aws_iam_authenticator_version }}_linux_amd64
+          {%- set base = "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v" ~ aws_iam_authenticator_version -%}
+          {%- set linux = base ~ "/aws-iam-authenticator_" ~ aws_iam_authenticator_version ~ "_linux_amd64" -%}
+          {%- set darwin = base ~ "/aws-iam-authenticator_" ~ aws_iam_authenticator_version ~ "_darwin_amd64" -%}
+          {%- if os_family in ["RedHat","CentOS","Amazon","Debian","Ubuntu"] -%}
+          {{ linux }}
           {%- elif os_family == "Darwin" -%}
-          https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v{{ aws_iam_authenticator_version }}/aws-iam-authenticator_{{ aws_iam_authenticator_version }}_darwin_amd64
+          {{ darwin }}
           {%- else -%}
-          https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v{{ aws_iam_authenticator_version }}/aws-iam-authenticator_{{ aws_iam_authenticator_version }}_linux_amd64
+          {{ linux }}
           {%- endif -%}
 
     - name: Check if aws-iam-authenticator is already installed
-      command: aws-iam-authenticator version
+      ansible.builtin.command: aws-iam-authenticator version
       register: existing_install
-      ignore_errors: yes
+      ignore_errors: true
       changed_when: false
 
     - name: Display existing version
-      debug:
+      ansible.builtin.debug:
         msg: "AWS IAM Authenticator is already installed: {{ existing_install.stdout }}"
       when: existing_install.rc == 0
 
     - name: Download AWS IAM Authenticator
-      get_url:
+      ansible.builtin.get_url:
         url: "{{ download_url }}"
         dest: "/tmp/aws-iam-authenticator"
         mode: '0755'
@@ -56,26 +57,26 @@
       when: existing_install.rc != 0
 
     - name: Install AWS IAM Authenticator
-      copy:
+      ansible.builtin.copy:
         src: "/tmp/aws-iam-authenticator"
         dest: "{{ install_dir }}/aws-iam-authenticator"
         mode: '0755'
         owner: root
         group: root
-        remote_src: yes
+        remote_src: true
       when: existing_install.rc != 0
 
     - name: Verify installation
-      command: aws-iam-authenticator version
+      ansible.builtin.command: aws-iam-authenticator version
       register: install_verification
       changed_when: false
 
     - name: Display installed version
-      debug:
+      ansible.builtin.debug:
         msg: "AWS IAM Authenticator installed successfully: {{ install_verification.stdout }}"
 
     - name: Create configuration directory
-      file:
+      ansible.builtin.file:
         path: "{{ config_dir }}"
         state: directory
         mode: '0755'
@@ -83,7 +84,7 @@
         group: root
 
     - name: Create AWS IAM Authenticator configuration
-      copy:
+      ansible.builtin.copy:
         content: |
           # AWS IAM Authenticator configuration
           clusterID: {{ cluster_name }}
@@ -111,7 +112,7 @@
         group: root
 
     - name: Create kubeconfig for AWS IAM Authenticator
-      copy:
+      ansible.builtin.copy:
         content: |
           apiVersion: v1
           clusters:
@@ -145,7 +146,7 @@
         group: root
 
     - name: Create OIDC identity provider configuration
-      copy:
+      ansible.builtin.copy:
         content: |
           # OIDC Identity Provider Configuration
           # This configuration enables OIDC integration for Kubernetes authentication
@@ -170,7 +171,7 @@
         group: root
 
     - name: Create IAM roles for Kubernetes
-      copy:
+      ansible.builtin.copy:
         content: |
           # IAM Roles for Kubernetes Authentication
           
@@ -230,7 +231,7 @@
         group: root
 
     - name: Create Kubernetes RBAC configuration
-      copy:
+      ansible.builtin.copy:
         content: |
           # Kubernetes RBAC Configuration for AWS IAM Authenticator
           
@@ -280,7 +281,7 @@
         group: root
 
     - name: Create deployment manifest
-      copy:
+      ansible.builtin.copy:
         content: |
           # AWS IAM Authenticator Deployment
           
@@ -360,7 +361,7 @@
         group: root
 
     - name: Create service manifest
-      copy:
+      ansible.builtin.copy:
         content: |
           # AWS IAM Authenticator Service
           
@@ -386,7 +387,7 @@
         group: root
 
     - name: Create installation script
-      copy:
+      ansible.builtin.copy:
         content: |
           #!/bin/bash
           # Install AWS IAM Authenticator on Kubernetes cluster
@@ -421,12 +422,12 @@
         group: root
 
     - name: Clean up temporary files
-      file:
+      ansible.builtin.file:
         path: "/tmp/aws-iam-authenticator"
         state: absent
 
     - name: Display completion message
-      debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           AWS IAM Authenticator installation complete!

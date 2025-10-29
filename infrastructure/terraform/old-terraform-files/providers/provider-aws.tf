@@ -5,7 +5,7 @@
 provider "aws" {
   region  = var.aws_region
   profile = var.aws_profile != null ? var.aws_profile : null
-  
+
   default_tags {
     tags = {
       Environment = var.environment
@@ -21,7 +21,7 @@ provider "aws" {
   alias   = "us_west_2"
   region  = "us-west-2"
   profile = var.aws_profile != null ? var.aws_profile : null
-  
+
   default_tags {
     tags = {
       Environment = var.environment
@@ -37,7 +37,7 @@ provider "aws" {
   alias   = "eu_west_1"
   region  = "eu-west-1"
   profile = var.aws_profile != null ? var.aws_profile : null
-  
+
   default_tags {
     tags = {
       Environment = var.environment

@@ -5,24 +5,24 @@ data "cloudinit_config" "ec2_user_data" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/cloudinit.yml", {
-      environment = var.environment
-      service_name = var.service_name
-      ssh_public_key = tls_private_key.ec2_ssh_key.public_key_openssh
+    content = templatefile("${path.module}/cloudinit.yml", {
+      environment       = var.environment
+      service_name      = var.service_name
+      ssh_public_key    = tls_private_key.ec2_ssh_key.public_key_openssh
       ec2_user_password = random_password.ec2_user_password.result
     })
   }
 
   part {
     content_type = "text/x-shellscript"
-    content      = templatefile("${path.module}/cloudinit-script.sh", {
-      environment = var.environment
-      service_name = var.service_name
-      db_host = aws_db_instance.aws_rds_mysql_8.address
-      db_port = aws_db_instance.aws_rds_mysql_8.port
-      db_name = aws_db_instance.aws_rds_mysql_8.db_name
-      db_user = aws_db_instance.aws_rds_mysql_8.username
-      db_password_param = aws_ssm_parameter.db_password.name
+    content = templatefile("${path.module}/cloudinit-script.sh", {
+      environment        = var.environment
+      service_name       = var.service_name
+      db_host            = aws_db_instance.aws_rds_mysql_8.address
+      db_port            = aws_db_instance.aws_rds_mysql_8.port
+      db_name            = aws_db_instance.aws_rds_mysql_8.db_name
+      db_user            = aws_db_instance.aws_rds_mysql_8.username
+      db_password_param  = aws_ssm_parameter.db_password.name
       ecr_repository_url = aws_ecr_repository.go_mysql_api.repository_url
     })
   }
@@ -132,29 +132,29 @@ resource "aws_instance" "go_mysql_api" {
   associate_public_ip_address = var.associate_public_ip_address
   key_name                    = aws_key_pair.ec2_key_pair.key_name
   iam_instance_profile        = aws_iam_instance_profile.instance_profile.name
-  
+
   vpc_security_group_ids = [
     aws_security_group.main_vpc_sg.id
   ]
-  
+
   root_block_device {
     delete_on_termination = true
-    volume_size = 10
-    volume_type = "gp3"
+    volume_size           = 10
+    volume_type           = "gp3"
   }
 
   user_data = data.cloudinit_config.ec2_user_data.rendered
 
   tags = {
-    Name = "${var.environment}-${var.service_name}-instance"
-    Instance_OS   = var.instance_os
+    Name        = "${var.environment}-${var.service_name}-instance"
+    Instance_OS = var.instance_os
     Environment = var.environment
-    Service = var.service_name
-    CreatedBy = var.infra_builder
+    Service     = var.service_name
+    CreatedBy   = var.infra_builder
   }
-  
+
   depends_on = [
-    aws_security_group.main_vpc_sg, 
+    aws_security_group.main_vpc_sg,
     aws_key_pair.ec2_key_pair,
     null_resource.create_ssh_keys_dir
   ]

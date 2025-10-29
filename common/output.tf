@@ -62,7 +62,7 @@ output "rds_sg_id" {
 }
 
 output "rds_instance_id" {
-  value = aws_db_instance.mysql_8.id
+  value       = aws_db_instance.mysql_8.id
   description = "The ID of the RDS instance"
 }
 

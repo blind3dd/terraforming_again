@@ -11,7 +11,7 @@ variable "environment" {
   description = "Environment name (dev, test, prod, sandbox)"
   type        = string
   default     = "dev"
-  
+
   validation {
     condition     = contains(["dev", "test", "prod", "sandbox"], var.environment)
     error_message = "Environment must be one of: dev, test, prod, sandbox."

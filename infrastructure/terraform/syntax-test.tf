@@ -3,7 +3,7 @@
 
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -19,7 +19,7 @@ data "aws_caller_identity" "current" {}
 locals {
   test_value = "hello-world"
   test_tags = {
-    Name = "test-resource"
+    Name        = "test-resource"
     Environment = "test"
   }
 }
