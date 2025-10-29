@@ -69,5 +69,6 @@ enable_nat_gateway = true
 # DOMAIN AND DNS CONFIGURATION
 # =============================================================================
 
-domain_name = "coderedalarmtech.com"
+# Note: domain_name is already set above for DHCP options
+# If you need a different domain for Route53, consider adding a separate variable
 route53_zone_id = ""  # Set this in your environment or SSM

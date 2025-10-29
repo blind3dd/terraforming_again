@@ -212,16 +212,33 @@
             mkdir -p .nix/bin
             ln -sf $(which go) .nix/bin/go 2>/dev/null || true
             ln -sf $(which gopls) .nix/bin/gopls 2>/dev/null || true
-            ln -sf $(which tofu) .nix/bin/terraform 2>/dev/null || true
+            # Create terraform symlink (alias to tofu) - ensure it's in PATH
+            if command -v tofu >/dev/null 2>&1; then
+                ln -sf $(which tofu) .nix/bin/terraform 2>/dev/null || true
+                # Also create a wrapper script for better compatibility
+                cat > .nix/bin/terraform-wrapper << 'EOF'
+#!/usr/bin/env bash
+# Terraform wrapper that calls OpenTofu
+exec tofu "$@"
+EOF
+                chmod +x .nix/bin/terraform-wrapper
+                # Use wrapper as primary terraform command
+                ln -sf .nix/bin/terraform-wrapper .nix/bin/terraform 2>/dev/null || true
+            fi
             ln -sf $(which kubectl) .nix/bin/kubectl 2>/dev/null || true
             ln -sf $(which ansible) .nix/bin/ansible 2>/dev/null || true
             ln -sf $(which aws) .nix/bin/aws 2>/dev/null || true
             ln -sf $(which az) .nix/bin/az 2>/dev/null || true
 
             # Add OpenTofu to PATH for terraform compatibility
+            # Alias and function for better shell integration
             if command -v tofu >/dev/null 2>&1; then
                 alias terraform='tofu'
+                terraform() {
+                    tofu "$@"
+                }
                 echo "✅ OpenTofu available (terraform commands work)"
+                echo "   terraform → tofu (alias and function)"
             fi
 
             # Setup AWS profile helper

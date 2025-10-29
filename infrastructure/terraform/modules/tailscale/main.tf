@@ -115,7 +115,7 @@ resource "aws_ssm_parameter" "tailscale_acl" {
       "aws-subnet-router" = "100.64.0.2"
     },
     "subnet_routes" = {
-      var.vpc_cidr = ["aws-subnet-router"]
+      "${var.vpc_cidr}" = "aws-subnet-router"
     }
   })
 
@@ -136,7 +136,7 @@ resource "aws_route53_record" "tailscale_router" {
   count = var.route53_zone_id != "" ? 1 : 0
 
   zone_id = var.route53_zone_id
-  name    = "tailscale-router.${var.domain_name}"
+  name    = "router.${var.domain_name}"
   type    = "A"
   ttl     = 300
   records = [aws_instance.tailscale_subnet_router.private_ip]

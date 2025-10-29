@@ -35,13 +35,11 @@ terraform {
     }
   }
 
-  # S3 Backend Configuration
-  backend "s3" {
-    bucket         = "terraform-state-bucket"
-    key            = "test/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-state-lock"
-    encrypt        = true
+  # Local Backend Configuration with Workspace Support
+  # Terraform automatically stores workspace state files in:
+  # .terraform.tfstate.d/<workspace>/terraform.tfstate
+  backend "local" {
+    path = "terraform.tfstate"
   }
 }
 
@@ -139,14 +137,16 @@ module "tailscale" {
   count  = var.enable_tailscale ? 1 : 0
   source = "../../modules/tailscale"
 
-  vpc_id                    = module.networking.vpc_id
-  private_subnet_ids        = module.networking.private_subnet_ids
-  tailscale_auth_key        = var.tailscale_auth_key
-  vpc_cidr                  = var.vpc_cidr
-  public_subnet_cidrs       = var.public_subnet_cidrs
-  private_subnet_cidrs      = var.private_subnet_cidrs
-  domain_name               = var.domain_name
-  route53_zone_id           = var.route53_zone_id
-  name_prefix               = local.name_prefix
-  common_tags               = local.common_tags
+  environment                = var.environment
+  service_name               = var.service_name
+  vpc_id                     = module.networking.vpc_id
+  private_subnet_ids         = module.networking.private_subnet_ids
+  tailscale_auth_key         = var.tailscale_auth_key
+  vpc_cidr                   = var.vpc_cidr
+  public_subnet_cidrs        = var.public_subnet_cidrs
+  private_subnet_cidrs       = var.private_subnet_cidrs
+  domain_name                = var.domain_name
+  route53_zone_id            = var.route53_zone_id
+  name_prefix                = local.name_prefix
+  common_tags                = local.common_tags
 }
