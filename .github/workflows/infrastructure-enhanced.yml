@@ -156,8 +156,21 @@ jobs:
     - name: Terraform Init
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
       run: |
-        terraform init -upgrade
+        set -e
+        echo "Initializing Terraform providers..."
+        terraform init -upgrade -input=false -get=true -get-plugins=true
+        echo "Terraform init completed"
+        echo "Checking provider installation..."
+        if [ -d ".terraform/providers" ]; then
+          echo "Providers directory exists:"
+          find .terraform/providers -type f -name "*.zip" | head -5 || echo "No provider packages found"
+        else
+          echo "ERROR: .terraform/providers directory not found after init!"
+          exit 1
+        fi
+        echo "Selecting or creating workspace..."
         terraform workspace select ${{ github.event.inputs.environment || 'test' }} || terraform workspace new ${{ github.event.inputs.environment || 'test' }}
+        terraform version
       
     - name: Terraform Format Check
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
@@ -166,9 +179,14 @@ jobs:
     - name: Terraform Validate
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
       run: |
-        # Ensure providers are initialized and workspace is selected
-        terraform init -upgrade
+        set -e
+        # Ensure providers are initialized - reinit if needed
+        if [ ! -d ".terraform/providers" ] || [ -z "$(ls -A .terraform/providers 2>/dev/null)" ]; then
+          echo "Providers not found, reinitializing..."
+          terraform init -upgrade -input=false
+        fi
         terraform workspace select ${{ github.event.inputs.environment || 'test' }} || terraform workspace new ${{ github.event.inputs.environment || 'test' }}
+        echo "Running terraform validate..."
         terraform validate
       
     - name: Terraform Security Scan
@@ -214,7 +232,7 @@ jobs:
             planOutput = 'Error generating plan output';
           }
           
-          const output = `#### Terraform Plan 📋
+          const output = `#### Terraform Plan
           *Workflow: \`${{ github.workflow }}\`*
           *Environment: \`${{ github.event.inputs.environment || 'test' }}\`*
           
