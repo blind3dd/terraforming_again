@@ -79,6 +79,7 @@ jobs:
   terraform-validate:
     name: Terraform Validation
     runs-on: ubuntu-latest
+    environment: AWS_ROLE_TO_ASSUME
     
     steps:
     - name: Checkout code
