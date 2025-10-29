@@ -122,7 +122,7 @@
 
     - name: Check YubiKey presence
       ansible.builtin.command: ykman info
-      register: yubikey_check
+  register: yubikey_check
       failed_when: false
       changed_when: false
 
@@ -132,7 +132,7 @@
 
     - name: Verify AWS CLI configuration
       ansible.builtin.command: aws sts get-caller-identity
-      register: aws_identity
+  register: aws_identity
       failed_when: false
       changed_when: false
 

@@ -10,7 +10,7 @@
         kind: Deployment
         namespace: kube-system
         name: coredns
-      register: coredns_deployment
+  register: coredns_deployment
       until: >-
         coredns_deployment.resources |
         selectattr('status.conditions') |
@@ -63,7 +63,7 @@
         kind: Deployment
         namespace: kube-system
         name: coredns
-      register: coredns_restart
+  register: coredns_restart
       until: >-
         coredns_restart.resources |
         selectattr('status.conditions') |
@@ -80,7 +80,7 @@
         namespace: kube-system
         label_selectors:
           - k8s-app=kube-dns
-      register: coredns_pods
+  register: coredns_pods
 
     - name: Display CoreDNS status
       ansible.builtin.debug:
@@ -90,7 +90,7 @@
     - name: Test CoreDNS functionality
       ansible.builtin.shell: |
         kubectl run test-dns --image=busybox --rm -i --restart=Never -- nslookup kubernetes.default.svc.cluster.local
-      register: dns_test
+  register: dns_test
       failed_when: dns_test.rc != 0
       changed_when: false
 

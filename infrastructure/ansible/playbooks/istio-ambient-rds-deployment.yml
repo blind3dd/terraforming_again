@@ -28,25 +28,25 @@
 
   tasks:
     - name: Check if kubectl is available
-  ansible.builtin.command: which kubectl
-      register: kubectl_check
+    ansible.builtin.command: which kubectl
+  register: kubectl_check
       failed_when: kubectl_check.rc != 0
       changed_when: false
 
     - name: Check if Kubernetes cluster is running
-  ansible.builtin.command: kubectl cluster-info
-      register: cluster_check
+    ansible.builtin.command: kubectl cluster-info
+  register: cluster_check
       failed_when: cluster_check.rc != 0
       changed_when: false
 
     - name: Check if Istio is installed
-  ansible.builtin.command: kubectl get namespace istio-system
-      register: istio_check
+    ansible.builtin.command: kubectl get namespace istio-system
+  register: istio_check
       failed_when: istio_check.rc != 0
       changed_when: false
 
     - name: Create seccomp profiles directory
-  ansible.builtin.file:
+    ansible.builtin.file:
         path: /var/lib/kubelet/seccomp/profiles
         state: directory
         mode: '0755'
@@ -55,7 +55,7 @@
       become: true
 
     - name: Copy seccomp profiles to Kubernetes directory
-  ansible.builtin.copy:
+    ansible.builtin.copy:
         src: "{{ item }}"
         dest: "/var/lib/kubelet/seccomp/profiles/"
         mode: '0644'
@@ -75,7 +75,7 @@
       ignore_errors: true
 
     - name: Create symlinks for easier access
-  ansible.builtin.file:
+    ansible.builtin.file:
         src: "/var/lib/kubelet/seccomp/profiles/{{ item.src }}"
         dest: "/var/lib/kubelet/seccomp/profiles/{{ item.dest }}"
         state: link
@@ -487,10 +487,10 @@
         kind: Deployment
         name: "{{ app_name }}"
         namespace: "{{ namespace }}"
-      register: deployment_info
+  register: deployment_info
 
     - name: Display deployment status
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Deployment {{ app_name }} is {{ deployment_info.resources[0].status.conditions[0].status }}"
 
     - name: Get pod information
@@ -500,10 +500,10 @@
         namespace: "{{ namespace }}"
         label_selectors:
           - "app={{ app_name }}"
-      register: pod_info
+  register: pod_info
 
     - name: Display pod information
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Pods: {{ pod_info.resources | map(attribute='metadata.name') | list }}"
 
     - name: Check seccomp profile in pod
@@ -513,10 +513,10 @@
         namespace: "{{ namespace }}"
         label_selectors:
           - "app={{ app_name }}"
-      register: pod_seccomp_info
+  register: pod_seccomp_info
 
     - name: Display seccomp profile information
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Seccomp profile: {{ pod_seccomp_info.resources[0].spec.containers[0].securityContext.seccompProfile.localhostProfile }}"
 
     - name: Create ConfigMap with seccomp profiles for reference
@@ -536,7 +536,7 @@
       ignore_errors: true
 
     - name: Display deployment summary
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: |
           ========================================
           Istio Ambient Mode RDS Application Deployed Successfully!

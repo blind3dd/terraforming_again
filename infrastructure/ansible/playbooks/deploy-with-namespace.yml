@@ -20,7 +20,7 @@
 
   tasks:
     - name: Display namespace strategy
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg:
           - "Namespace Strategy:"
           - "  Environment: {{ environment }}"
@@ -53,13 +53,13 @@
         wait: true
 
     - name: Apply Kustomize patches (environment-specific)
-  ansible.builtin.shell: |
+    ansible.builtin.shell: |
         kustomize build "{{ kustomize_path }}" | kubectl apply -f -
-      register: kustomize_apply
+  register: kustomize_apply
       changed_when: kustomize_apply.rc == 0
 
     - name: Display deployment summary
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg:
           - "✅ Deployment completed with namespace strategy"
           - "Namespace: {{ namespace }}"

@@ -1,7 +1,7 @@
 ---
 # Main tasks for Kubernetes role
 - name: Create namespace for Kubernetes resources
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     name: "{{ k8s_namespace }}"
     api_version: v1
     kind: Namespace
@@ -13,59 +13,59 @@
 
 # Include CNI configuration
 - name: Configure CNI (Calico + Flannel)
-  ansible.builtin.include_tasks: cni.yml
+    ansible.builtin.include_tasks: cni.yml
   tags: [cni, networking]
 
 # Include CoreDNS configuration
 - name: Configure CoreDNS
-  ansible.builtin.include_tasks: coredns.yml
+    ansible.builtin.include_tasks: coredns.yml
   tags: [coredns, dns]
 
 - name: Deploy Istio Ambient Configuration
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-ambient-config.yml.j2"
   when: deploy_istio_ambient | default(true)
   notify: restart istio services
 
 - name: Deploy Istio Ambient RDS Pod
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-ambient-rds-pod.yml.j2"
   when: deploy_istio_ambient | default(true)
 
 - name: Deploy Istio RDS Connection Secure
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/istio-rds-connection-secure.yml.j2"
   when: deploy_istio_secure_connection | default(true)
 
 - name: Deploy macOS Local Security Configuration
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/macos-local-security.yml.j2"
   when: deploy_macos_security | default(false)
 
 - name: Deploy RDS Service Catalog (No Headless)
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/rds-service-catalog-no-headless.yml.j2"
   when: deploy_rds_service_catalog | default(true)
 
 - name: Deploy Secure Pod Example
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/secure-pod-example.yml.j2"
   when: deploy_secure_pod_example | default(true)
 
 - name: Deploy Service Catalog RDS Secure
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     state: present
     src: "{{ playbook_dir }}/../templates/service-catalog-rds-secure.yml.j2"
   when: deploy_service_catalog_rds_secure | default(true)
 
 - name: Wait for deployments to be ready
-  kubernetes.core.k8s_info:
+    kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
     namespace: "{{ k8s_namespace }}"
@@ -76,7 +76,7 @@
   when: deployments.resources | length > 0
 
 - name: Display deployment status
-  ansible.builtin.debug:
+    ansible.builtin.debug:
     msg: "Deployment {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
   loop: "{{ deployments.resources }}"
   when: deployments.resources | length > 0

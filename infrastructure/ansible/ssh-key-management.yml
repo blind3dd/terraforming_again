@@ -23,13 +23,13 @@
       amazon.aws.ssm_parameter_info:
         name: "/{{ environment }}/{{ service_name }}/ssh/private_key"
         with_decryption: true
-      register: ssh_private_key_param
+  register: ssh_private_key_param
       delegate_to: localhost
 
     - name: Get SSH public key from SSM
       amazon.aws.ssm_parameter_info:
         name: "/{{ environment }}/{{ service_name }}/ssh/public_key"
-      register: ssh_public_key_param
+  register: ssh_public_key_param
       delegate_to: localhost
 
     - name: Create SSH private key file
@@ -73,7 +73,7 @@
     - name: Test SSH key functionality
       ansible.builtin.command: ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 localhost echo "SSH key test successful"
       become_user: ec2-user
-      register: ssh_test
+  register: ssh_test
       failed_when: false
       changed_when: false
 

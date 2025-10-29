@@ -21,7 +21,7 @@
         kind: Deployment
         namespace: tigera-operator
         name: tigera-operator
-      register: calico_operator
+  register: calico_operator
       until: >-
         calico_operator.resources |
         selectattr('status.conditions') |
@@ -48,7 +48,7 @@
         kind: DaemonSet
         namespace: calico-system
         name: calico-node
-      register: calico_daemonset
+  register: calico_daemonset
       until: >-
         calico_daemonset.resources |
         selectattr('status.numberReady') |
@@ -84,7 +84,7 @@
         kind: DaemonSet
         namespace: kube-flannel
         name: kube-flannel-ds
-      register: flannel_daemonset
+  register: flannel_daemonset
       until: >-
         flannel_daemonset.resources |
         selectattr('status.numberReady') |
@@ -129,7 +129,7 @@
         namespace: "{{ item.namespace }}"
         label_selectors:
           - "{{ item.label }}"
-      register: cni_pods
+  register: cni_pods
       loop:
         - namespace: "calico-system"
           label: "k8s-app=calico-node"

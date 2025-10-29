@@ -35,7 +35,7 @@
 
   pre_tasks:
     - name: Display deployment information
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg:
           - "Deploying operators to cluster: {{ k8s_cluster_name }}"
           - "Namespace: {{ operators_namespace }}"
@@ -47,11 +47,11 @@
       kubernetes.core.k8s_info:
         api_version: v1
         kind: Node
-      register: cluster_nodes
+  register: cluster_nodes
       failed_when: cluster_nodes.resources | length == 0
 
     - name: Display cluster information
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg:
           - "Connected to cluster with {{ cluster_nodes.resources | length }} nodes"
           - "Nodes: {{ cluster_nodes.resources | map(attribute='metadata.name') | list }}"
@@ -60,23 +60,23 @@
     - name: Install Helm if not present
       block:
         - name: Check if Helm is installed
-  ansible.builtin.command: helm version --short
-          register: helm_check
+    ansible.builtin.command: helm version --short
+  register: helm_check
           failed_when: false
           changed_when: false
 
         - name: Install Helm
-  ansible.builtin.shell: |
+    ansible.builtin.shell: |
             curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           when: helm_check.rc != 0
 
         - name: Verify Helm installation
-  ansible.builtin.command: helm version --short
-          register: helm_version
+    ansible.builtin.command: helm version --short
+  register: helm_version
           changed_when: false
 
         - name: Display Helm version
-  ansible.builtin.debug:
+    ansible.builtin.debug:
             msg: "Helm version: {{ helm_version.stdout }}"
 
     - name: Add Helm repositories
@@ -329,7 +329,7 @@
           - app.kubernetes.io/name=terraform-operator
           - app.kubernetes.io/name=vault-operator
           - app.kubernetes.io/name=ansible-operator
-      register: operator_deployments
+  register: operator_deployments
       until: operator_deployments.resources | length >= 3
       retries: 30
       delay: 10
@@ -339,36 +339,36 @@
         api_version: apps/v1
         kind: Deployment
         namespace: "{{ operators_namespace }}"
-      register: all_deployments
+  register: all_deployments
 
     - name: Display operator status
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Operator {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
       loop: "{{ all_deployments.resources }}"
       when: item.metadata.name in ['terraform-operator', 'vault-operator', 'ansible-operator']
 
   post_tasks:
     - name: Display Helm releases
-  ansible.builtin.shell: helm list -n "{{ operators_namespace }}"
-      register: helm_releases
+    ansible.builtin.shell: helm list -n "{{ operators_namespace }}"
+  register: helm_releases
       changed_when: false
 
     - name: Show deployed operators
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "{{ helm_releases.stdout_lines }}"
 
     - name: Verify SSM secrets are accessible
-  ansible.builtin.shell: |
+    ansible.builtin.shell: |
         kubectl get secret ansible-vault-password -n {{ operators_namespace }} -o jsonpath='{.data.password}' | base64 -d | wc -c
-      register: vault_secret_check
+  register: vault_secret_check
       changed_when: false
 
     - name: Display SSM secret verification
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Ansible Vault password secret length: {{ vault_secret_check.stdout }} characters"
 
     - name: Operators deployment completed successfully
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg:
           - "✅ Kubernetes operators deployment completed with SSM integration"
           - "Cluster: {{ k8s_cluster_name }}"

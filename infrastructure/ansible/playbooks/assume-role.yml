@@ -23,34 +23,34 @@
 
   tasks:
     - name: Check if role ARN is provided
-  ansible.builtin.fail:
+    ansible.builtin.fail:
         msg: "role_arn is required. Use: ansible-playbook assume-role.yml -e 'role_arn=arn:aws:iam::123456789012:role/YourRole'"
       when: role_arn == ""
 
     - name: Check if AWS CLI is available
-  ansible.builtin.command: aws --version
-      register: aws_cli_check
+    ansible.builtin.command: aws --version
+  register: aws_cli_check
       changed_when: false
       failed_when: false
 
     - name: Fail if AWS CLI not available
-  ansible.builtin.fail:
+    ansible.builtin.fail:
         msg: "AWS CLI is not installed or not in PATH"
       when: aws_cli_check.rc != 0
 
     - name: Check current AWS identity
-  ansible.builtin.command: aws sts get-caller-identity
-      register: current_identity
+    ansible.builtin.command: aws sts get-caller-identity
+  register: current_identity
       changed_when: false
       failed_when: false
 
     - name: Display current AWS identity
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Current AWS identity: {{ current_identity.stdout }}"
       when: current_identity.rc == 0
 
     - name: Assume IAM role
-  ansible.builtin.command: |
+    ansible.builtin.command: |
         aws sts assume-role \
           --role-arn "{{ role_arn }}" \
           --role-session-name "{{ role_session_name }}" \
@@ -59,15 +59,15 @@
           --profile "{{ aws_profile }}"
           {% if external_id %}--external-id "{{ external_id }}"{% endif %}
           {% if mfa_serial and mfa_token %}--serial-number "{{ mfa_serial }}" --token-code "{{ mfa_token }}"{% endif %}
-      register: assume_role_result
+  register: assume_role_result
       failed_when: assume_role_result.rc != 0
 
     - name: Parse assume role response
-  ansible.builtin.set_fact:
+    ansible.builtin.set_fact:
         credentials: "{{ assume_role_result.stdout | from_json }}"
 
     - name: Display assumed role information
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: |
           Successfully assumed role:
           Role ARN: {{ credentials.AssumedRoleUser.Arn }}
@@ -77,19 +77,19 @@
     - name: Export credentials to environment variables
       block:
         - name: Set AWS_ACCESS_KEY_ID
-  ansible.builtin.set_fact:
+    ansible.builtin.set_fact:
             aws_access_key_id: "{{ credentials.Credentials.AccessKeyId }}"
 
         - name: Set AWS_SECRET_ACCESS_KEY
-  ansible.builtin.set_fact:
+    ansible.builtin.set_fact:
             aws_secret_access_key: "{{ credentials.Credentials.SecretAccessKey }}"
 
         - name: Set AWS_SESSION_TOKEN
-  ansible.builtin.set_fact:
+    ansible.builtin.set_fact:
             aws_session_token: "{{ credentials.Credentials.SessionToken }}"
 
         - name: Display environment variables
-  ansible.builtin.debug:
+    ansible.builtin.debug:
             msg: |
               Environment variables set:
               AWS_ACCESS_KEY_ID: {{ aws_access_key_id[:10] }}...
@@ -100,7 +100,7 @@
     - name: Save credentials to file
       block:
         - name: Create credentials file
-  ansible.builtin.copy:
+    ansible.builtin.copy:
             content: |
               {
                 "Version": 1,
@@ -115,20 +115,20 @@
             mode: '0600'
 
         - name: Display file location
-  ansible.builtin.debug:
+    ansible.builtin.debug:
             msg: "Credentials saved to: {{ output_file }}"
       when: save_to_file | bool
 
     - name: Create AWS credentials file for Terraform
       block:
         - name: Create AWS credentials directory
-  ansible.builtin.file:
+    ansible.builtin.file:
             path: "~/.aws"
             state: directory
             mode: '0700'
 
         - name: Create AWS credentials file
-  ansible.builtin.copy:
+    ansible.builtin.copy:
             content: |
               [assumed-role]
               aws_access_key_id = {{ credentials.Credentials.AccessKeyId }}
@@ -139,7 +139,7 @@
             mode: '0600'
 
         - name: Create AWS config file
-  ansible.builtin.copy:
+    ansible.builtin.copy:
             content: |
               [profile assumed-role]
               region = {{ aws_region }}
@@ -148,7 +148,7 @@
             mode: '0600'
 
         - name: Display profile information
-  ansible.builtin.debug:
+    ansible.builtin.debug:
             msg: |
               AWS profile 'assumed-role' created:
               Use with: aws --profile assumed-role sts get-caller-identity
@@ -156,19 +156,19 @@
       when: export_to_env | bool
 
     - name: Test assumed role credentials
-  ansible.builtin.command: aws sts get-caller-identity --profile assumed-role
-      register: test_credentials
+    ansible.builtin.command: aws sts get-caller-identity --profile assumed-role
+  register: test_credentials
       changed_when: false
       failed_when: false
       when: export_to_env | bool
 
     - name: Display test result
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Credential test result: {{ test_credentials.stdout }}"
       when: export_to_env | bool and test_credentials.rc == 0
 
     - name: Create shell script for easy role assumption
-  ansible.builtin.copy:
+    ansible.builtin.copy:
         content: |
           #!/bin/bash
           # Quick AWS Role Assumption Script
@@ -247,7 +247,7 @@
         mode: '0755'
 
     - name: Display completion message
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: |
           ✅ AWS Role Assumption completed successfully!
 

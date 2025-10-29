@@ -23,12 +23,12 @@
 
   tasks:
     - name: Check if running as root
-  ansible.builtin.fail:
+    ansible.builtin.fail:
         msg: "This playbook must be run as root to copy files to system directories"
       when: ansible_user_id != "root"
 
     - name: Create seccomp profiles directory
-  ansible.builtin.file:
+    ansible.builtin.file:
         path: "{{ seccomp_dir }}"
         state: directory
         mode: '0755'
@@ -36,7 +36,7 @@
         group: root
 
     - name: Copy seccomp profiles
-  ansible.builtin.copy:
+    ansible.builtin.copy:
         src: "{{ selinux_dir }}/{{ item }}"
         dest: "{{ seccomp_dir }}/"
         mode: '0644'
@@ -44,15 +44,15 @@
         group: root
       loop: "{{ seccomp_profiles }}"
       ignore_errors: true
-      register: copy_results
+  register: copy_results
 
     - name: Display copy results
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Copied {{ item.item }}: {{ 'Success' if item.changed else 'Skipped (file not found)' }}"
       loop: "{{ copy_results.results }}"
 
     - name: Create symlinks for easier access
-  ansible.builtin.file:
+    ansible.builtin.file:
         src: "{{ seccomp_dir }}/{{ item.src }}"
         dest: "{{ seccomp_dir }}/{{ item.dest }}"
         state: link
@@ -62,12 +62,12 @@
       ignore_errors: true
 
     - name: Verify installation
-  ansible.builtin.command: ls -la "{{ seccomp_dir }}"
-      register: ls_result
+    ansible.builtin.command: ls -la "{{ seccomp_dir }}"
+  register: ls_result
       changed_when: false
 
     - name: Display installed profiles
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "{{ ls_result.stdout_lines }}"
 
     - name: Create ConfigMap with seccomp profiles
@@ -87,7 +87,7 @@
       ignore_errors: true
 
     - name: Create test pod to verify seccomp profiles
-  ansible.builtin.copy:
+    ansible.builtin.copy:
         content: |
           apiVersion: v1
           kind: Pod
@@ -125,16 +125,16 @@
         mode: '0644'
 
     - name: Display available profiles
-  ansible.builtin.command: ls -1 "{{ seccomp_dir }}"/*.json | sed 's|.*/||' | sed 's|\.json$||' | sort
-      register: available_profiles
+    ansible.builtin.command: ls -1 "{{ seccomp_dir }}"/*.json | sed 's|.*/||' | sed 's|\.json$||' | sort
+  register: available_profiles
       changed_when: false
 
     - name: Show available seccomp profiles
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "{{ available_profiles.stdout_lines }}"
 
     - name: Display completion message
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: |
           ========================================
           Seccomp profiles setup complete!

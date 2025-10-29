@@ -3,27 +3,27 @@
 - name: Install Helm if not present
   block:
     - name: Check if Helm is installed
-  ansible.builtin.command: helm version --short
-      register: helm_check
+    ansible.builtin.command: helm version --short
+  register: helm_check
       failed_when: false
       changed_when: false
 
     - name: Install Helm
-  ansible.builtin.shell: |
+    ansible.builtin.shell: |
         curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
       when: helm_check.rc != 0
 
     - name: Verify Helm installation
-  ansible.builtin.command: helm version --short
-      register: helm_version
+    ansible.builtin.command: helm version --short
+  register: helm_version
       changed_when: false
 
     - name: Display Helm version
-  ansible.builtin.debug:
+    ansible.builtin.debug:
         msg: "Helm version: {{ helm_version.stdout }}"
 
 - name: Add Helm repositories
-  kubernetes.core.helm_repository:
+    kubernetes.core.helm_repository:
     name: "{{ item.name }}"
     repo_url: "{{ item.url }}"
   loop:
@@ -35,14 +35,14 @@
       url: https://operatorhub.io/charts
 
 - name: Create namespace for operators
-  kubernetes.core.k8s:
+    kubernetes.core.k8s:
     name: "{{ k8s_operators_namespace }}"
     api_version: v1
     kind: Namespace
     state: present
 
 - name: Install Terraform Operator
-  kubernetes.core.helm:
+    kubernetes.core.helm:
     name: terraform-operator
     chart_ref: terraform-operator/terraform-operator
     release_namespace: "{{ k8s_operators_namespace }}"
@@ -68,7 +68,7 @@
   when: install_terraform_operator | default(true)
 
 - name: Install HashiCorp Vault Operator
-  kubernetes.core.helm:
+    kubernetes.core.helm:
     name: vault-operator
     chart_ref: hashicorp/vault-operator
     release_namespace: "{{ k8s_operators_namespace }}"
@@ -108,7 +108,7 @@
   when: install_vault_operator | default(true)
 
 - name: Install Ansible Operator
-  kubernetes.core.helm:
+    kubernetes.core.helm:
     name: ansible-operator
     chart_ref: ansible-operator/ansible-operator
     release_namespace: "{{ k8s_operators_namespace }}"
@@ -137,7 +137,7 @@
   when: install_ansible_operator | default(true)
 
 - name: Wait for operators to be ready
-  kubernetes.core.k8s_info:
+    kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
     namespace: "{{ k8s_operators_namespace }}"
@@ -151,14 +151,14 @@
   delay: 10
 
 - name: Verify operator deployments
-  kubernetes.core.k8s_info:
+    kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
     namespace: "{{ k8s_operators_namespace }}"
   register: all_deployments
 
 - name: Display operator status
-  ansible.builtin.debug:
+    ansible.builtin.debug:
     msg: "Operator {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
   loop: "{{ all_deployments.resources }}"
   when: item.metadata.name in ['terraform-operator', 'vault-operator', 'ansible-operator']
