@@ -164,13 +164,16 @@ jobs:
     - name: Terraform Validate
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
       run: |
-        terraform init -upgrade || true  # Ensure providers are cached
+        # Ensure providers are initialized and workspace is selected
+        terraform init -upgrade
+        terraform workspace select ${{ github.event.inputs.environment || 'test' }} || terraform workspace new ${{ github.event.inputs.environment || 'test' }}
         terraform validate
       
     - name: Terraform Security Scan
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
       run: |
         terraform init
+        terraform workspace select ${{ github.event.inputs.environment || 'test' }} || terraform workspace new ${{ github.event.inputs.environment || 'test' }}
         terraform plan -out=tfplan -var-file=terraform.tfvars
         checkov -f tfplan --framework terraform_plan
       
