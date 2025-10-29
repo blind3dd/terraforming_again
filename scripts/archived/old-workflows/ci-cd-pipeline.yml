@@ -146,7 +146,7 @@ jobs:
     
     - name: Validate SELinux policies
       run: |
-        cd selinux/
+        cd ./infrastructure/ansible/files/selinux
         for policy in *.te; do
           echo "Validating $policy"
           checkmodule -M -m -o ${policy%.te}.mod $policy
