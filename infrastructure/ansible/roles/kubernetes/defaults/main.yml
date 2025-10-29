@@ -66,10 +66,8 @@ allowed_ntp_servers:
 
 # CNI Configuration
 install_calico: true
-install_flannel: true
 calico_version: "3.26.0"
 flannel_version: "0.22.0"
-enable_network_policies: true
 verify_cni: true
 
 # CoreDNS Configuration

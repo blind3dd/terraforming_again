@@ -6,40 +6,40 @@
   hosts: kubernetes_cluster
   become: false
   gather_facts: true
-  
+
   vars:
     # Dynamic inventory variables
     k8s_cluster_name: "{{ cluster_name | default('kubernetes-cluster') }}"
     operators_namespace: "operators-{{ environment | default('dev') }}"
     environment: "{{ env | default('dev') }}"
-    
+
     # AWS Configuration from dynamic inventory
     aws_account_id: "{{ aws_account_id | default('123456789012') }}"
     aws_region: "{{ aws_region | default('us-west-2') }}"
-    
+
     # SSM Parameter Store Configuration
     ssm_ansible_vault_password_param: "{{ ansible_vault_password_param | default('/ansible/vault/password') }}"
     ssm_aws_credentials_param: "{{ aws_credentials_param | default('/aws/credentials') }}"
     ssm_vault_token_param: "{{ vault_token_param | default('/vault/token') }}"
-    
+
     # Terraform Configuration
     terraform_state_bucket: "{{ terraform_state_bucket | default('terraform-state-bucket') }}"
     terraform_state_lock_table: "{{ terraform_state_lock_table | default('terraform-state-lock') }}"
-    
+
     # Vault Configuration
     vault_server_enabled: "{{ vault_server_enabled | default(false) }}"
     vault_server_replicas: "{{ vault_server_replicas | default(1) }}"
-    
+
     # Ansible Configuration
     ansible_inventory_path: "{{ ansible_inventory_path | default('/etc/ansible/inventory') }}"
-    
+
     # Kustomize paths
     kustomize_base_path: "{{ playbook_dir }}/../../kustomize/operators/base"
     kustomize_overlay_path: "{{ playbook_dir }}/../../kustomize/operators/overlays/{{ environment }}"
 
   pre_tasks:
     - name: Display deployment information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Deploying operators to cluster: {{ k8s_cluster_name }}"
           - "Namespace: {{ operators_namespace }}"
@@ -56,19 +56,19 @@
       failed_when: cluster_nodes.resources | length == 0
 
     - name: Display cluster information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Connected to cluster with {{ cluster_nodes.resources | length }} nodes"
           - "Nodes: {{ cluster_nodes.resources | map(attribute='metadata.name') | list }}"
 
     - name: Verify Kustomize is installed
-      command: kustomize version --short
+  ansible.builtin.command: kustomize version --short
       register: kustomize_check
       failed_when: kustomize_check.rc != 0
       changed_when: false
 
     - name: Display Kustomize version
-      debug:
+  ansible.builtin.debug:
         msg: "Kustomize version: {{ kustomize_check.stdout }}"
 
   tasks:
@@ -87,25 +87,25 @@
     - name: Retrieve secrets from SSM Parameter Store
       block:
         - name: Get Ansible Vault password from SSM
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter --name "{{ ssm_ansible_vault_password_param }}" --region "{{ aws_region }}" --with-decryption --query 'Parameter.Value' --output text
           register: ansible_vault_password_ssm
           changed_when: false
 
         - name: Get AWS Access Key ID from SSM
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter --name "{{ ssm_aws_credentials_param }}/access-key-id" --region "{{ aws_region }}" --with-decryption --query 'Parameter.Value' --output text
           register: aws_access_key_id_ssm
           changed_when: false
 
         - name: Get AWS Secret Access Key from SSM
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter --name "{{ ssm_aws_credentials_param }}/secret-access-key" --region "{{ aws_region }}" --with-decryption --query 'Parameter.Value' --output text
           register: aws_secret_access_key_ssm
           changed_when: false
 
         - name: Get Vault Token from SSM
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter --name "{{ ssm_vault_token_param }}" --region "{{ aws_region }}" --with-decryption --query 'Parameter.Value' --output text
           register: vault_token_ssm
           changed_when: false
@@ -116,19 +116,19 @@
     - name: Create environment-specific Kustomize overlay
       block:
         - name: Create environment-specific kustomization.yaml
-          template:
+  ansible.builtin.template:
             src: operators-kustomization-overlay.yml.j2
             dest: "{{ kustomize_overlay_path }}/kustomization-{{ environment }}.yaml"
             mode: '0644'
 
         - name: Create environment-specific patches
-          template:
+  ansible.builtin.template:
             src: operators-patches.yml.j2
             dest: "{{ kustomize_overlay_path }}/operators-patches-{{ environment }}.yaml"
             mode: '0644'
 
         - name: Create environment-specific resources
-          template:
+  ansible.builtin.template:
             src: operators-resources.yml.j2
             dest: "{{ kustomize_overlay_path }}/operators-resources-{{ environment }}.yaml"
             mode: '0644'
@@ -137,25 +137,25 @@
       tags: [kustomize, overlay]
 
     - name: Generate Kustomize manifests
-      shell: |
+  ansible.builtin.shell: |
         cd "{{ kustomize_overlay_path }}"
         kustomize build . > /tmp/operators-{{ environment }}-manifests.yaml
       register: kustomize_build
       changed_when: kustomize_build.rc == 0
 
     - name: Display generated manifests
-      debug:
+  ansible.builtin.debug:
         msg: "{{ kustomize_build.stdout_lines }}"
       when: kustomize_build.stdout_lines | length > 0
 
     - name: Apply Kustomize manifests
-      shell: |
+  ansible.builtin.shell: |
         kubectl apply -f /tmp/operators-{{ environment }}-manifests.yaml
       register: kubectl_apply
       changed_when: kubectl_apply.rc == 0
 
     - name: Display apply results
-      debug:
+  ansible.builtin.debug:
         msg: "{{ kubectl_apply.stdout_lines }}"
       when: kubectl_apply.stdout_lines | length > 0
 
@@ -179,7 +179,7 @@
       register: all_deployments
 
     - name: Display operator status
-      debug:
+  ansible.builtin.debug:
         msg: "Operator {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
       loop: "{{ all_deployments.resources }}"
       when: item.metadata.name in ['terraform-operator', 'vault-operator', 'ansible-operator']
@@ -192,7 +192,7 @@
       register: operator_services
 
     - name: Display service status
-      debug:
+  ansible.builtin.debug:
         msg: "Service {{ item.metadata.name }} is {{ item.spec.type }} on {{ item.spec.clusterIP }}"
       loop: "{{ operator_services.resources }}"
 
@@ -206,18 +206,18 @@
       register: operator_pods
 
     - name: Display pod status
-      debug:
+  ansible.builtin.debug:
         msg: "Pod {{ item.metadata.name }} is {{ item.status.phase }}"
       loop: "{{ operator_pods.resources }}"
 
   post_tasks:
     - name: Clean up temporary files
-      file:
+  ansible.builtin.file:
         path: "/tmp/operators-{{ environment }}-manifests.yaml"
         state: absent
 
     - name: Display deployment summary
-      debug:
+  ansible.builtin.debug:
         msg:
           - "✅ Kubernetes operators deployment completed successfully"
           - "Environment: {{ environment }}"

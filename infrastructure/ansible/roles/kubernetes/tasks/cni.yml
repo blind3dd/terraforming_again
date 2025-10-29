@@ -3,7 +3,7 @@
 - name: Install Calico CNI
   block:
     - name: Download Calico manifest
-      get_url:
+      ansible.builtin.get_url:
         url: "https://raw.githubusercontent.com/projectcalico/calico/v{{ calico_version }}/manifests/tigera-operator.yaml"
         dest: "/tmp/tigera-operator.yaml"
         mode: '0644'
@@ -25,7 +25,7 @@
       delay: 10
 
     - name: Create Calico installation manifest
-      template:
+      ansible.builtin.template:
         src: calico-installation.yml.j2
         dest: "/tmp/calico-installation.yml"
         mode: '0644'
@@ -47,7 +47,7 @@
       delay: 10
 
     - name: Display Calico status
-      debug:
+      ansible.builtin.debug:
         msg: "Calico CNI is ready with {{ calico_daemonset.resources[0].status.numberReady }} nodes"
 
   when: install_calico | default(true)
@@ -56,7 +56,7 @@
 - name: Install Flannel CNI
   block:
     - name: Download Flannel manifest
-      get_url:
+      ansible.builtin.get_url:
         url: "https://raw.githubusercontent.com/flannel-io/flannel/v{{ flannel_version }}/Documentation/kube-flannel.yml"
         dest: "/tmp/kube-flannel.yml"
         mode: '0644'
@@ -78,7 +78,7 @@
       delay: 10
 
     - name: Display Flannel status
-      debug:
+      ansible.builtin.debug:
         msg: "Flannel CNI is ready with {{ flannel_daemonset.resources[0].status.numberReady }} nodes"
 
   when: install_flannel | default(true)
@@ -121,7 +121,7 @@
           label: "app=flannel"
 
     - name: Display CNI pod status
-      debug:
+      ansible.builtin.debug:
         msg: "CNI Pod {{ item.metadata.name }} in {{ item.metadata.namespace }} is {{ item.status.phase }}"
       loop: "{{ cni_pods.results | map(attribute='resources') | flatten }}"
       when: cni_pods.results | map(attribute='resources') | flatten | length > 0

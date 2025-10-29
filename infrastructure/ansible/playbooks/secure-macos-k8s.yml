@@ -26,18 +26,18 @@
 
   tasks:
     - name: Check if running on macOS
-      fail:
+  ansible.builtin.fail:
         msg: "This playbook is designed for macOS only"
       when: ansible_os_family != "Darwin"
 
     - name: Check if kubectl is installed
-      command: which kubectl
+  ansible.builtin.command: which kubectl
       register: kubectl_check
       failed_when: kubectl_check.rc != 0
       changed_when: false
 
     - name: Check if Kubernetes cluster is running
-      command: kubectl cluster-info
+  ansible.builtin.command: kubectl cluster-info
       register: cluster_check
       failed_when: cluster_check.rc != 0
       changed_when: false
@@ -146,7 +146,7 @@
                   resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
 
     - name: Create validation script
-      copy:
+  ansible.builtin.copy:
         content: |
           #!/bin/bash
           echo "=== Kubernetes Security Check ==="
@@ -182,10 +182,10 @@
           echo "=== Security Check Complete ==="
         dest: /usr/local/bin/validate-k8s-security
         mode: '0755'
-      become: yes
+      become: true
 
     - name: Create security monitoring script
-      copy:
+  ansible.builtin.copy:
         content: |
           #!/bin/bash
           # Simple security monitor
@@ -194,12 +194,12 @@
               if kubectl logs -n kube-system --since=1m | grep -i "impersonate" > /dev/null 2>&1; then
                   echo "WARNING: Impersonation attempt detected at $(date)"
               fi
-              
+
               # Check for privilege escalation
               if kubectl logs -n kube-system --since=1m | grep -i "privilege" > /dev/null 2>&1; then
                   echo "WARNING: Privilege escalation attempt detected at $(date)"
               fi
-              
+
               sleep 60
           done
         dest: "{{ ansible_env.HOME }}/security-monitor.sh"
@@ -208,34 +208,34 @@
     - name: Configure macOS security settings
       block:
         - name: Check FileVault status
-          command: fdesetup status
+  ansible.builtin.command: fdesetup status
           register: filevault_status
           changed_when: false
-          ignore_errors: yes
+          ignore_errors: true
 
         - name: Display FileVault status
-          debug:
+  ansible.builtin.debug:
             msg: "✓ FileVault is enabled"
           when: "'FileVault is On' in filevault_status.stdout"
 
         - name: Warn about FileVault
-          debug:
+  ansible.builtin.debug:
             msg: "WARNING: FileVault is not enabled. Consider enabling it."
           when: "'FileVault is On' not in filevault_status.stdout"
 
         - name: Check firewall status
-          command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+  ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
           register: firewall_status
           changed_when: false
-          ignore_errors: yes
+          ignore_errors: true
 
         - name: Display firewall status
-          debug:
+  ansible.builtin.debug:
             msg: "✓ Firewall is enabled"
           when: "'enabled' in firewall_status.stdout"
 
         - name: Warn about firewall
-          debug:
+  ansible.builtin.debug:
             msg: "WARNING: Firewall is not enabled. Consider enabling it."
           when: "'enabled' not in firewall_status.stdout"
 
@@ -272,7 +272,7 @@
           register: rbac_check
 
     - name: Display completion message
-      debug:
+  ansible.builtin.debug:
         msg: |
           ========================================
           macOS Kubernetes security configuration complete!

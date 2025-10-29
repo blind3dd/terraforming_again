@@ -1,6 +1,6 @@
 # Ansible Vault - Sensitive Configuration Variables
 # This file contains encrypted sensitive data
-# 
+#
 # To edit this file:
 #   ansible-vault edit group_vars/vault.yml
 #

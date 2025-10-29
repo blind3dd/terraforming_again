@@ -5,7 +5,10 @@
   gather_facts: false
   vars:
     aws_iam_authenticator_version: "0.5.9"
-    aws_iam_authenticator_url: "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v{{ aws_iam_authenticator_version }}/aws-iam-authenticator_{{ aws_iam_authenticator_version }}_linux_amd64"
+    aws_iam_authenticator_url: >-
+      "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/
+      v{{ aws_iam_authenticator_version }}/aws-iam-authenticator_\
+      {{ aws_iam_authenticator_version }}_linux_amd64"
     install_dir: "/usr/local/bin"
     config_dir: "/etc/aws-iam-authenticator"
     aws_region: "us-east-1"
@@ -91,12 +94,12 @@
           server:
             mapRoles:
             - roleARN: arn:aws:iam::{{ aws_account_id }}:role/{{ cluster_name }}-node-group-role
-              username: system:node:{{EC2PrivateDNSName}}
+              username: "system:node:{{ EC2PrivateDNSName }}"
               groups:
               - system:bootstrappers
               - system:nodes
             - roleARN: arn:aws:iam::{{ aws_account_id }}:role/{{ cluster_name }}-admin-role
-              username: admin:{{SessionName}}
+              username: "admin:{{ SessionName }}"
               groups:
               - system:masters
             mapUsers:
@@ -133,7 +136,7 @@
             user:
               exec:
                 apiVersion: client.authentication.k8s.io/v1beta1
-                command: aws-iam-authenticator
+  ansible.builtin.command: aws-iam-authenticator
                 args:
                   - "token"
                   - "-i"
@@ -150,19 +153,19 @@
         content: |
           # OIDC Identity Provider Configuration
           # This configuration enables OIDC integration for Kubernetes authentication
-          
+
           # OIDC Provider URL
           oidc_issuer_url: {{ oidc_issuer_url }}
-          
+
           # OIDC Client ID
           oidc_client_id: sts.amazonaws.com
-          
+
           # OIDC Username Claim
           oidc_username_claim: sub
-          
+
           # OIDC Groups Claim
           oidc_groups_claim: groups
-          
+
           # OIDC CA Certificate (if needed)
           oidc_ca_file: /etc/ssl/certs/ca-certificates.crt
         dest: "{{ config_dir }}/oidc-config.yaml"
@@ -174,7 +177,7 @@
       ansible.builtin.copy:
         content: |
           # IAM Roles for Kubernetes Authentication
-          
+
           # 1. Node Group Role
           aws iam create-role \
             --role-name {{ cluster_name }}-node-group-role \
@@ -190,7 +193,7 @@
                 }
               ]
             }'
-          
+
           # 2. Admin Role
           aws iam create-role \
             --role-name {{ cluster_name }}-admin-role \
@@ -212,16 +215,16 @@
                 }
               ]
             }'
-          
+
           # 3. Attach policies to roles
           aws iam attach-role-policy \
             --role-name {{ cluster_name }}-node-group-role \
             --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-          
+
           aws iam attach-role-policy \
             --role-name {{ cluster_name }}-node-group-role \
             --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-          
+
           aws iam attach-role-policy \
             --role-name {{ cluster_name }}-node-group-role \
             --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
@@ -234,7 +237,7 @@
       ansible.builtin.copy:
         content: |
           # Kubernetes RBAC Configuration for AWS IAM Authenticator
-          
+
           apiVersion: rbac.authorization.k8s.io/v1
           kind: ClusterRole
           metadata:
@@ -252,7 +255,7 @@
           - apiGroups: ["authorization.k8s.io"]
             resources: ["subjectaccessreviews"]
             verbs: ["create"]
-          
+
           ---
           apiVersion: rbac.authorization.k8s.io/v1
           kind: ClusterRoleBinding
@@ -266,7 +269,7 @@
           - kind: ServiceAccount
             name: aws-iam-authenticator
             namespace: kube-system
-          
+
           ---
           apiVersion: v1
           kind: ServiceAccount
@@ -284,7 +287,7 @@
       ansible.builtin.copy:
         content: |
           # AWS IAM Authenticator Deployment
-          
+
           apiVersion: apps/v1
           kind: Deployment
           metadata:
@@ -297,7 +300,7 @@
             selector:
               matchLabels:
                 app: aws-iam-authenticator
-            template:
+  ansible.builtin.template:
               metadata:
                 labels:
                   app: aws-iam-authenticator
@@ -364,7 +367,7 @@
       ansible.builtin.copy:
         content: |
           # AWS IAM Authenticator Service
-          
+
           apiVersion: v1
           kind: Service
           metadata:
@@ -391,29 +394,29 @@
         content: |
           #!/bin/bash
           # Install AWS IAM Authenticator on Kubernetes cluster
-          
+
           set -euo pipefail
-          
+
           echo "Installing AWS IAM Authenticator on Kubernetes cluster..."
-          
+
           # Create ConfigMap
           kubectl create configmap aws-iam-authenticator-config \
             --from-file=config.yaml \
             --namespace=kube-system \
             --dry-run=client -o yaml | kubectl apply -f -
-          
+
           # Apply RBAC
           kubectl apply -f rbac.yaml
-          
+
           # Apply deployment
           kubectl apply -f deployment.yaml
-          
+
           # Apply service
           kubectl apply -f service.yaml
-          
+
           # Wait for deployment to be ready
           kubectl wait --for=condition=available --timeout=300s deployment/aws-iam-authenticator -n kube-system
-          
+
           echo "AWS IAM Authenticator installed successfully!"
           echo "Configuration files are in: {{ config_dir }}"
         dest: "{{ config_dir }}/install.sh"

@@ -23,12 +23,12 @@
 
   tasks:
     - name: Check if running as root
-      fail:
+  ansible.builtin.fail:
         msg: "This playbook must be run as root to copy files to system directories"
       when: ansible_user_id != "root"
 
     - name: Create seccomp profiles directory
-      file:
+  ansible.builtin.file:
         path: "{{ seccomp_dir }}"
         state: directory
         mode: '0755'
@@ -36,38 +36,38 @@
         group: root
 
     - name: Copy seccomp profiles
-      copy:
+  ansible.builtin.copy:
         src: "{{ selinux_dir }}/{{ item }}"
         dest: "{{ seccomp_dir }}/"
         mode: '0644'
         owner: root
         group: root
       loop: "{{ seccomp_profiles }}"
-      ignore_errors: yes
+      ignore_errors: true
       register: copy_results
 
     - name: Display copy results
-      debug:
+  ansible.builtin.debug:
         msg: "Copied {{ item.item }}: {{ 'Success' if item.changed else 'Skipped (file not found)' }}"
       loop: "{{ copy_results.results }}"
 
     - name: Create symlinks for easier access
-      file:
+  ansible.builtin.file:
         src: "{{ seccomp_dir }}/{{ item.src }}"
         dest: "{{ seccomp_dir }}/{{ item.dest }}"
         state: link
         owner: root
         group: root
       loop: "{{ seccomp_symlinks }}"
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Verify installation
-      command: ls -la "{{ seccomp_dir }}"
+  ansible.builtin.command: ls -la "{{ seccomp_dir }}"
       register: ls_result
       changed_when: false
 
     - name: Display installed profiles
-      debug:
+  ansible.builtin.debug:
         msg: "{{ ls_result.stdout_lines }}"
 
     - name: Create ConfigMap with seccomp profiles
@@ -84,10 +84,10 @@
             seccomp-k8s-database-profile.json: "{{ lookup('file', selinux_dir + '/seccomp-k8s-database-profile.json') }}"
             seccomp-k8s-webapp-profile.json: "{{ lookup('file', selinux_dir + '/seccomp-k8s-webapp-profile.json') }}"
             seccomp-k8s-system-profile.json: "{{ lookup('file', selinux_dir + '/seccomp-k8s-system-profile.json') }}"
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Create test pod to verify seccomp profiles
-      copy:
+  ansible.builtin.copy:
         content: |
           apiVersion: v1
           kind: Pod
@@ -125,16 +125,16 @@
         mode: '0644'
 
     - name: Display available profiles
-      command: ls -1 "{{ seccomp_dir }}"/*.json | sed 's|.*/||' | sed 's|\.json$||' | sort
+  ansible.builtin.command: ls -1 "{{ seccomp_dir }}"/*.json | sed 's|.*/||' | sed 's|\.json$||' | sort
       register: available_profiles
       changed_when: false
 
     - name: Show available seccomp profiles
-      debug:
+  ansible.builtin.debug:
         msg: "{{ available_profiles.stdout_lines }}"
 
     - name: Display completion message
-      debug:
+  ansible.builtin.debug:
         msg: |
           ========================================
           Seccomp profiles setup complete!

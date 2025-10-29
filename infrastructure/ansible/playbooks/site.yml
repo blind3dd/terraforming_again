@@ -11,21 +11,21 @@
     environment: "sandbox"
     region: "us-east-1"
     cluster_name: "database-ci-cluster"
-    
+
     # Security settings
     enable_selinux: true
     enable_seccomp: true
     enable_audit: true
     enable_macos_k8s_security: true
-    
+
     # AWS settings
     aws_account_id: "123456789012"
     aws_region: "{{ region }}"
-    
+
     # Kubernetes settings
     k8s_namespace: "secure-workloads"
     enable_istio_ambient: true
-    
+
     # Database settings
     rds_host: "rds-endpoint.example.com"
     rds_username: "admin"
@@ -34,7 +34,7 @@
 
   tasks:
     - name: Display playbook information
-      debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           Database CI Infrastructure Setup
@@ -54,43 +54,43 @@
     - name: Check prerequisites
       block:
         - name: Check if running as root
-          fail:
+          ansible.builtin.fail:
             msg: "This playbook must be run as root for system-level configurations"
           when: ansible_user_id != "root"
 
         - name: Check if kubectl is available
-          command: which kubectl
+          ansible.builtin.command: which kubectl
           register: kubectl_check
           failed_when: kubectl_check.rc != 0
           changed_when: false
 
         - name: Check if Kubernetes cluster is running
-          command: kubectl cluster-info
+          ansible.builtin.command: kubectl cluster-info
           register: cluster_check
           failed_when: cluster_check.rc != 0
           changed_when: false
 
     - name: Compile and install SELinux policies
-      include: compile-selinux-policies.yml
+      ansible.builtin.include_tasks: compile-selinux-policies.yml
       when: enable_selinux
 
     - name: Setup Kubernetes seccomp profiles
-      include: setup-k8s-seccomp-profiles.yml
+      ansible.builtin.include_tasks: setup-k8s-seccomp-profiles.yml
       when: enable_seccomp
 
     - name: Secure macOS Kubernetes setup
-      include: secure-macos-k8s.yml
+      ansible.builtin.include_tasks: secure-macos-k8s.yml
       when: enable_macos_k8s_security and ansible_os_family == "Darwin"
 
     - name: Install AWS IAM Authenticator
-      include: install-aws-iam-authenticator.yml
+      ansible.builtin.include_tasks: install-aws-iam-authenticator.yml
       vars:
         aws_region: "{{ aws_region }}"
         cluster_name: "{{ cluster_name }}"
         aws_account_id: "{{ aws_account_id }}"
 
     - name: Deploy Istio ambient mode RDS application
-      include: istio-ambient-rds-deployment.yml
+      ansible.builtin.include_tasks: istio-ambient-rds-deployment.yml
       when: enable_istio_ambient
       vars:
         namespace: "{{ k8s_namespace }}"
@@ -102,25 +102,25 @@
     - name: Final verification
       block:
         - name: Check SELinux status
-          command: getenforce
+          ansible.builtin.command: getenforce
           register: selinux_status
           changed_when: false
           when: enable_selinux
 
         - name: Check seccomp profiles
-          command: ls -la /var/lib/kubelet/seccomp/profiles/
+          ansible.builtin.command: ls -la /var/lib/kubelet/seccomp/profiles/
           register: seccomp_status
           changed_when: false
           when: enable_seccomp
 
         - name: Check Kubernetes security
-          command: validate-k8s-security
+          ansible.builtin.command: validate-k8s-security
           register: k8s_security_status
           changed_when: false
           when: enable_macos_k8s_security and ansible_os_family == "Darwin"
 
         - name: Check AWS IAM Authenticator
-          command: aws-iam-authenticator version
+          ansible.builtin.command: aws-iam-authenticator version
           register: aws_auth_status
           changed_when: false
 
@@ -134,7 +134,7 @@
           when: enable_istio_ambient
 
     - name: Display final status
-      debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           Infrastructure Setup Complete!

@@ -28,25 +28,25 @@
 
   tasks:
     - name: Check if kubectl is available
-      command: which kubectl
+  ansible.builtin.command: which kubectl
       register: kubectl_check
       failed_when: kubectl_check.rc != 0
       changed_when: false
 
     - name: Check if Kubernetes cluster is running
-      command: kubectl cluster-info
+  ansible.builtin.command: kubectl cluster-info
       register: cluster_check
       failed_when: cluster_check.rc != 0
       changed_when: false
 
     - name: Check if Istio is installed
-      command: kubectl get namespace istio-system
+  ansible.builtin.command: kubectl get namespace istio-system
       register: istio_check
       failed_when: istio_check.rc != 0
       changed_when: false
 
     - name: Create seccomp profiles directory
-      file:
+  ansible.builtin.file:
         path: /var/lib/kubelet/seccomp/profiles
         state: directory
         mode: '0755'
@@ -55,7 +55,7 @@
       become: true
 
     - name: Copy seccomp profiles to Kubernetes directory
-      copy:
+  ansible.builtin.copy:
         src: "{{ item }}"
         dest: "/var/lib/kubelet/seccomp/profiles/"
         mode: '0644'
@@ -75,7 +75,7 @@
       ignore_errors: true
 
     - name: Create symlinks for easier access
-      file:
+  ansible.builtin.file:
         src: "/var/lib/kubelet/seccomp/profiles/{{ item.src }}"
         dest: "/var/lib/kubelet/seccomp/profiles/{{ item.dest }}"
         state: link
@@ -167,7 +167,7 @@
               matchLabels:
                 app: "{{ app_name }}"
                 version: "{{ app_version }}"
-            template:
+  ansible.builtin.template:
               metadata:
                 labels:
                   app: "{{ app_name }}"
@@ -297,7 +297,7 @@
           spec:
             type: ClusterIP
             ports:
-            - port: {{ app_port }}
+            - port: "{{ app_port }}"
               targetPort: {{ app_port }}
               protocol: TCP
               name: http
@@ -404,7 +404,7 @@
                     app: "{{ app_name }}"
               ports:
               - protocol: TCP
-                port: {{ app_port }}
+                port: "{{ app_port }}"
             egress:
             - to:
               - namespaceSelector:
@@ -490,7 +490,7 @@
       register: deployment_info
 
     - name: Display deployment status
-      debug:
+  ansible.builtin.debug:
         msg: "Deployment {{ app_name }} is {{ deployment_info.resources[0].status.conditions[0].status }}"
 
     - name: Get pod information
@@ -503,7 +503,7 @@
       register: pod_info
 
     - name: Display pod information
-      debug:
+  ansible.builtin.debug:
         msg: "Pods: {{ pod_info.resources | map(attribute='metadata.name') | list }}"
 
     - name: Check seccomp profile in pod
@@ -516,7 +516,7 @@
       register: pod_seccomp_info
 
     - name: Display seccomp profile information
-      debug:
+  ansible.builtin.debug:
         msg: "Seccomp profile: {{ pod_seccomp_info.resources[0].spec.containers[0].securityContext.seccompProfile.localhostProfile }}"
 
     - name: Create ConfigMap with seccomp profiles for reference
@@ -536,7 +536,7 @@
       ignore_errors: true
 
     - name: Display deployment summary
-      debug:
+  ansible.builtin.debug:
         msg: |
           ========================================
           Istio Ambient Mode RDS Application Deployed Successfully!

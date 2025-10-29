@@ -13,14 +13,14 @@
     # Namespace strategy: environment + app_name
     app_name: "{{ app_name | default('go-mysql-api') }}"
     namespace: "{{ environment }}-{{ app_name }}"
-    
+
     # Helm/Kustomize paths
     helm_chart_path: "./helm-kustomize/{{ app_name }}"
     kustomize_path: "./helm-kustomize/{{ app_name }}/kustomize/overlays/{{ environment }}"
 
   tasks:
     - name: Display namespace strategy
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Namespace Strategy:"
           - "  Environment: {{ environment }}"
@@ -53,13 +53,13 @@
         wait: true
 
     - name: Apply Kustomize patches (environment-specific)
-      shell: |
+  ansible.builtin.shell: |
         kustomize build "{{ kustomize_path }}" | kubectl apply -f -
       register: kustomize_apply
       changed_when: kustomize_apply.rc == 0
 
     - name: Display deployment summary
-      debug:
+  ansible.builtin.debug:
         msg:
           - "✅ Deployment completed with namespace strategy"
           - "Namespace: {{ namespace }}"

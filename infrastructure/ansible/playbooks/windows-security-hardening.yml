@@ -12,7 +12,7 @@
     enable_windows_update: true
     enable_credential_guard: true
     enable_device_guard: true
-    
+
     # Security policies
     password_policy:
       min_length: 14
@@ -20,7 +20,7 @@
       history: 24
       max_age: 90
       min_age: 1
-      
+
     # Audit policies
     audit_policies:
       - name: "Audit Account Logon"
@@ -193,7 +193,7 @@
             # Configure Windows Update to automatically download and install updates
             $UpdateSession = New-Object -ComObject Microsoft.Update.Session
             $UpdateSession.ClientApplicationID = "Windows Security Hardening"
-            
+
             # Set registry values for automatic updates
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "NoAutoUpdate" -Value 0
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "AUOptions" -Value 4
@@ -270,7 +270,7 @@
               "IIS Admin Service",
               "Print Spooler"
             )
-            
+
             foreach ($Service in $ServicesToDisable) {
               $ServiceObj = Get-Service -Name $Service -ErrorAction SilentlyContinue
               if ($ServiceObj) {
@@ -283,13 +283,13 @@
           win_shell: |
             # Disable AutoRun for all drives
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Value 255
-            
+
             # Disable Windows Script Host
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows Script Host\Settings" -Name "Enabled" -Value 0
-            
+
             # Disable LM hash storage
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "NoLMHash" -Value 1
-            
+
             # Require Ctrl+Alt+Del for logon
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "DisableCAD" -Value 0
 
@@ -303,7 +303,7 @@
                 Disable-NetAdapterBinding -Name $Adapter.Name -ComponentID "ms_tcpip_nb"
               }
             }
-            
+
             # Disable LLMNR
             Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient" -Name "EnableMulticast" -Value 0
 

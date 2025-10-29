@@ -13,22 +13,22 @@
 
   tasks:
     - name: Check if AWS CLI is installed
-      command: which aws
+  ansible.builtin.command: which aws
       register: aws_cli_check
       failed_when: aws_cli_check.rc != 0
       changed_when: false
 
     - name: Check AWS credentials
-      command: aws sts get-caller-identity
+  ansible.builtin.command: aws sts get-caller-identity
       register: aws_identity
       changed_when: false
 
     - name: Display AWS identity
-      debug:
+  ansible.builtin.debug:
         msg: "AWS Identity: {{ aws_identity.stdout }}"
 
     - name: Create backup directory
-      file:
+  ansible.builtin.file:
         path: "{{ backup_dir }}"
         state: directory
         mode: '0755'
@@ -36,246 +36,249 @@
     - name: Audit VPCs
       block:
         - name: List VPCs
-          command: aws ec2 describe-vpcs --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-vpcs --region {{ aws_region }}
           register: vpcs
           changed_when: false
 
         - name: Save VPCs to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ vpcs.stdout }}"
             dest: "{{ backup_dir }}/vpcs-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display VPCs
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ vpcs.stdout | from_json | json_query('Vpcs | length(@)') }} VPCs"
 
     - name: Audit Subnets
       block:
         - name: List subnets
-          command: aws ec2 describe-subnets --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-subnets --region {{ aws_region }}
           register: subnets
           changed_when: false
 
         - name: Save subnets to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ subnets.stdout }}"
             dest: "{{ backup_dir }}/subnets-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display subnets
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ subnets.stdout | from_json | json_query('Subnets | length(@)') }} subnets"
 
     - name: Audit Security Groups
       block:
         - name: List security groups
-          command: aws ec2 describe-security-groups --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-security-groups --region {{ aws_region }}
           register: security_groups
           changed_when: false
 
         - name: Save security groups to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ security_groups.stdout }}"
             dest: "{{ backup_dir }}/security-groups-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display security groups
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ security_groups.stdout | from_json | json_query('SecurityGroups | length(@)') }} security groups"
 
     - name: Audit EC2 Instances
       block:
         - name: List instances
-          command: aws ec2 describe-instances --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-instances --region {{ aws_region }}
           register: instances
           changed_when: false
 
         - name: Save instances to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ instances.stdout }}"
             dest: "{{ backup_dir }}/instances-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display instances
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ instances.stdout | from_json | json_query('Reservations[].Instances[] | length(@)') }} instances"
 
     - name: Audit Internet Gateways
       block:
         - name: List internet gateways
-          command: aws ec2 describe-internet-gateways --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-internet-gateways --region {{ aws_region }}
           register: igws
           changed_when: false
 
         - name: Save internet gateways to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ igws.stdout }}"
             dest: "{{ backup_dir }}/internet-gateways-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display internet gateways
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ igws.stdout | from_json | json_query('InternetGateways | length(@)') }} internet gateways"
 
     - name: Audit NAT Gateways
       block:
         - name: List NAT gateways
-          command: aws ec2 describe-nat-gateways --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-nat-gateways --region {{ aws_region }}
           register: nat_gateways
           changed_when: false
 
         - name: Save NAT gateways to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ nat_gateways.stdout }}"
             dest: "{{ backup_dir }}/nat-gateways-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display NAT gateways
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ nat_gateways.stdout | from_json | json_query('NatGateways | length(@)') }} NAT gateways"
 
     - name: Audit Route Tables
       block:
         - name: List route tables
-          command: aws ec2 describe-route-tables --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-route-tables --region {{ aws_region }}
           register: route_tables
           changed_when: false
 
         - name: Save route tables to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ route_tables.stdout }}"
             dest: "{{ backup_dir }}/route-tables-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display route tables
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ route_tables.stdout | from_json | json_query('RouteTables | length(@)') }} route tables"
 
     - name: Audit Key Pairs
       block:
         - name: List key pairs
-          command: aws ec2 describe-key-pairs --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-key-pairs --region {{ aws_region }}
           register: key_pairs
           changed_when: false
 
         - name: Save key pairs to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ key_pairs.stdout }}"
             dest: "{{ backup_dir }}/key-pairs-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display key pairs
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ key_pairs.stdout | from_json | json_query('KeyPairs | length(@)') }} key pairs"
 
     - name: Audit AMIs
       block:
         - name: List AMIs
-          command: aws ec2 describe-images --owners self --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-images --owners self --region {{ aws_region }}
           register: amis
           changed_when: false
 
         - name: Save AMIs to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ amis.stdout }}"
             dest: "{{ backup_dir }}/amis-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display AMIs
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ amis.stdout | from_json | json_query('Images | length(@)') }} AMIs"
 
     - name: Audit Volumes
       block:
         - name: List volumes
-          command: aws ec2 describe-volumes --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-volumes --region {{ aws_region }}
           register: volumes
           changed_when: false
 
         - name: Save volumes to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ volumes.stdout }}"
             dest: "{{ backup_dir }}/volumes-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display volumes
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ volumes.stdout | from_json | json_query('Volumes | length(@)') }} volumes"
 
     - name: Audit Snapshots
       block:
         - name: List snapshots
-          command: aws ec2 describe-snapshots --owner-ids self --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-snapshots --owner-ids self --region {{ aws_region }}
           register: snapshots
           changed_when: false
 
         - name: Save snapshots to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ snapshots.stdout }}"
             dest: "{{ backup_dir }}/snapshots-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display snapshots
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ snapshots.stdout | from_json | json_query('Snapshots | length(@)') }} snapshots"
 
     - name: Audit Network ACLs
       block:
         - name: List network ACLs
-          command: aws ec2 describe-network-acls --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-network-acls --region {{ aws_region }}
           register: network_acls
           changed_when: false
 
         - name: Save network ACLs to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ network_acls.stdout }}"
             dest: "{{ backup_dir }}/network-acls-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display network ACLs
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ network_acls.stdout | from_json | json_query('NetworkAcls | length(@)') }} network ACLs"
 
     - name: Audit VPC Endpoints
       block:
         - name: List VPC endpoints
-          command: aws ec2 describe-vpc-endpoints --region {{ aws_region }}
+  ansible.builtin.command: aws ec2 describe-vpc-endpoints --region {{ aws_region }}
           register: vpc_endpoints
           changed_when: false
 
         - name: Save VPC endpoints to backup
-          copy:
+  ansible.builtin.copy:
             content: "{{ vpc_endpoints.stdout }}"
             dest: "{{ backup_dir }}/vpc-endpoints-{{ audit_date }}-{{ audit_time }}.json"
             mode: '0644'
 
         - name: Display VPC endpoints
-          debug:
+  ansible.builtin.debug:
             msg: "Found {{ vpc_endpoints.stdout | from_json | json_query('VpcEndpoints | length(@)') }} VPC endpoints"
 
     - name: Identify dangerous resources
       block:
         - name: Find default VPCs
-          shell: |
+  ansible.builtin.shell: |
             aws ec2 describe-vpcs --region {{ aws_region }} --filters "Name=is-default,Values=true" --query 'Vpcs[].VpcId' --output text
           register: default_vpcs
           changed_when: false
 
         - name: Find security groups with open access
-          shell: |
-            aws ec2 describe-security-groups --region {{ aws_region }} --query 'SecurityGroups[?IpPermissions[?IpRanges[?CidrIp==`0.0.0.0/0`]]].GroupId' --output text
+          ansible.builtin.shell: |
+            aws ec2 describe-security-groups \
+              --region {{ aws_region }} \
+              --query 'SecurityGroups[?IpPermissions[?IpRanges[?CidrIp==`0.0.0.0/0`]]].GroupId' \
+              --output text
           register: open_security_groups
           changed_when: false
 
         - name: Find instances with public IPs
-          shell: |
+  ansible.builtin.shell: |
             aws ec2 describe-instances --region {{ aws_region }} --query 'Reservations[].Instances[?PublicIpAddress!=null].InstanceId' --output text
           register: public_instances
           changed_when: false
 
         - name: Display dangerous resources
-          debug:
+  ansible.builtin.debug:
             msg: |
               ========================================
               Dangerous Resources Found:
@@ -288,7 +291,7 @@
     - name: Cleanup dangerous resources (if enabled)
       block:
         - name: Delete default VPCs
-          shell: |
+  ansible.builtin.shell: |
             for vpc in {{ default_vpcs.stdout }}; do
               echo "Deleting default VPC: $vpc"
               aws ec2 delete-vpc --vpc-id $vpc --region {{ aws_region }}
@@ -296,7 +299,7 @@
           when: cleanup_dangerous_resources and default_vpcs.stdout != ""
 
         - name: Delete open security groups
-          shell: |
+  ansible.builtin.shell: |
             for sg in {{ open_security_groups.stdout }}; do
               echo "Deleting open security group: $sg"
               aws ec2 delete-security-group --group-id $sg --region {{ aws_region }}
@@ -304,7 +307,7 @@
           when: cleanup_dangerous_resources and open_security_groups.stdout != ""
 
         - name: Terminate public instances
-          shell: |
+  ansible.builtin.shell: |
             for instance in {{ public_instances.stdout }}; do
               echo "Terminating public instance: $instance"
               aws ec2 terminate-instances --instance-ids $instance --region {{ aws_region }}
@@ -312,16 +315,16 @@
           when: cleanup_dangerous_resources and public_instances.stdout != ""
 
     - name: Generate audit report
-      copy:
+  ansible.builtin.copy:
         content: |
           # AWS Resource Audit Report
-          
+
           **Date**: {{ audit_date }} {{ audit_time }}
           **Region**: {{ aws_region }}
           **AWS Account**: {{ aws_identity.stdout | from_json | json_query('Account') }}
-          
+
           ## Summary
-          
+
           - **VPCs**: {{ vpcs.stdout | from_json | json_query('Vpcs | length(@)') }}
           - **Subnets**: {{ subnets.stdout | from_json | json_query('Subnets | length(@)') }}
           - **Security Groups**: {{ security_groups.stdout | from_json | json_query('SecurityGroups | length(@)') }}
@@ -335,29 +338,29 @@
           - **Snapshots**: {{ snapshots.stdout | from_json | json_query('Snapshots | length(@)') }}
           - **Network ACLs**: {{ network_acls.stdout | from_json | json_query('NetworkAcls | length(@)') }}
           - **VPC Endpoints**: {{ vpc_endpoints.stdout | from_json | json_query('VpcEndpoints | length(@)') }}
-          
+
           ## Dangerous Resources
-          
+
           - **Default VPCs**: {{ default_vpcs.stdout }}
           - **Open Security Groups**: {{ open_security_groups.stdout }}
           - **Public Instances**: {{ public_instances.stdout }}
-          
+
           ## Recommendations
-          
+
           1. Review and delete default VPCs if not needed
           2. Close security groups with open access (0.0.0.0/0)
           3. Remove public IPs from instances that don't need them
           4. Review and delete unused resources
           5. Implement proper tagging for resource management
-          
+
           ## Backup Location
-          
+
           All resource data has been backed up to: {{ backup_dir }}
         dest: "{{ backup_dir }}/audit-report-{{ audit_date }}-{{ audit_time }}.md"
         mode: '0644'
 
     - name: Display completion message
-      debug:
+  ansible.builtin.debug:
         msg: |
           ========================================
           AWS Resource Audit Complete!

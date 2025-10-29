@@ -6,32 +6,32 @@
   hosts: kubernetes_cluster
   become: false
   gather_facts: true
-  
+
   vars:
     # Dynamic inventory variables
     k8s_cluster_name: "{{ cluster_name | default('kubernetes-cluster') }}"
     operators_namespace: "{{ operators_namespace | default('operators') }}"
     environment: "{{ env | default('dev') }}"
-    
+
     # AWS Configuration from dynamic inventory
     aws_account_id: "{{ aws_account_id | default('123456789012') }}"
     aws_region: "{{ aws_region | default('us-west-2') }}"
-    
+
     # Terraform Configuration
     terraform_state_bucket: "{{ terraform_state_bucket | default('terraform-state-bucket') }}"
     terraform_state_lock_table: "{{ terraform_state_lock_table | default('terraform-state-lock') }}"
-    
+
     # Vault Configuration
     vault_server_enabled: "{{ vault_server_enabled | default(false) }}"
     vault_server_replicas: "{{ vault_server_replicas | default(1) }}"
-    
+
     # Ansible Configuration
     ansible_vault_password: "{{ ansible_vault_password | default('changeme') }}"
     ansible_inventory_path: "{{ ansible_inventory_path | default('/etc/ansible/inventory') }}"
 
   pre_tasks:
     - name: Display deployment information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Deploying operators to cluster: {{ k8s_cluster_name }}"
           - "Namespace: {{ operators_namespace }}"
@@ -46,7 +46,7 @@
       failed_when: cluster_nodes.resources | length == 0
 
     - name: Display cluster information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Connected to cluster with {{ cluster_nodes.resources | length }} nodes"
           - "Nodes: {{ cluster_nodes.resources | map(attribute='metadata.name') | list }}"
@@ -55,23 +55,23 @@
     - name: Install Helm if not present
       block:
         - name: Check if Helm is installed
-          command: helm version --short
+  ansible.builtin.command: helm version --short
           register: helm_check
           failed_when: false
           changed_when: false
 
         - name: Install Helm
-          shell: |
+  ansible.builtin.shell: |
             curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           when: helm_check.rc != 0
 
         - name: Verify Helm installation
-          command: helm version --short
+  ansible.builtin.command: helm version --short
           register: helm_version
           changed_when: false
 
         - name: Display Helm version
-          debug:
+  ansible.builtin.debug:
             msg: "Helm version: {{ helm_version.stdout }}"
 
     - name: Add Helm repositories
@@ -186,7 +186,7 @@
                   memory: "512Mi"
               config:
                 storage:
-                  file:
+  ansible.builtin.file:
                     path: "/vault/file"
                 listener:
                   tcp:
@@ -194,7 +194,7 @@
                     tls_disable: true
                 ui: true
                 disable_mlock: true
-              service:
+  ansible.builtin.service:
                 type: ClusterIP
                 port: 8200
           env:
@@ -266,23 +266,23 @@
       register: all_deployments
 
     - name: Display operator status
-      debug:
+  ansible.builtin.debug:
         msg: "Operator {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
       loop: "{{ all_deployments.resources }}"
       when: item.metadata.name in ['terraform-operator', 'vault-operator', 'ansible-operator']
 
   post_tasks:
     - name: Display Helm releases
-      shell: helm list -n "{{ operators_namespace }}"
+  ansible.builtin.shell: helm list -n "{{ operators_namespace }}"
       register: helm_releases
       changed_when: false
 
     - name: Show deployed operators
-      debug:
+  ansible.builtin.debug:
         msg: "{{ helm_releases.stdout_lines }}"
 
     - name: Operators deployment completed successfully
-      debug:
+  ansible.builtin.debug:
         msg:
           - "✅ Kubernetes operators deployment completed"
           - "Cluster: {{ k8s_cluster_name }}"

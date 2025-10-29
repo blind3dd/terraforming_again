@@ -13,12 +13,12 @@
 
 # Include CNI configuration
 - name: Configure CNI (Calico + Flannel)
-  include_tasks: cni.yml
+  ansible.builtin.include_tasks: cni.yml
   tags: [cni, networking]
 
 # Include CoreDNS configuration
 - name: Configure CoreDNS
-  include_tasks: coredns.yml
+  ansible.builtin.include_tasks: coredns.yml
   tags: [coredns, dns]
 
 - name: Deploy Istio Ambient Configuration
@@ -76,7 +76,7 @@
   when: deployments.resources | length > 0
 
 - name: Display deployment status
-  debug:
+  ansible.builtin.debug:
     msg: "Deployment {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
   loop: "{{ deployments.resources }}"
   when: deployments.resources | length > 0

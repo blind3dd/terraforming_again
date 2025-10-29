@@ -6,54 +6,54 @@
     # Role configuration
     role_name: "{{ role_name | default('TerraformKubernetesRole') }}"
     role_description: "{{ role_description | default('Role for Terraform and Kubernetes operations') }}"
-    
+
     # Trust policy (who can assume this role)
     trust_policy_type: "{{ trust_policy_type | default('user') }}"  # user, role, service, or external
     trusted_principal: "{{ trusted_principal | default('') }}"  # ARN of trusted entity
-    
+
     # Permissions
     attach_managed_policies: "{{ attach_managed_policies | default([]) }}"
     create_custom_policy: "{{ create_custom_policy | default(true) }}"
     custom_policy_name: "{{ custom_policy_name | default('TerraformKubernetesPolicy') }}"
-    
+
     # AWS configuration
     aws_region: "{{ aws_region | default('us-east-1') }}"
     aws_profile: "{{ aws_profile | default('profile-test') }}"
-    
+
     # Output options
     save_role_info: "{{ save_role_info | default(true) }}"
     output_file: "{{ output_file | default('role-info.json') }}"
-    
+
   tasks:
     - name: Check if trusted principal is provided
-      fail:
+  ansible.builtin.fail:
         msg: "trusted_principal is required. Use: ansible-playbook create-assumable-role.yml -e 'trusted_principal=arn:aws:iam::123456789012:user/YourUser'"
       when: trusted_principal == ""
 
     - name: Check if AWS CLI is available
-      command: aws --version
+  ansible.builtin.command: aws --version
       register: aws_cli_check
       changed_when: false
       failed_when: false
 
     - name: Fail if AWS CLI not available
-      fail:
+  ansible.builtin.fail:
         msg: "AWS CLI is not installed or not in PATH"
       when: aws_cli_check.rc != 0
 
     - name: Check current AWS identity
-      command: aws sts get-caller-identity
+  ansible.builtin.command: aws sts get-caller-identity
       register: current_identity
       changed_when: false
       failed_when: false
 
     - name: Display current AWS identity
-      debug:
+  ansible.builtin.debug:
         msg: "Current AWS identity: {{ current_identity.stdout }}"
       when: current_identity.rc == 0
 
     - name: Create trust policy document
-      set_fact:
+  ansible.builtin.set_fact:
         trust_policy: |
           {
             "Version": "2012-10-17",
@@ -82,7 +82,7 @@
           }
 
     - name: Create custom policy document
-      set_fact:
+  ansible.builtin.set_fact:
         custom_policy: |
           {
             "Version": "2012-10-17",
@@ -120,7 +120,7 @@
       when: create_custom_policy | bool
 
     - name: Create custom IAM policy
-      command: |
+  ansible.builtin.command: |
         aws iam create-policy \
           --policy-name "{{ custom_policy_name }}" \
           --policy-document '{{ custom_policy }}' \
@@ -132,12 +132,12 @@
       when: create_custom_policy | bool
 
     - name: Get custom policy ARN
-      set_fact:
+  ansible.builtin.set_fact:
         custom_policy_arn: "{{ create_policy_result.stdout | from_json | json_query('Policy.Arn') }}"
       when: create_custom_policy | bool and create_policy_result.rc == 0
 
     - name: Create IAM role
-      command: |
+  ansible.builtin.command: |
         aws iam create-role \
           --role-name "{{ role_name }}" \
           --assume-role-policy-document '{{ trust_policy }}' \
@@ -148,11 +148,11 @@
       failed_when: create_role_result.rc != 0
 
     - name: Get role ARN
-      set_fact:
+  ansible.builtin.set_fact:
         role_arn: "{{ create_role_result.stdout | from_json | json_query('Role.Arn') }}"
 
     - name: Attach custom policy to role
-      command: |
+  ansible.builtin.command: |
         aws iam attach-role-policy \
           --role-name "{{ role_name }}" \
           --policy-arn "{{ custom_policy_arn }}" \
@@ -161,7 +161,7 @@
       when: create_custom_policy | bool and custom_policy_arn is defined
 
     - name: Attach managed policies to role
-      command: |
+  ansible.builtin.command: |
         aws iam attach-role-policy \
           --role-name "{{ role_name }}" \
           --policy-arn "{{ item }}" \
@@ -171,7 +171,7 @@
       when: attach_managed_policies | length > 0
 
     - name: Wait for role to be available
-      command: |
+  ansible.builtin.command: |
         aws iam get-role \
           --role-name "{{ role_name }}" \
           --region "{{ aws_region }}" \
@@ -182,7 +182,7 @@
       delay: 5
 
     - name: Get role details
-      command: |
+  ansible.builtin.command: |
         aws iam get-role \
           --role-name "{{ role_name }}" \
           --region "{{ aws_region }}" \
@@ -191,7 +191,7 @@
       changed_when: false
 
     - name: Get attached policies
-      command: |
+  ansible.builtin.command: |
         aws iam list-attached-role-policies \
           --role-name "{{ role_name }}" \
           --region "{{ aws_region }}" \
@@ -200,7 +200,7 @@
       changed_when: false
 
     - name: Save role information to file
-      copy:
+  ansible.builtin.copy:
         content: |
           {
             "RoleName": "{{ role_name }}",
@@ -222,66 +222,66 @@
       when: save_role_info | bool
 
     - name: Create assume role script for this specific role
-      copy:
+  ansible.builtin.copy:
         content: |
           #!/bin/bash
           # Assume Role Script for {{ role_name }}
-          
+
           set -e
-          
+
           # Colors
           GREEN='\033[0;32m'
           BLUE='\033[0;34m'
           YELLOW='\033[1;33m'
           NC='\033[0m'
-          
+
           log() {
               echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
           }
-          
+
           success() {
               echo -e "${GREEN}[SUCCESS] $1${NC}"
           }
-          
+
           warn() {
               echo -e "${YELLOW}[WARNING] $1${NC}"
           }
-          
+
           # Role configuration
           ROLE_ARN="{{ role_arn }}"
           ROLE_NAME="{{ role_name }}"
-          
+
           # Session configuration
           SESSION_NAME="${1:-{{ role_name }}-session}"
           DURATION="${2:-3600}"
-          
+
           log "Assuming role: $ROLE_NAME"
           log "Role ARN: $ROLE_ARN"
           log "Session name: $SESSION_NAME"
           log "Duration: $DURATION seconds"
-          
+
           # Assume role
           RESPONSE=$(aws sts assume-role \
               --role-arn "$ROLE_ARN" \
               --role-session-name "$SESSION_NAME" \
               --duration-seconds "$DURATION" \
               --output json)
-          
+
           # Extract credentials
           ACCESS_KEY=$(echo "$RESPONSE" | jq -r '.Credentials.AccessKeyId')
           SECRET_KEY=$(echo "$RESPONSE" | jq -r '.Credentials.SecretAccessKey')
           SESSION_TOKEN=$(echo "$RESPONSE" | jq -r '.Credentials.SessionToken')
           EXPIRATION=$(echo "$RESPONSE" | jq -r '.Credentials.Expiration')
-          
+
           # Export to environment
           export AWS_ACCESS_KEY_ID="$ACCESS_KEY"
           export AWS_SECRET_ACCESS_KEY="$SECRET_KEY"
           export AWS_SESSION_TOKEN="$SESSION_TOKEN"
-          
+
           success "Role assumed successfully!"
           log "Expires: $EXPIRATION"
           log "Credentials exported to environment variables"
-          
+
           # Create profile
           mkdir -p ~/.aws
           cat > ~/.aws/credentials <<EOF
@@ -290,17 +290,17 @@
           aws_secret_access_key = $SECRET_KEY
           aws_session_token = $SESSION_TOKEN
           EOF
-          
+
           cat > ~/.aws/config <<EOF
           [profile {{ role_name | lower }}]
           region = {{ aws_region }}
           output = json
           EOF
-          
+
           success "Profile '{{ role_name | lower }}' created"
           log "Use: aws --profile {{ role_name | lower }} sts get-caller-identity"
           log "Or: export AWS_PROFILE={{ role_name | lower }}"
-          
+
           # Display usage instructions
           echo ""
           echo "🚀 Usage Examples:"
@@ -311,27 +311,27 @@
         mode: '0755'
 
     - name: Display completion message
-      debug:
+  ansible.builtin.debug:
         msg: |
           ✅ IAM Role '{{ role_name }}' created successfully!
-          
+
           📋 Role Details:
           - Role Name: {{ role_name }}
           - Role ARN: {{ role_arn }}
           - Description: {{ role_description }}
-          
+
           🔐 Trust Policy:
           {{ trust_policy | from_json | to_nice_json }}
-          
+
           📁 Files Created:
           - Role info: {{ output_file }}
           - Assume script: assume-{{ role_name | lower }}.sh
-          
+
           🚀 Next Steps:
           1. Test role assumption: ./assume-{{ role_name | lower }}.sh
           2. Use with Ansible: ansible-playbook assume-role.yml -e 'role_arn={{ role_arn }}'
           3. Use with Terraform: export AWS_PROFILE={{ role_name | lower }} && terraform plan
-          
+
           ⚠️  Security Notes:
           - Role has broad permissions for development/testing
           - Consider restricting permissions for production use

@@ -6,37 +6,37 @@
   hosts: kubernetes_cluster
   become: false
   gather_facts: true
-  
+
   vars:
     # Dynamic inventory variables
     k8s_cluster_name: "{{ cluster_name | default('kubernetes-cluster') }}"
     environment: "{{ env | default('dev') }}"
     app_namespace: "go-mysql-api-{{ environment }}"
-    
+
     # Application Configuration
     app_name: "go-mysql-api"
     app_version: "{{ app_version | default('latest') }}"
     app_replicas: "{{ app_replicas | default(2) }}"
-    
+
     # Database Configuration from dynamic inventory
     db_host: "{{ db_host | default('mysql-service') }}"
     db_port: "{{ db_port | default('3306') }}"
     db_name: "{{ db_name | default('go_mysql_api') }}"
     db_user: "{{ db_user | default('api_user') }}"
     db_password: "{{ db_password | default('changeme') }}"
-    
+
     # AWS Configuration
     aws_account_id: "{{ aws_account_id | default('123456789012') }}"
     aws_region: "{{ aws_region | default('us-west-2') }}"
     ecr_repository: "{{ aws_account_id }}.dkr.ecr.{{ aws_region }}.amazonaws.com/go-mysql-api"
-    
+
     # Kustomize paths
     kustomize_base_path: "{{ playbook_dir }}/../../kustomize/go-mysql-api/base"
     kustomize_overlay_path: "{{ playbook_dir }}/../../kustomize/go-mysql-api/overlays/{{ environment }}"
 
   pre_tasks:
     - name: Display deployment information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Deploying Go MySQL API to cluster: {{ k8s_cluster_name }}"
           - "Environment: {{ environment }}"
@@ -53,19 +53,19 @@
       failed_when: cluster_nodes.resources | length == 0
 
     - name: Display cluster information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Connected to cluster with {{ cluster_nodes.resources | length }} nodes"
           - "Nodes: {{ cluster_nodes.resources | map(attribute='metadata.name') | list }}"
 
     - name: Verify Kustomize is installed
-      command: kustomize version --short
+  ansible.builtin.command: kustomize version --short
       register: kustomize_check
       failed_when: kustomize_check.rc != 0
       changed_when: false
 
     - name: Display Kustomize version
-      debug:
+  ansible.builtin.debug:
         msg: "Kustomize version: {{ kustomize_check.stdout }}"
 
   tasks:
@@ -83,25 +83,25 @@
           app.kubernetes.io/managed-by: kustomize
 
     - name: Generate Kustomize manifests
-      shell: |
+  ansible.builtin.shell: |
         cd "{{ kustomize_overlay_path }}"
         kustomize build . > /tmp/go-mysql-api-{{ environment }}-manifests.yaml
       register: kustomize_build
       changed_when: kustomize_build.rc == 0
 
     - name: Display generated manifests
-      debug:
+  ansible.builtin.debug:
         msg: "{{ kustomize_build.stdout_lines }}"
       when: kustomize_build.stdout_lines | length > 0
 
     - name: Apply Kustomize manifests
-      shell: |
+  ansible.builtin.shell: |
         kubectl apply -f /tmp/go-mysql-api-{{ environment }}-manifests.yaml
       register: kubectl_apply
       changed_when: kubectl_apply.rc == 0
 
     - name: Display apply results
-      debug:
+  ansible.builtin.debug:
         msg: "{{ kubectl_apply.stdout_lines }}"
       when: kubectl_apply.stdout_lines | length > 0
 
@@ -125,7 +125,7 @@
       register: final_deployment_status
 
     - name: Display deployment status
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Deployment: {{ final_deployment_status.resources[0].metadata.name }}"
           - "Ready Replicas: {{ final_deployment_status.resources[0].status.readyReplicas | default(0) }}"
@@ -141,7 +141,7 @@
       register: service_status
 
     - name: Display service status
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Service: {{ service_status.resources[0].metadata.name }}"
           - "Type: {{ service_status.resources[0].spec.type }}"
@@ -158,18 +158,18 @@
       register: pods_status
 
     - name: Display pod status
-      debug:
+  ansible.builtin.debug:
         msg: "Pod {{ item.metadata.name }} is {{ item.status.phase }}"
       loop: "{{ pods_status.resources }}"
 
   post_tasks:
     - name: Clean up temporary files
-      file:
+  ansible.builtin.file:
         path: "/tmp/go-mysql-api-{{ environment }}-manifests.yaml"
         state: absent
 
     - name: Display deployment summary
-      debug:
+  ansible.builtin.debug:
         msg:
           - "✅ Go MySQL API deployment completed successfully"
           - "Environment: {{ environment }}"
@@ -179,11 +179,11 @@
           - "Pods: {{ pods_status.resources | length }} running"
 
     - name: Get service endpoints
-      shell: |
+  ansible.builtin.shell: |
         kubectl get endpoints {{ app_name }} -n {{ app_namespace }} -o jsonpath='{.subsets[*].addresses[*].ip}'
       register: service_endpoints
       changed_when: false
 
     - name: Display service endpoints
-      debug:
+  ansible.builtin.debug:
         msg: "Service endpoints: {{ service_endpoints.stdout }}"

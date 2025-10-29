@@ -71,19 +71,19 @@
       register: coredns_pods
 
     - name: Display CoreDNS status
-      debug:
+      ansible.builtin.debug:
         msg: "CoreDNS pod {{ item.metadata.name }} is {{ item.status.phase }}"
       loop: "{{ coredns_pods.resources }}"
 
     - name: Test CoreDNS functionality
-      shell: |
+      ansible.builtin.shell: |
         kubectl run test-dns --image=busybox --rm -i --restart=Never -- nslookup kubernetes.default.svc.cluster.local
       register: dns_test
       failed_when: dns_test.rc != 0
       changed_when: false
 
     - name: Display DNS test results
-      debug:
+      ansible.builtin.debug:
         msg: "{{ dns_test.stdout_lines }}"
 
   when: configure_coredns | default(true)

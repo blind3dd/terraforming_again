@@ -6,35 +6,35 @@
   hosts: kubernetes_cluster
   become: false
   gather_facts: true
-  
+
   vars:
     # Dynamic inventory variables
     k8s_cluster_name: "{{ cluster_name | default('kubernetes-cluster') }}"
     k8s_namespace: "{{ namespace | default('default') }}"
     environment: "{{ env | default('dev') }}"
-    
+
     # AWS Configuration from dynamic inventory
     aws_account_id: "{{ aws_account_id | default('123456789012') }}"
     aws_region: "{{ aws_region | default('us-west-2') }}"
-    
+
     # RDS Configuration from dynamic inventory
     rds_endpoint: "{{ rds_endpoint | default('rds-endpoint.amazonaws.com') }}"
     rds_fqdn: "{{ rds_fqdn | default('rds-fqdn.amazonaws.com') }}"
     rds_port: "{{ rds_port | default('3306') }}"
     rds_database: "{{ rds_database | default('mydb') }}"
     rds_username: "{{ rds_username | default('admin') }}"
-    
+
     # Istio Configuration
     istio_profile: "{{ istio_profile | default('ambient') }}"
     istio_version: "{{ istio_version | default('1.19.0') }}"
     enable_istio_ingress: "{{ enable_istio_ingress | default(true) }}"
     enable_istio_egress: "{{ enable_istio_egress | default(true) }}"
-    
+
     # Security Configuration
     enable_tls: "{{ enable_tls | default(true) }}"
     enable_mtls: "{{ enable_mtls | default(true) }}"
     enable_network_policies: "{{ enable_network_policies | default(true) }}"
-    
+
     # Deployment flags
     deploy_istio_ambient: "{{ deploy_istio_ambient | default(true) }}"
     deploy_istio_secure_connection: "{{ deploy_istio_secure_connection | default(true) }}"
@@ -45,7 +45,7 @@
 
   pre_tasks:
     - name: Display deployment information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Deploying to cluster: {{ k8s_cluster_name }}"
           - "Namespace: {{ k8s_namespace }}"
@@ -62,7 +62,7 @@
       failed_when: cluster_nodes.resources | length == 0
 
     - name: Display cluster information
-      debug:
+  ansible.builtin.debug:
         msg:
           - "Connected to cluster with {{ cluster_nodes.resources | length }} nodes"
           - "Nodes: {{ cluster_nodes.resources | map(attribute='metadata.name') | list }}"
@@ -70,7 +70,7 @@
   roles:
     - role: kubernetes
       tags: [kubernetes, istio]
-      
+
     - role: istio
       tags: [istio, service-mesh]
 
@@ -86,10 +86,10 @@
       when: deploy_istio_ambient | default(true)
 
     - name: Display Istio deployment status
-      debug:
+  ansible.builtin.debug:
         msg: "Istio deployment {{ item.metadata.name }} is {{ item.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first }}"
       loop: "{{ istio_deployments.resources }}"
-      when: 
+      when:
         - deploy_istio_ambient | default(true)
         - istio_deployments.resources | length > 0
 
@@ -102,13 +102,13 @@
       when: deploy_rds_service_catalog | default(true)
 
     - name: Display service status
-      debug:
+  ansible.builtin.debug:
         msg: "Service {{ item.metadata.name }} is {{ item.spec.type }}"
       loop: "{{ services.resources }}"
       when: services.resources | length > 0
 
     - name: Deployment completed successfully
-      debug:
+  ansible.builtin.debug:
         msg:
           - "✅ Kubernetes and Istio deployment completed"
           - "Cluster: {{ k8s_cluster_name }}"

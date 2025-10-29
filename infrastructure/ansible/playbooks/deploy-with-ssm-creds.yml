@@ -14,7 +14,7 @@
       aws_credentials: "/ansible/aws/credentials"
       vault_password: "/ansible/vault/password"
       vault_token: "/vault/operator/token"
-    
+
     # AWS configuration
     aws_region: "{{ aws_region | default('us-east-1') }}"
     environment: "{{ env | default('dev') }}"
@@ -26,7 +26,7 @@
     - name: Load AWS credentials from SSM
       block:
         - name: Get AWS credentials from SSM Parameter Store
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter \
               --name "{{ ssm_parameter_paths.aws_credentials }}" \
               --with-decryption \
@@ -38,7 +38,7 @@
           changed_when: false
 
         - name: Parse AWS credentials JSON
-          set_fact:
+  ansible.builtin.set_fact:
             aws_access_key_id: "{{ aws_creds_json.stdout | from_json | json_query('access_key_id') }}"
             aws_secret_access_key: "{{ aws_creds_json.stdout | from_json | json_query('secret_access_key') }}"
             aws_session_token: "{{ aws_creds_json.stdout | from_json | json_query('session_token') | default('') }}"
@@ -52,7 +52,7 @@
             AWS_DEFAULT_REGION: "{{ aws_region }}"
 
         - name: Verify AWS credentials
-          shell: |
+  ansible.builtin.shell: |
             aws sts get-caller-identity \
               --region "{{ aws_region }}" \
               --query 'Account' \
@@ -61,7 +61,7 @@
           changed_when: false
 
         - name: Display AWS account information
-          debug:
+  ansible.builtin.debug:
             msg:
               - "✅ AWS credentials loaded from SSM"
               - "Account ID: {{ aws_account_id.stdout }}"
@@ -74,7 +74,7 @@
     - name: Load Vault password from SSM
       block:
         - name: Get Vault password from SSM Parameter Store
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter \
               --name "{{ ssm_parameter_paths.vault_password }}" \
               --with-decryption \
@@ -86,7 +86,7 @@
           changed_when: false
 
         - name: Create Vault password file
-          copy:
+  ansible.builtin.copy:
             content: "{{ vault_password.stdout }}"
             dest: "~/.vault_password"
             mode: '0600'
@@ -94,7 +94,7 @@
           changed_when: false
 
         - name: Display Vault password status
-          debug:
+  ansible.builtin.debug:
             msg: "✅ Vault password loaded from SSM and saved to ~/.vault_password"
 
     # =============================================================================
@@ -103,7 +103,7 @@
     - name: Load Vault token from SSM
       block:
         - name: Get Vault token from SSM Parameter Store
-          shell: |
+  ansible.builtin.shell: |
             aws ssm get-parameter \
               --name "{{ ssm_parameter_paths.vault_token }}" \
               --with-decryption \
@@ -120,7 +120,7 @@
             VAULT_ADDR: "https://internal.coderedalarmtech.com/vault"
 
         - name: Display Vault token status
-          debug:
+  ansible.builtin.debug:
             msg: "✅ Vault token loaded from SSM"
 
     # =============================================================================
@@ -129,14 +129,14 @@
     - name: Deploy applications with SSM credentials
       block:
         - name: Deploy Vault operator with SSM integration
-          include_tasks: vault-operator-helm-ssm.yml
+  ansible.builtin.include_tasks: vault-operator-helm-ssm.yml
           vars:
             aws_account_id: "{{ aws_account_id.stdout }}"
             aws_region: "{{ aws_region }}"
             environment: "{{ environment }}"
 
         - name: Deploy Go MySQL API with Kustomize
-          include_tasks: go-mysql-api-kustomize.yml
+  ansible.builtin.include_tasks: go-mysql-api-kustomize.yml
           vars:
             aws_account_id: "{{ aws_account_id.stdout }}"
             aws_region: "{{ aws_region }}"
@@ -146,7 +146,7 @@
     # DEPLOYMENT SUMMARY
     # =============================================================================
     - name: Display deployment summary
-      debug:
+  ansible.builtin.debug:
         msg:
           - "✅ Deployment completed with SSM credentials"
           - "AWS Account: {{ aws_account_id.stdout }}"

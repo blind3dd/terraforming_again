@@ -3,25 +3,25 @@
 - name: Install Istio CLI if not present
   block:
     - name: Check if Istio CLI is installed
-      command: istioctl version --short
+  ansible.builtin.command: istioctl version --short
       register: istioctl_check
       failed_when: false
       changed_when: false
 
     - name: Download and install Istio CLI
-      shell: |
+  ansible.builtin.shell: |
         curl -L https://istio.io/downloadIstio | sh -
         sudo mv istio-{{ istio_version }}/bin/istioctl /usr/local/bin/
         rm -rf istio-{{ istio_version }}
       when: istioctl_check.rc != 0
 
     - name: Verify Istio CLI installation
-      command: istioctl version --short
+  ansible.builtin.command: istioctl version --short
       register: istioctl_version
       changed_when: false
 
     - name: Display Istio CLI version
-      debug:
+  ansible.builtin.debug:
         msg: "Istio CLI version: {{ istioctl_version.stdout }}"
 
 - name: Create istio-system namespace
@@ -35,7 +35,7 @@
       istio-injection: enabled
 
 - name: Install Istio using istioctl
-  shell: |
+  ansible.builtin.shell: |
     istioctl install --set values.pilot.env.PILOT_ENABLE_OUTBOUND_POLICY=true \
       --set values.global.outboundPolicy.defaultPolicy=DENY \
       --set values.global.meshConfig.outboundPolicy.defaultPolicy=DENY \
@@ -111,12 +111,12 @@
   when: deploy_istio_ambient | default(true)
 
 - name: Verify Istio installation
-  shell: istioctl verify-install
+  ansible.builtin.shell: istioctl verify-install
   register: istio_verify
   failed_when: istio_verify.rc != 0
   when: deploy_istio_ambient | default(true)
 
 - name: Display Istio verification results
-  debug:
+  ansible.builtin.debug:
     msg: "{{ istio_verify.stdout_lines }}"
   when: deploy_istio_ambient | default(true)
