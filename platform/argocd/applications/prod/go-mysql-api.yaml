@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-mysql-api-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: production  # Separate ArgoCD project for prod
+  
+  source:
+    repoURL: https://github.com/blind3dd/terraforming_again
+    targetRevision: main  # Prod deploys from main only
+    path: infrastructure/kubernetes/overlays/prod
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  
+  syncPolicy:
+    automated:
+      prune: false      # Manual pruning in prod
+      selfHeal: false   # Manual sync in prod (no auto-heal)
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  revisionHistoryLimit: 30  # Keep more history in prod
+  
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # HPA controls this
+

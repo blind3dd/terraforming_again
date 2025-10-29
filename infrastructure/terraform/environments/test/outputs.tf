@@ -1,4 +1,4 @@
-# Dev Environment Outputs
+# Test Environment Outputs
 
 # Networking Outputs
 output "vpc_id" {
@@ -81,7 +81,7 @@ resource "local_file" "ansible_inventory" {
   
   content = templatefile("${path.module}/templates/ansible-inventory.tpl", {
     environment         = var.environment
-    timestamp           = timestamp()
+    timestamp           = formatdate("YYYY-MM-DD HH:mm:ss", timestamp())
     aws_region          = var.aws_region
     vpc_id              = module.networking.vpc_id
     vpc_cidr_block      = module.networking.vpc_cidr_block
@@ -123,12 +123,12 @@ resource "local_file" "ansible_group_vars" {
         repo = "https://github.com/blind3dd/terraforming_again"
         path = "infrastructure/kubernetes/overlays/${var.environment}"
         namespace = var.environment
-        auto_sync = var.environment == "dev" ? true : false
+        auto_sync = var.environment == "test" ? true : false
       }
     ]
     
-    # Helm releases
-    helm_releases = var.environment == "dev" ? [] : [
+    # Helm releases (test gets autoscaling)
+    helm_releases = [
       {
         name = "karpenter"
         chart = "oci://public.ecr.aws/karpenter/karpenter"
@@ -140,5 +140,4 @@ resource "local_file" "ansible_group_vars" {
   
   file_permission = "0644"
 }
-
 

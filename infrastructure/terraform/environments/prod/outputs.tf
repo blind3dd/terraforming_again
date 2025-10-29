@@ -1,4 +1,4 @@
-# Dev Environment Outputs
+# Production Environment Outputs
 
 # Networking Outputs
 output "vpc_id" {
@@ -72,6 +72,17 @@ output "database_security_group_id" {
   value       = module.networking.database_security_group_id
 }
 
+# Load Balancer Outputs (prod has ALB)
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = try(module.compute.alb_dns_name, null)
+}
+
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer"
+  value       = try(module.compute.alb_arn, null)
+}
+
 # =============================================================================
 # ANSIBLE INVENTORY GENERATION
 # =============================================================================
@@ -123,22 +134,33 @@ resource "local_file" "ansible_group_vars" {
         repo = "https://github.com/blind3dd/terraforming_again"
         path = "infrastructure/kubernetes/overlays/${var.environment}"
         namespace = var.environment
-        auto_sync = var.environment == "dev" ? true : false
+        auto_sync = false  # Prod requires manual sync
       }
     ]
     
-    # Helm releases
-    helm_releases = var.environment == "dev" ? [] : [
+    # Helm releases (prod gets full suite)
+    helm_releases = [
       {
         name = "karpenter"
         chart = "oci://public.ecr.aws/karpenter/karpenter"
         namespace = "karpenter"
         values_file = "../helm-kustomize/karpenter/values.yaml"
+      },
+      {
+        name = "prometheus"
+        chart = "prometheus-community/kube-prometheus-stack"
+        namespace = "monitoring"
+        values_file = "../helm-kustomize/prometheus/values.yaml"
       }
     ]
+    
+    # Production-specific
+    enable_high_availability = true
+    enable_auto_scaling = true
+    enable_monitoring = true
+    backup_retention_days = 30
   })
   
   file_permission = "0644"
 }
-
 

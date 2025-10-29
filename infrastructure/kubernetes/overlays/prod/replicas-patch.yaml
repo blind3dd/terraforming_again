@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-mysql-api
+spec:
+  replicas: 3  # Three replicas for prod (high availability)
+

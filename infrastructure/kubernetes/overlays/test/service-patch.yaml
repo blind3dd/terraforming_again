@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-mysql-api
+spec:
+  type: LoadBalancer  # ALB for test (prod-like setup)
+

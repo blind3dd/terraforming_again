@@ -2,9 +2,11 @@ name: Secure CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, working_branch ]
+    branches: [main, working_branch]
+    paths:
+      - 'infrastructure/terraform/environments/dev/**'  # Auto-deploy dev
   pull_request:
-    branches: [ main, working_branch ]
+    branches: [main]
 
 env:
   AWS_REGION: us-east-1
@@ -17,6 +19,15 @@ permissions:
   contents: read
 
 jobs:
+  deploy-dev:
+    if: contains(github.event.head_commit.modified, 'environments/dev')
+    environment: dev  # GitHub environment with secrets
+    
+  deploy-test:
+    if: contains(github.event.head_commit.modified, 'environments/test')
+    environment: test
+    needs: [deploy-dev]  # Only after dev succeeds
+
   # Security: Code Quality and Linting
   security-scan:
     name: Security & Code Quality
