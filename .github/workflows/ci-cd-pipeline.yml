@@ -147,6 +147,11 @@ jobs:
         fi
         echo "Running terraform validate..."
         terraform validate
+
+    - name: Verify AWS identity
+      run: |
+        echo "AWS identity:"
+        aws sts get-caller-identity
     
     - name: Configure AWS credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
