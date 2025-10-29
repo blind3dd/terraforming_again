@@ -90,7 +90,7 @@
         mode: '0755'
 
     - name: Display SSH access information
-  ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: |
           SSH Access Information:
 

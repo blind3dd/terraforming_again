@@ -175,11 +175,10 @@ jobs:
     
     - name: Install Ansible and dependencies
       run: |
-        pip install --pre ansible==${{ env.ANSIBLE_VERSION }}
-        pip install --pre ansible-core==2.17.7rc1  # Fixes vulnerability #37
+        pip install ansible==10.1.0
         pip install ansible-lint==24.12.2
         if [ -f "ansible/requirements.txt" ]; then
-          pip install --pre -r ansible/requirements.txt
+          pip install -r ansible/requirements.txt
         fi
     
     - name: Ansible Lint

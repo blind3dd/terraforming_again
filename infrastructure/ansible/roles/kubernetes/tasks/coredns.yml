@@ -1,6 +1,8 @@
 ---
 # CoreDNS Configuration tasks for Kubernetes role
 - name: Configure CoreDNS
+  when: kubernetes_configure_coredns | default(true)
+  tags: [coredns, dns]
   block:
     - name: Wait for CoreDNS to be ready
       kubernetes.core.k8s_info:
@@ -9,7 +11,12 @@
         namespace: kube-system
         name: coredns
       register: coredns_deployment
-      until: coredns_deployment.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+      until: >-
+        coredns_deployment.resources |
+        selectattr('status.conditions') |
+        selectattr('type', 'equalto', 'Available') |
+        map(attribute='status') |
+        first == 'True'
       retries: 30
       delay: 10
 
@@ -57,7 +64,12 @@
         namespace: kube-system
         name: coredns
       register: coredns_restart
-      until: coredns_restart.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+      until: >-
+        coredns_restart.resources |
+        selectattr('status.conditions') |
+        selectattr('type', 'equalto', 'Available') |
+        map(attribute='status') |
+        first == 'True'
       retries: 30
       delay: 10
 
@@ -86,22 +98,21 @@
       ansible.builtin.debug:
         msg: "{{ dns_test.stdout_lines }}"
 
-  when: configure_coredns | default(true)
-  tags: [coredns, dns]
-
 - name: Configure CoreDNS for custom domains
+  when: kubernetes_configure_custom_domains | default(false)
+  tags: [coredns, custom-domains]
   block:
     - name: Create custom domain ConfigMap
       kubernetes.core.k8s:
         state: present
         src: "{{ playbook_dir }}/../templates/coredns-custom-domains.yml.j2"
-      when: custom_domains | default([]) | length > 0
+      when: kubernetes_custom_domains | default([]) | length > 0
 
     - name: Create CoreDNS forward zones
       kubernetes.core.k8s:
         state: present
         src: "{{ playbook_dir }}/../templates/coredns-forward-zones.yml.j2"
-      when: forward_zones | default([]) | length > 0
+      when: kubernetes_forward_zones | default([]) | length > 0
 
-  when: configure_custom_domains | default(false)
+  when: kubernetes_configure_custom_domains | default(false)
   tags: [coredns, custom-domains]

@@ -158,7 +158,7 @@ jobs:
       run: |
         set -e
         echo "Initializing Terraform providers..."
-        terraform init -upgrade -input=false -get=true -get-plugins=true
+        terraform init -upgrade -input=false -get=true -get-plugins=true -reconfigure
         echo "Terraform init completed"
         echo "Checking provider installation..."
         if [ -d ".terraform/providers" ]; then
@@ -183,7 +183,7 @@ jobs:
         # Ensure providers are initialized - reinit if needed
         if [ ! -d ".terraform/providers" ] || [ -z "$(ls -A .terraform/providers 2>/dev/null)" ]; then
           echo "Providers not found, reinitializing..."
-          terraform init -upgrade -input=false
+          terraform init -upgrade -input=false -reconfigure
         fi
         terraform workspace select ${{ github.event.inputs.environment || 'test' }} || terraform workspace new ${{ github.event.inputs.environment || 'test' }}
         echo "Running terraform validate..."

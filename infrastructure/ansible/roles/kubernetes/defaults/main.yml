@@ -68,16 +68,16 @@ allowed_ntp_servers:
 install_calico: true
 calico_version: "3.26.0"
 flannel_version: "0.22.0"
-verify_cni: true
+kubernetes_verify_cni: true
 
 # CoreDNS Configuration
-configure_coredns: true
-coredns_version: "1.11.1"
-configure_custom_domains: false
-custom_domains: []
-forward_zones: []
+kubernetes_configure_coredns: true
+kubernetes_coredns_version: "1.11.1"
+kubernetes_configure_custom_domains: false
+kubernetes_custom_domains: []
+kubernetes_forward_zones: []
 
 # Network Configuration
-pod_cidr: "10.244.0.0/16"
-service_cidr: "10.96.0.0/12"
-cluster_dns: "10.96.0.10"
+kubernetes_pod_cidr: "10.244.0.0/16"
+kubernetes_service_cidr: "10.96.0.0/12"
+kubernetes_cluster_dns: "10.96.0.10"

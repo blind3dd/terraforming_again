@@ -1,6 +1,8 @@
 ---
 # CNI Configuration tasks for Kubernetes role
 - name: Install Calico CNI
+  when: install_calico | default(true)
+  tags: [cni, calico]
   block:
     - name: Download Calico manifest
       ansible.builtin.get_url:
@@ -20,7 +22,12 @@
         namespace: tigera-operator
         name: tigera-operator
       register: calico_operator
-      until: calico_operator.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+      until: >-
+        calico_operator.resources |
+        selectattr('status.conditions') |
+        selectattr('type', 'equalto', 'Available') |
+        map(attribute='status') |
+        first == 'True'
       retries: 30
       delay: 10
 
@@ -42,7 +49,13 @@
         namespace: calico-system
         name: calico-node
       register: calico_daemonset
-      until: calico_daemonset.resources | selectattr('status.numberReady') | first >= calico_daemonset.resources | selectattr('status.desiredNumberScheduled') | first
+      until: >-
+        calico_daemonset.resources |
+        selectattr('status.numberReady') |
+        first >=
+        calico_daemonset.resources |
+        selectattr('status.desiredNumberScheduled') |
+        first
       retries: 30
       delay: 10
 
@@ -50,10 +63,9 @@
       ansible.builtin.debug:
         msg: "Calico CNI is ready with {{ calico_daemonset.resources[0].status.numberReady }} nodes"
 
-  when: install_calico | default(true)
-  tags: [cni, calico]
-
 - name: Install Flannel CNI
+  when: install_flannel | default(true)
+  tags: [cni, flannel]
   block:
     - name: Download Flannel manifest
       ansible.builtin.get_url:
@@ -73,7 +85,13 @@
         namespace: kube-flannel
         name: kube-flannel-ds
       register: flannel_daemonset
-      until: flannel_daemonset.resources | selectattr('status.numberReady') | first >= flannel_daemonset.resources | selectattr('status.desiredNumberScheduled') | first
+      until: >-
+        flannel_daemonset.resources |
+        selectattr('status.numberReady') |
+        first >=
+        flannel_daemonset.resources |
+        selectattr('status.desiredNumberScheduled') |
+        first
       retries: 30
       delay: 10
 
@@ -81,10 +99,9 @@
       ansible.builtin.debug:
         msg: "Flannel CNI is ready with {{ flannel_daemonset.resources[0].status.numberReady }} nodes"
 
-  when: install_flannel | default(true)
-  tags: [cni, flannel]
-
 - name: Configure CNI network policies
+  when: enable_network_policies | default(true)
+  tags: [cni, network-policies]
   block:
     - name: Create default deny network policy
       kubernetes.core.k8s:
@@ -101,10 +118,9 @@
         state: present
         src: "{{ playbook_dir }}/../templates/allow-ingress-network-policy.yml.j2"
 
-  when: enable_network_policies | default(true)
-  tags: [cni, network-policies]
-
 - name: Verify CNI installation
+  when: kubernetes_verify_cni | default(true)
+  tags: [cni, verification]
   block:
     - name: Check CNI pods
       kubernetes.core.k8s_info:
@@ -125,6 +141,3 @@
         msg: "CNI Pod {{ item.metadata.name }} in {{ item.metadata.namespace }} is {{ item.status.phase }}"
       loop: "{{ cni_pods.results | map(attribute='resources') | flatten }}"
       when: cni_pods.results | map(attribute='resources') | flatten | length > 0
-
-  when: verify_cni | default(true)
-  tags: [cni, verification]

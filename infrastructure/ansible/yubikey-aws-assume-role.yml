@@ -107,6 +107,7 @@
         path: "{{ ansible_env.HOME }}/.bashrc"
         line: "source {{ config_dir }}/yubikey-assume-role-completion.bash"
         create: true
+        mode: '0644'
         owner: "{{ ansible_user_id }}"
         group: "{{ ansible_user_id }}"
 
@@ -115,6 +116,7 @@
         path: "{{ ansible_env.HOME }}/.bashrc"
         line: "alias yk-aws='{{ script_dir }}/yubikey-assume-role'"
         create: true
+        mode: '0644'
         owner: "{{ ansible_user_id }}"
         group: "{{ ansible_user_id }}"
 
