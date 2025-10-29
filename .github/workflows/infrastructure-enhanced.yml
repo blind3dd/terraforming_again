@@ -105,10 +105,44 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
+    - name: Setup OpenTofu
+      run: |
+        set -euo pipefail
+        sudo apt-get update && sudo apt-get install -y wget unzip coreutils curl
+        TOFU_VERSION="1.10.6"
+        TOFU_FILE="tofu_${TOFU_VERSION}_linux_amd64.zip"
+        TOFU_URL="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/${TOFU_FILE}"
+        echo "Downloading ${TOFU_FILE} ..."
+        wget -q "${TOFU_URL}"
+        echo "Verifying SHA256 checksum..."
+        # Try common checksum asset names
+        SHA_URL_1="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_SHA256SUMS"
+        SHA_URL_2="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/SHA256SUMS"
+        SHA_URL_3="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/checksums.txt"
+        # Fetch checksum list with fallbacks
+        CHECKSUMS=$(curl -fsSL "${SHA_URL_1}" || curl -fsSL "${SHA_URL_2}" || curl -fsSL "${SHA_URL_3}")
+        if [ -z "${CHECKSUMS}" ]; then
+          echo "Failed to download checksum list for OpenTofu v${TOFU_VERSION}" >&2
+          exit 1
+        fi
+        EXPECTED_SHA=$(echo "${CHECKSUMS}" | grep "${TOFU_FILE}$" | awk '{print $1}')
+        if [ -z "${EXPECTED_SHA}" ]; then
+          echo "Failed to find expected SHA for ${TOFU_FILE}" >&2
+          exit 1
+        fi
+        ACTUAL_SHA=$(sha256sum "${TOFU_FILE}" | awk '{print $1}')
+        if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
+          echo "SHA256 mismatch for ${TOFU_FILE}" >&2
+          echo "Expected: ${EXPECTED_SHA}" >&2
+          echo "Actual:   ${ACTUAL_SHA}" >&2
+          exit 1
+        fi
+        echo "Checksum OK"
+        unzip -q "${TOFU_FILE}"
+        sudo mv tofu /usr/local/bin/
+        sudo chmod +x /usr/local/bin/tofu
+        sudo ln -sf /usr/local/bin/tofu /usr/local/bin/terraform
+        terraform version
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -120,7 +154,7 @@ jobs:
     - name: Terraform Init
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
       run: |
-        terraform init
+        terraform init -upgrade
         terraform workspace select ${{ github.event.inputs.environment || 'test' }} || terraform workspace new ${{ github.event.inputs.environment || 'test' }}
       
     - name: Terraform Format Check
@@ -129,7 +163,9 @@ jobs:
       
     - name: Terraform Validate
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
-      run: terraform validate
+      run: |
+        terraform init -upgrade || true  # Ensure providers are cached
+        terraform validate
       
     - name: Terraform Security Scan
       working-directory: infrastructure/terraform/environments/${{ github.event.inputs.environment || 'test' }}
@@ -335,10 +371,44 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
+    - name: Setup OpenTofu
+      run: |
+        set -euo pipefail
+        sudo apt-get update && sudo apt-get install -y wget unzip coreutils curl
+        TOFU_VERSION="1.10.6"
+        TOFU_FILE="tofu_${TOFU_VERSION}_linux_amd64.zip"
+        TOFU_URL="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/${TOFU_FILE}"
+        echo "Downloading ${TOFU_FILE} ..."
+        wget -q "${TOFU_URL}"
+        echo "Verifying SHA256 checksum..."
+        # Try common checksum asset names
+        SHA_URL_1="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_SHA256SUMS"
+        SHA_URL_2="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/SHA256SUMS"
+        SHA_URL_3="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/checksums.txt"
+        # Fetch checksum list with fallbacks
+        CHECKSUMS=$(curl -fsSL "${SHA_URL_1}" || curl -fsSL "${SHA_URL_2}" || curl -fsSL "${SHA_URL_3}")
+        if [ -z "${CHECKSUMS}" ]; then
+          echo "Failed to download checksum list for OpenTofu v${TOFU_VERSION}" >&2
+          exit 1
+        fi
+        EXPECTED_SHA=$(echo "${CHECKSUMS}" | grep "${TOFU_FILE}$" | awk '{print $1}')
+        if [ -z "${EXPECTED_SHA}" ]; then
+          echo "Failed to find expected SHA for ${TOFU_FILE}" >&2
+          exit 1
+        fi
+        ACTUAL_SHA=$(sha256sum "${TOFU_FILE}" | awk '{print $1}')
+        if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
+          echo "SHA256 mismatch for ${TOFU_FILE}" >&2
+          echo "Expected: ${EXPECTED_SHA}" >&2
+          echo "Actual:   ${ACTUAL_SHA}" >&2
+          exit 1
+        fi
+        echo "Checksum OK"
+        unzip -q "${TOFU_FILE}"
+        sudo mv tofu /usr/local/bin/
+        sudo chmod +x /usr/local/bin/tofu
+        sudo ln -sf /usr/local/bin/tofu /usr/local/bin/terraform
+        terraform version
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4

@@ -37,32 +37,33 @@ jobs:
     
     - name: Install development tools
       run: |
-        pipenv install --dev
-        pipenv install black==22.0.0 flake8==5.0.0 mypy==1.0.0 pytest==7.0.0
-        pipenv install bandit==1.7.5 safety==2.3.5  # Security scanning
+        # Install packages directly to avoid Pipfile conversion issues
+        pip install black==24.3.0 flake8==7.0.0 mypy==1.8.0 pytest==8.0.0
+        pip install bandit==1.7.5 safety==3.0.1  # Security scanning
+        pip install --pre -r requirements.txt  # Install from requirements.txt (--pre for ansible-core RC)
     
     - name: Code formatting check
       run: |
-        pipenv run black --check --diff .
+        black --check --diff .
     
     - name: Linting
       run: |
-        pipenv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     
     - name: Type checking
       run: |
-        pipenv run mypy . --ignore-missing-imports
+        mypy . --ignore-missing-imports
     
     - name: Security scan with Bandit
       run: |
-        pipenv run bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -f json -o bandit-report.json || true
     
     - name: Dependency vulnerability scan
       run: |
-        pipenv run safety check --json --output safety-report.json || true
+        safety check --json --output safety-report.json || true
     
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
@@ -112,23 +113,22 @@ jobs:
       with:
         python-version: '3.9'
     
-    - name: Install pipenv
-      run: |
-        pip install pipenv
-    
     - name: Install Ansible and dependencies
       run: |
-        pipenv install ansible==${{ env.ANSIBLE_VERSION }}
-        pipenv install ansible-lint==6.0.0
-        pipenv install -r ansible/requirements.txt
+        pip install --pre ansible==${{ env.ANSIBLE_VERSION }}
+        pip install --pre ansible-core==2.17.7rc1  # Fixes vulnerability #37
+        pip install ansible-lint==24.12.2
+        if [ -f "ansible/requirements.txt" ]; then
+          pip install --pre -r ansible/requirements.txt
+        fi
     
     - name: Ansible Lint
       run: |
-        pipenv run ansible-lint ansible/
+        ansible-lint ansible/
     
     - name: Ansible Syntax Check
       run: |
-        pipenv run find ansible/ -name "*.yml" -exec ansible-playbook --syntax-check {} \;
+        find ansible/ -name "*.yml" -exec ansible-playbook --syntax-check {} \;
 
   # Security: SELinux Policy Validation
   selinux-validate:
@@ -184,7 +184,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Download security reports
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: security-reports
     
