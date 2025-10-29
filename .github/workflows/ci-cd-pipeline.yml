@@ -147,7 +147,7 @@ jobs:
       working-directory: infrastructure/terraform/environments/test
       run: |
         set -e
-        terraform init -backend=false -input=false -reconfigure
+        terraform init -input=false -reconfigure
         terraform workspace select test || terraform workspace new test
         if [ -f "terraform.tfvars" ]; then
           terraform plan -var-file="terraform.tfvars" -out=tfplan
