@@ -124,7 +124,7 @@ jobs:
       run: |
         set -e
         echo "Initializing Terraform providers..."
-        terraform init -backend=false -input=false -upgrade
+        terraform init -backend=false -input=false -upgrade -reconfigure
         echo "Terraform init completed"
         if [ ! -d ".terraform/providers" ]; then
           echo "ERROR: .terraform/providers directory not found after init!"
@@ -138,7 +138,7 @@ jobs:
         # Ensure providers are initialized - reinit if needed
         if [ ! -d ".terraform/providers" ] || [ -z "$(ls -A .terraform/providers 2>/dev/null)" ]; then
           echo "Providers not found, reinitializing..."
-          terraform init -backend=false -input=false -upgrade
+          terraform init -backend=false -input=false -upgrade -reconfigure
         fi
         echo "Running terraform validate..."
         terraform validate
@@ -147,7 +147,7 @@ jobs:
       working-directory: infrastructure/terraform/environments/test
       run: |
         set -e
-        terraform init -backend=false -input=false
+        terraform init -backend=false -input=false -reconfigure
         terraform workspace select test || terraform workspace new test
         if [ -f "terraform.tfvars" ]; then
           terraform plan -var-file="terraform.tfvars" -out=tfplan
@@ -218,7 +218,7 @@ jobs:
     
     - name: Validate SELinux policies
       run: |
-        cd selinux/
+        cd ./infrastructure/ansible/files/selinux
         for policy in *.te; do
           echo "Validating $policy"
           checkmodule -M -m -o ${policy%.te}.mod $policy
