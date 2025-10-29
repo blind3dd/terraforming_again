@@ -69,7 +69,6 @@ enable_nat_gateway = true
 # DOMAIN AND DNS CONFIGURATION
 # =============================================================================
 
-domain_name = "coderedalarmtech.com"
 route53_zone_id = ""  # Set this in your environment or SSM
 
 

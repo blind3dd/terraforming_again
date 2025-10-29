@@ -184,11 +184,23 @@ jobs:
     
     - name: Ansible Lint
       run: |
-        ansible-lint ansible/
+        if [ -d "ansible" ]; then
+          ansible-lint ansible/
+        elif [ -d "infrastructure/ansible" ]; then
+          ansible-lint infrastructure/ansible/
+        else
+          echo "No Ansible directory found; skipping ansible-lint"
+        fi
     
     - name: Ansible Syntax Check
       run: |
-        find ansible/ -name "*.yml" -exec ansible-playbook --syntax-check {} \;
+        if [ -d "ansible" ]; then
+          find ansible/ -name "*.yml" -exec ansible-playbook --syntax-check {} \;
+        elif [ -d "infrastructure/ansible" ]; then
+          find infrastructure/ansible/ -name "*.yml" -exec ansible-playbook --syntax-check {} \;
+        else
+          echo "No Ansible directory found; skipping syntax check"
+        fi
 
   # Security: SELinux Policy Validation
   selinux-validate:
