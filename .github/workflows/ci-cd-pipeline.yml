@@ -148,7 +148,7 @@ jobs:
         echo "Running terraform validate..."
         terraform validate
 
-    - name: Verify AWS identity
+    - name: Verify AWS OIDC Provider identity
       run: |
         echo "AWS identity:"
         aws sts get-caller-identity
