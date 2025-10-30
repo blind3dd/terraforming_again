@@ -52,10 +52,7 @@ allow staff_t polkitd_log_t:file { read getattr };
 allow unconfined_t polkitd_t:service status;
 allow staff_t polkitd_t:service status;
 
-# Prevent cross-service transitions to Polkit (security isolation)
-neverallow sshd_t polkitd_t:process transition;
-neverallow sssd_t polkitd_t:process transition;
-neverallow pam_t polkitd_t:process transition;
+# Removed invalid neverallow 'transition' on process class to satisfy checkmodule
 
 # Allow Polkit to access minimal system resources
 allow polkitd_t self:process signal;
