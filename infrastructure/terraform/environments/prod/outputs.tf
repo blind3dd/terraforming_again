@@ -89,7 +89,7 @@ output "alb_arn" {
 
 resource "local_file" "ansible_inventory" {
   filename = "${path.root}/../../../../ansible/inventory/${var.environment}/hosts.yml"
-  
+
   content = templatefile("${path.module}/templates/ansible-inventory.tpl", {
     environment         = var.environment
     timestamp           = timestamp()
@@ -108,59 +108,59 @@ resource "local_file" "ansible_inventory" {
     web_sg_id           = module.networking.web_security_group_id
     db_sg_id            = module.networking.database_security_group_id
   })
-  
+
   file_permission = "0644"
 }
 
 # Generate Ansible group vars from Terraform
 resource "local_file" "ansible_group_vars" {
   filename = "${path.root}/../../../../ansible/group_vars/${var.environment}.yml"
-  
+
   content = yamlencode({
     # Environment metadata
-    environment = var.environment
+    environment   = var.environment
     k8s_namespace = var.environment
-    
+
     # Terraform outputs
-    terraform_managed = true
-    terraform_vpc_id = module.networking.vpc_id
+    terraform_managed      = true
+    terraform_vpc_id       = module.networking.vpc_id
     terraform_rds_endpoint = module.database.endpoint
     terraform_rds_database = var.db_name
-    
+
     # ArgoCD applications
     argocd_apps = [
       {
-        name = "go-mysql-api-${var.environment}"
-        repo = "https://github.com/blind3dd/terraforming_again"
-        path = "infrastructure/kubernetes/overlays/${var.environment}"
+        name      = "go-mysql-api-${var.environment}"
+        repo      = "https://github.com/blind3dd/terraforming_again"
+        path      = "infrastructure/kubernetes/overlays/${var.environment}"
         namespace = var.environment
-        auto_sync = false  # Prod requires manual sync
+        auto_sync = false # Prod requires manual sync
       }
     ]
-    
+
     # Helm releases (prod gets full suite)
     helm_releases = [
       {
-        name = "karpenter"
-        chart = "oci://public.ecr.aws/karpenter/karpenter"
-        namespace = "karpenter"
+        name        = "karpenter"
+        chart       = "oci://public.ecr.aws/karpenter/karpenter"
+        namespace   = "karpenter"
         values_file = "../helm-kustomize/karpenter/values.yaml"
       },
       {
-        name = "prometheus"
-        chart = "prometheus-community/kube-prometheus-stack"
-        namespace = "monitoring"
+        name        = "prometheus"
+        chart       = "prometheus-community/kube-prometheus-stack"
+        namespace   = "monitoring"
         values_file = "../helm-kustomize/prometheus/values.yaml"
       }
     ]
-    
+
     # Production-specific
     enable_high_availability = true
-    enable_auto_scaling = true
-    enable_monitoring = true
-    backup_retention_days = 30
+    enable_auto_scaling      = true
+    enable_monitoring        = true
+    backup_retention_days    = 30
   })
-  
+
   file_permission = "0644"
 }
 
