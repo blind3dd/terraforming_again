@@ -166,12 +166,10 @@ jobs:
         output_file_path: checkov-compliance-results.sarif
         soft_fail: true
         
-    - name: Upload Checkov compliance results
+    - name: Upload Checkov compliance results (main only)
       uses: github/codeql-action/upload-sarif@v3
-      if: |
-        always() &&
-        hashFiles('checkov-compliance-results.sarif/results_sarif.sarif') != '' &&
-        (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('checkov-compliance-results.sarif/results_sarif.sarif') != ''
+      continue-on-error: true
       with:
         sarif_file: checkov-compliance-results.sarif/results_sarif.sarif
         
@@ -267,12 +265,10 @@ jobs:
         pipx install semgrep || pip install semgrep || true
         semgrep scan --config p/secrets --config p/security-audit --sarif --output semgrep-secrets.sarif || true
         
-    - name: Upload Semgrep secrets results
+    - name: Upload Semgrep secrets results (main only)
       uses: github/codeql-action/upload-sarif@v3
-      if: |
-        always() &&
-        hashFiles('semgrep-secrets.sarif') != '' &&
-        (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('semgrep-secrets.sarif') != ''
+      continue-on-error: true
       with:
         sarif_file: semgrep-secrets.sarif
 
