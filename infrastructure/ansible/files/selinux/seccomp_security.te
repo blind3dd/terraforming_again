@@ -1,7 +1,7 @@
 # SELinux Policy for Seccomp Security
 # This policy manages secure computing mode (seccomp) for system security
 
-policy_module(seccomp_security, 1.0.0)
+module seccomp_security 1.0.0;
 
 require {
     type auditd_t;
