@@ -118,9 +118,7 @@ def assume_role_with_yubikey(role_arn, mfa_serial, yubikey_password):
                 return response["Credentials"]
             except ClientError as e2:
                 print(f"Code 2 failed: {e2}")
-                print(
-                    "Both codes failed. You may need to configure OTP device in AWS."
-                )
+                print("Both codes failed. You may need to configure OTP device in AWS.")
                 return None
 
     except Exception as e:
