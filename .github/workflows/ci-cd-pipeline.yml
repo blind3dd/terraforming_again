@@ -90,7 +90,7 @@ jobs:
   terraform-validate:
     name: Terraform Validation
     runs-on: ubuntu-latest
-    environment: AWS_ROLE_TO_ASSUME
+    environment: dev  # Use 'dev' GitHub environment
     
     steps:
     - name: Checkout code
