@@ -59,7 +59,7 @@
           --profile "{{ aws_profile }}"
           {% if external_id %}--external-id "{{ external_id }}"{% endif %}
           {% if mfa_serial and mfa_token %}--serial-number "{{ mfa_serial }}" --token-code "{{ mfa_token }}"{% endif %}
-  register: assume_role_result
+      register: assume_role_result
       failed_when: assume_role_result.rc != 0
 
     - name: Parse assume role response

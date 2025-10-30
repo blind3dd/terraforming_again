@@ -55,7 +55,7 @@
     - name: Apply Kustomize patches (environment-specific)
       ansible.builtin.shell: |
         kustomize build "{{ kustomize_path }}" | kubectl apply -f -
-  register: kustomize_apply
+      register: kustomize_apply
       changed_when: kustomize_apply.rc == 0
 
     - name: Display deployment summary

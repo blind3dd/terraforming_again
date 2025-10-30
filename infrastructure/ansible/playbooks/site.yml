@@ -130,7 +130,7 @@
             kind: Deployment
             name: rds-app
             namespace: "{{ k8s_namespace }}"
-  register: istio_deployment_status
+          register: istio_deployment_status
           when: enable_istio_ambient
 
     - name: Display final status
