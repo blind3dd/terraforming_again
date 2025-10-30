@@ -6,7 +6,8 @@ on:
     paths:
       - 'infrastructure/terraform/environments/dev/**'  # Auto-deploy dev
   pull_request:
-    branches: [main]
+    branches: [main, working_branch]
+  workflow_dispatch: {}
 
 env:
   AWS_REGION: us-east-1
@@ -90,7 +91,7 @@ jobs:
   terraform-validate:
     name: Terraform Validation
     runs-on: ubuntu-latest
-    environment: AWS_ROLE_TO_ASSUME  # GitHub environment with the secret
+    environment: dev  # GitHub environment with the secret
     
     steps:
     - name: Checkout code
