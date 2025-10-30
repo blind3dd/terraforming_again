@@ -1,7 +1,7 @@
 # SELinux Policy for Polkit (PolicyKit) Security
 # This policy ensures Polkit daemon security and proper privilege control
 
-policy_module(polkit_security, 1.0.0)
+module polkit_security 1.0.0;
 
 require {
     type polkitd_t;
