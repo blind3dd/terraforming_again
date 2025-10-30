@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  ENVIRONMENT: "base"  # Overridden by overlays
+  DB_HOST: "localhost"  # Overridden by overlays
+  DB_PORT: "3306"
+  DB_NAME: "mydb"  # Overridden by overlays
+  LOG_LEVEL: "info"
+

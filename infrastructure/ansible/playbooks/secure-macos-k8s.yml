@@ -1,0 +1,292 @@
+---
+- name: Secure macOS Local Kubernetes Setup
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    namespace: secure-workloads
+    impersonation_filter_config:
+      disableUserImpersonation: true
+      disableGroupImpersonation: true
+      disableServiceAccountImpersonation: true
+      allowedImpersonators: []
+      allowedImpersonatorGroups: []
+      logImpersonationAttempts: true
+      failClosed: true
+    rbac_rules:
+      - apiGroups: [""]
+        resources: ["pods", "services", "configmaps"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["apps"]
+        resources: ["deployments"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["networking.k8s.io"]
+        resources: ["networkpolicies"]
+        verbs: ["get", "list", "watch"]
+
+  tasks:
+    - name: Check if running on macOS
+      ansible.builtin.fail:
+        msg: "This playbook is designed for macOS only"
+      when: ansible_os_family != "Darwin"
+
+    - name: Check if kubectl is installed
+      ansible.builtin.command: which kubectl
+        register: kubectl_check
+        failed_when: kubectl_check.rc != 0
+        changed_when: false
+
+    - name: Check if Kubernetes cluster is running
+      ansible.builtin.command: kubectl cluster-info
+        register: cluster_check
+        failed_when: cluster_check.rc != 0
+        changed_when: false
+
+    - name: Create security namespace
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace }}"
+            labels:
+              pod-security.kubernetes.io/enforce: restricted
+              pod-security.kubernetes.io/audit: restricted
+              pod-security.kubernetes.io/warn: restricted
+
+    - name: Create ImpersonationFilter configuration
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: impersonation-filter-config
+            namespace: kube-system
+          data:
+            config.yaml: |
+              # ImpersonationFilter configuration for local macOS Kubernetes
+              disableUserImpersonation: {{ impersonation_filter_config.disableUserImpersonation }}
+              disableGroupImpersonation: {{ impersonation_filter_config.disableGroupImpersonation }}
+              disableServiceAccountImpersonation: {{ impersonation_filter_config.disableServiceAccountImpersonation }}
+              allowedImpersonators: {{ impersonation_filter_config.allowedImpersonators | to_nice_yaml }}
+              allowedImpersonatorGroups: {{ impersonation_filter_config.allowedImpersonatorGroups | to_nice_yaml }}
+              logImpersonationAttempts: {{ impersonation_filter_config.logImpersonationAttempts }}
+              failClosed: {{ impersonation_filter_config.failClosed }}
+
+    - name: Create restrictive RBAC
+      k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: macos-restricted-user
+          rules: "{{ rbac_rules }}"
+
+    - name: Create RBAC binding
+      k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: macos-user-binding
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: macos-restricted-user
+          subjects:
+          - kind: User
+            name: macos-user
+            apiGroup: rbac.authorization.k8s.io
+
+    - name: Create network policies
+      k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: default-deny-all
+            namespace: "{{ item }}"
+          spec:
+            podSelector: {}
+            policyTypes:
+            - Ingress
+            - Egress
+      loop:
+        - default
+        - "{{ namespace }}"
+
+    - name: Create audit policy
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: audit-policy
+            namespace: kube-system
+          data:
+            policy.yaml: |
+              apiVersion: audit.k8s.io/v1
+              kind: Policy
+              rules:
+              - level: RequestResponse
+                verbs: ["impersonate"]
+                resources:
+                - group: ""
+                  resources: ["users", "groups", "serviceaccounts"]
+              - level: RequestResponse
+                verbs: ["create", "update", "patch", "delete"]
+                resources:
+                - group: "rbac.authorization.k8s.io"
+                  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+
+    - name: Create validation script
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+          echo "=== Kubernetes Security Check ==="
+
+          # Check ImpersonationFilter
+          if kubectl get configmap impersonation-filter-config -n kube-system > /dev/null 2>&1; then
+              echo "✓ ImpersonationFilter configured"
+          else
+              echo "✗ ImpersonationFilter missing"
+          fi
+
+          # Check Pod Security Standards
+          if kubectl get namespace {{ namespace }} -o jsonpath='{.metadata.labels.pod-security\.kubernetes\.io/enforce}' | grep -q "restricted"; then
+              echo "✓ Pod Security Standards enforced"
+          else
+              echo "✗ Pod Security Standards not enforced"
+          fi
+
+          # Check Network Policies
+          if kubectl get networkpolicy default-deny-all -n default > /dev/null 2>&1; then
+              echo "✓ Network Policies applied"
+          else
+              echo "✗ Network Policies missing"
+          fi
+
+          # Check RBAC
+          if kubectl get clusterrole macos-restricted-user > /dev/null 2>&1; then
+              echo "✓ Restrictive RBAC configured"
+          else
+              echo "✗ Restrictive RBAC missing"
+          fi
+
+          echo "=== Security Check Complete ==="
+        dest: /usr/local/bin/validate-k8s-security
+        mode: '0755'
+      become: true
+
+    - name: Create security monitoring script
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+          # Simple security monitor
+          while true; do
+              # Check for impersonation attempts
+              if kubectl logs -n kube-system --since=1m | grep -i "impersonate" > /dev/null 2>&1; then
+                  echo "WARNING: Impersonation attempt detected at $(date)"
+              fi
+
+              # Check for privilege escalation
+              if kubectl logs -n kube-system --since=1m | grep -i "privilege" > /dev/null 2>&1; then
+                  echo "WARNING: Privilege escalation attempt detected at $(date)"
+              fi
+
+              sleep 60
+          done
+        dest: "{{ ansible_env.HOME }}/security-monitor.sh"
+        mode: '0755'
+
+    - name: Configure macOS security settings
+      block:
+        - name: Check FileVault status
+          ansible.builtin.command: fdesetup status
+            register: filevault_status
+            changed_when: false
+            ignore_errors: true
+
+        - name: Display FileVault status
+          ansible.builtin.debug:
+            msg: "✓ FileVault is enabled"
+          when: "'FileVault is On' in filevault_status.stdout"
+
+        - name: Warn about FileVault
+          ansible.builtin.debug:
+            msg: "WARNING: FileVault is not enabled. Consider enabling it."
+          when: "'FileVault is On' not in filevault_status.stdout"
+
+        - name: Check firewall status
+          ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+            register: firewall_status
+            changed_when: false
+            ignore_errors: true
+
+        - name: Display firewall status
+          ansible.builtin.debug:
+            msg: "✓ Firewall is enabled"
+          when: "'enabled' in firewall_status.stdout"
+
+        - name: Warn about firewall
+          ansible.builtin.debug:
+            msg: "WARNING: Firewall is not enabled. Consider enabling it."
+          when: "'enabled' not in firewall_status.stdout"
+
+    - name: Verify security configuration
+      block:
+        - name: Check ImpersonationFilter
+          k8s_info:
+            api_version: v1
+            kind: ConfigMap
+            name: impersonation-filter-config
+            namespace: kube-system
+          register: impersonation_filter_check
+
+        - name: Check Pod Security Standards
+          k8s_info:
+            api_version: v1
+            kind: Namespace
+            name: "{{ namespace }}"
+          register: namespace_check
+
+        - name: Check Network Policies
+          k8s_info:
+            api_version: networking.k8s.io/v1
+            kind: NetworkPolicy
+            name: default-deny-all
+            namespace: default
+          register: network_policy_check
+
+        - name: Check RBAC
+          k8s_info:
+            api_version: rbac.authorization.k8s.io/v1
+            kind: ClusterRole
+            name: macos-restricted-user
+          register: rbac_check
+
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          macOS Kubernetes security configuration complete!
+          ========================================
+          Security features enabled:
+          - ImpersonationFilter: Prevents unauthorized impersonation
+          - Pod Security Standards: Restricted mode enforcement
+          - Network Policies: Default deny all traffic
+          - RBAC: Least privilege access control
+          - Audit Logging: Comprehensive security event logging
+          - macOS Security: FileVault, firewall, and login security
+          ========================================
+          Next steps:
+          - Run 'validate-k8s-security' to check your configuration
+          - Run '~/security-monitor.sh' to monitor for security events
+          - Use '{{ namespace }}' namespace for your applications
+          ========================================

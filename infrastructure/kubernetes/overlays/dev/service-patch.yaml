@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-mysql-api
+spec:
+  type: NodePort  # NodePort for dev (no ALB needed)
+

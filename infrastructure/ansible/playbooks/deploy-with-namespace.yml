@@ -1,0 +1,67 @@
+---
+# =============================================================================
+# Deploy with Dynamic Namespace Strategy
+# =============================================================================
+# This playbook demonstrates the namespace strategy:
+# Terraform env -> Ansible env -> Helm/Kustomize namespace
+
+- name: Deploy with Dynamic Namespace Strategy
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # Namespace strategy: environment + app_name
+    app_name: "{{ app_name | default('go-mysql-api') }}"
+    namespace: "{{ environment }}-{{ app_name }}"
+
+    # Helm/Kustomize paths
+    helm_chart_path: "./helm-kustomize/{{ app_name }}"
+    kustomize_path: "./helm-kustomize/{{ app_name }}/kustomize/overlays/{{ environment }}"
+
+  tasks:
+    - name: Display namespace strategy
+      ansible.builtin.debug:
+        msg:
+          - "Namespace Strategy:"
+          - "  Environment: {{ environment }}"
+          - "  App Name: {{ app_name }}"
+          - "  Final Namespace: {{ namespace }}"
+          - "  Helm Chart: {{ helm_chart_path }}"
+          - "  Kustomize Path: {{ kustomize_path }}"
+
+    - name: Create namespace
+      kubernetes.core.k8s:
+        name: "{{ namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+        labels:
+        name: "{{ namespace }}"
+        environment: "{{ environment }}"
+          "app.kubernetes.io/name": "{{ app_name }}"
+          "app.kubernetes.io/part-of": "{{ app_name }}"
+
+    - name: Deploy with Helm (base)
+      kubernetes.core.helm:
+        name: "{{ app_name }}"
+        chart_ref: "{{ helm_chart_path }}"
+        release_namespace: "{{ namespace }}"
+        create_namespace: false
+        values:
+        namespace: "{{ namespace }}"
+        environment: "{{ environment }}"
+        wait: true
+
+    - name: Apply Kustomize patches (environment-specific)
+      ansible.builtin.shell: |
+        kustomize build "{{ kustomize_path }}" | kubectl apply -f -
+      register: kustomize_apply
+      changed_when: kustomize_apply.rc == 0
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "✅ Deployment completed with namespace strategy"
+          - "Namespace: {{ namespace }}"
+          - "Environment: {{ environment }}"
+          - "App: {{ app_name }}"

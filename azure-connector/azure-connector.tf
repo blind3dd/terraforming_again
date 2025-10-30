@@ -91,7 +91,7 @@ resource "azurerm_network_security_group" "hybrid" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "10.0.0.0/16"  # AWS VPC CIDR
+    source_address_prefix      = "10.0.0.0/16" # AWS VPC CIDR
     destination_address_prefix = "*"
   }
 
@@ -117,7 +117,7 @@ resource "azurerm_network_security_group" "hybrid" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
-    source_address_prefix      = "10.0.0.0/16"  # Only from AWS VPC
+    source_address_prefix      = "10.0.0.0/16" # Only from AWS VPC
     destination_address_prefix = "*"
   }
 
@@ -135,13 +135,13 @@ resource "azurerm_subnet_network_security_group_association" "hybrid" {
 
 # Azure Container Registry
 resource "azurerm_container_registry" "hybrid" {
-  name                = "${var.environment}hybridacr"
-  resource_group_name = azurerm_resource_group.hybrid.name
-  location            = azurerm_resource_group.hybrid.location
-  sku                 = "Premium"  # Required for geo-replication and zone redundancy
-  admin_enabled       = false      # CKV_AZURE_137: Disable admin account
-  public_network_access_enabled = false  # CKV_AZURE_139: Disable public networking
-  zone_redundancy_enabled = true   # CKV_AZURE_233: Enable zone redundancy
+  name                          = "${var.environment}hybridacr"
+  resource_group_name           = azurerm_resource_group.hybrid.name
+  location                      = azurerm_resource_group.hybrid.location
+  sku                           = "Premium" # Required for geo-replication and zone redundancy
+  admin_enabled                 = false     # CKV_AZURE_137: Disable admin account
+  public_network_access_enabled = false     # CKV_AZURE_139: Disable public networking
+  zone_redundancy_enabled       = true      # CKV_AZURE_233: Enable zone redundancy
 
   # CKV_AZURE_164: Enable trusted image scanning
   trust_policy {
@@ -152,7 +152,7 @@ resource "azurerm_container_registry" "hybrid" {
   quarantine_policy_enabled = true
   retention_policy {
     enabled = true
-    days    = 7  # CKV_AZURE_167: Set retention policy for untagged manifests
+    days    = 7 # CKV_AZURE_167: Set retention policy for untagged manifests
   }
 
   # CKV_AZURE_165: Enable geo-replication (requires Premium SKU)
@@ -194,14 +194,14 @@ resource "azurerm_kubernetes_cluster" "hybrid" {
 
   # Enable Azure AD integration
   azure_active_directory_role_based_access_control {
-    managed = true
+    managed            = true
     azure_rbac_enabled = true
   }
 
   # Network profile
   network_profile {
     network_plugin = "azure"
-    network_policy = "azure"  # CKV_AZURE_7: Enable Network Policy
+    network_policy = "azure" # CKV_AZURE_7: Enable Network Policy
     service_cidr   = "10.2.0.0/24"
     dns_service_ip = "10.2.0.10"
   }

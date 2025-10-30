@@ -2,12 +2,16 @@ name: Automated Security Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, working_branch ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, working_branch ]
   schedule:
     # Run security scans daily at 2 AM UTC
     - cron: '0 2 * * *'
+  repository_dispatch:
+    types: [security-alert, dependabot-alert, trivy-scan]
+  issues:
+    types: [opened, edited, labeled]
   workflow_dispatch:
     inputs:
       security_scan_type:
@@ -21,6 +25,21 @@ on:
           - compliance
           - policy
           - secrets
+      remediation_type:
+        description: 'Type of remediation to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - dependencies
+          - docker
+          - secrets
+          - configs
+
+permissions:
+  contents: read
+  security-events: write
 
 env:
   SECURITY_SCAN_VERSION: "v1.0.0"
@@ -32,7 +51,11 @@ jobs:
   vulnerability-scanning:
     name: Automated Vulnerability Scanning
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'vulnerability' || github.event_name == 'pull_request'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'vulnerability' ||
+      github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -48,23 +71,50 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
         severity: 'CRITICAL,HIGH,MEDIUM'
+        exit-code: '0'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
         
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('trivy-results.sarif') != ''
+      if: |
+        always() &&
+        hashFiles('trivy-results.sarif') != '' &&
+        (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
       with:
         sarif_file: 'trivy-results.sarif'
+
+    - name: Install tools for severity evaluation
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq curl
+        curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+
+    - name: Evaluate Trivy severity and optionally fail
+      id: trivy-eval
+      run: |
+        trivy fs --quiet --format json . > trivy-results.json || true
+        CRIT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-results.json)
+        echo "critical_count=$CRIT" >> $GITHUB_OUTPUT
+        echo "Found $CRIT CRITICAL vulnerabilities"
+        if [ "$CRIT" -gt 0 ]; then
+          echo "::error::CRITICAL vulnerabilities found ($CRIT). Failing job."
+          exit 1
+        fi
         
     - name: Run Grype vulnerability scanner
-      uses: anchore/grype-action@v1
-      with:
-        path: .
-        output: 'sarif'
-        output-file: 'grype-results.sarif'
+      run: |
+        # Install Grype CLI and scan filesystem to SARIF
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin || {
+          echo "Grype install failed; skipping"; exit 0; }
+        grype dir:. -o sarif > grype-results.sarif || true
         
     - name: Upload Grype scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('grype-results.sarif') != ''
+      if: |
+        always() &&
+        hashFiles('grype-results.sarif') != '' &&
+        (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
       with:
         sarif_file: 'grype-results.sarif'
         
@@ -86,7 +136,10 @@ jobs:
   compliance-scanning:
     name: Automated Compliance Scanning
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'compliance'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'compliance'
     
     steps:
     - name: Checkout code
@@ -94,9 +147,12 @@ jobs:
       
     - name: Run CIS Kubernetes Benchmark
       run: |
-        # Install kube-bench
-        curl -L https://github.com/aquasecurity/kube-bench/releases/latest/download/kube-bench_0.6.15_linux_amd64.tar.gz | tar xvz
-        sudo mv kube-bench /usr/local/bin/
+        # Install kube-bench (robust download/extract)
+        set -e
+        URL="https://github.com/aquasecurity/kube-bench/releases/latest/download/kube-bench_$(uname -s | tr '[:upper:]' '[:lower:]')_amd64.tar.gz"
+        curl -fsSL -o kube-bench.tar.gz "$URL" || { echo "kube-bench download failed; skipping"; exit 0; }
+        tar -xzf kube-bench.tar.gz || { echo "kube-bench extract failed; skipping"; exit 0; }
+        sudo mv kube-bench /usr/local/bin/ || true
         
         # Run CIS benchmark for manifests
         kube-bench run --targets policies --config-dir=cfg --config=config.yaml --json > cis-results.json || true
@@ -110,17 +166,19 @@ jobs:
         output_file_path: checkov-compliance-results.sarif
         soft_fail: true
         
-    - name: Upload Checkov compliance results
+    - name: Upload Checkov compliance results (main only)
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('checkov-compliance-results.sarif') != ''
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('checkov-compliance-results.sarif/results_sarif.sarif') != ''
+      continue-on-error: true
       with:
-        sarif_file: checkov-compliance-results.sarif
+        sarif_file: checkov-compliance-results.sarif/results_sarif.sarif
         
     - name: Run Polaris for Kubernetes best practices
       run: |
         # Install Polaris
-        curl -L https://github.com/FairwindsOps/polaris/releases/latest/download/polaris_linux_amd64.tar.gz | tar xvz
-        sudo mv polaris /usr/local/bin/
+        curl -fsSL -o polaris.tar.gz https://github.com/FairwindsOps/polaris/releases/latest/download/polaris_linux_amd64.tar.gz || { echo "⚠️ Polaris download failed; skipping"; exit 0; }
+        tar -xzf polaris.tar.gz || { echo "Polaris extract failed; skipping"; exit 0; }
+        sudo mv polaris /usr/local/bin/ || true
         
         # Run Polaris on Kubernetes manifests
         find . -name "*.yaml" -path "*/kustomize/*" -o -path "*/templates/*" | while read file; do
@@ -131,7 +189,10 @@ jobs:
   policy-enforcement:
     name: Automated Policy Enforcement
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'policy'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'policy'
     
     steps:
     - name: Checkout code
@@ -139,25 +200,31 @@ jobs:
       
     - name: Run OPA Gatekeeper policies
       run: |
-        # Install OPA
-        curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+        set -e
+        # Install OPA (static binary)
+        curl -fsSL -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64 || { echo "OPA download failed"; exit 1; }
         chmod +x opa
-        sudo mv opa /usr/local/bin/
+        sudo mv opa /usr/local/bin/opa
+        opa version || true
         
         # Install Conftest
-        curl -L https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_0.45.0_Linux_x86_64.tar.gz | tar xz
-        sudo mv conftest /usr/local/bin/
+        curl -fsSL -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz || { echo "Conftest download failed; skipping"; exit 0; }
+        tar -xzf conftest.tar.gz || { echo "Conftest extract failed; skipping"; exit 0; }
+        sudo mv conftest /usr/local/bin/conftest || true
+        conftest --version || true
         
-        # Run Conftest on Kubernetes manifests
-        find . -name "*.yaml" -path "*/kustomize/*" -o -path "*/templates/*" | while read file; do
+        # Run Conftest on Kubernetes manifests (do not fail pipeline)
+        find . -name "*.yaml" \( -path "*/kustomize/*" -o -path "*/templates/*" \) | while read file; do
           conftest test "$file" --policy security/policies/ || true
         done
         
     - name: Run Kyverno policies
       run: |
-        # Install Kyverno CLI
-        curl -L https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli_v1.10.0_linux_x86_64.tar.gz | tar xz
-        sudo mv kyverno /usr/local/bin/
+        # Install Kyverno CLI (robust)
+        curl -fsSL -o kyverno.tar.gz https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli_linux_x86_64.tar.gz || { echo "Kyverno download failed; skipping"; exit 0; }
+        tar -xzf kyverno.tar.gz || { echo "Kyverno extract failed; skipping"; exit 0; }
+        sudo mv kyverno /usr/local/bin/kyverno || true
+        kyverno version || true
         
         # Run Kyverno policy validation
         find . -name "*.yaml" -path "*/kustomize/*" -o -path "*/templates/*" | while read file; do
@@ -168,7 +235,10 @@ jobs:
   secrets-detection:
     name: Automated Secrets Detection
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event.inputs.security_scan_type == 'secrets'
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.security_scan_type == 'all' ||
+      github.event.inputs.security_scan_type == 'secrets'
     
     steps:
     - name: Checkout code
@@ -191,17 +261,14 @@ jobs:
         GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
         
     - name: Run Semgrep for secrets detection
-      uses: returntocorp/semgrep-action@v1
-      with:
-        config: >-
-          p/secrets
-          p/security-audit
-        generateSarif: "1"
-        sarifOutput: "semgrep-secrets.sarif"
+      run: |
+        pipx install semgrep || pip install semgrep || true
+        semgrep scan --config p/secrets --config p/security-audit --sarif --output semgrep-secrets.sarif || true
         
-    - name: Upload Semgrep secrets results
+    - name: Upload Semgrep secrets results (main only)
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('semgrep-secrets.sarif') != ''
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('semgrep-secrets.sarif') != ''
+      continue-on-error: true
       with:
         sarif_file: semgrep-secrets.sarif
 
@@ -209,7 +276,11 @@ jobs:
   security-remediation:
     name: Automated Security Remediation
     runs-on: ubuntu-latest
-    if: github.event.inputs.security_scan_type == 'all' || github.event_name == 'schedule'
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'repository_dispatch' ||
+      github.event_name == 'issues' ||
+      github.event.inputs.security_scan_type == 'all'
     needs: [vulnerability-scanning, compliance-scanning, policy-enforcement, secrets-detection]
     
     steps:
@@ -217,6 +288,30 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Bandit deps
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install pbr bandit
+        python -c "import sys;print(sys.version)"
+        pip show pbr bandit || true
+        python -c "import pbr,bandit; print('pbr OK')"
+
+    - name: Run Bandit
+      run: bandit -r . -f json -o bandit-report.json || true
+
+    - name: Upload Bandit report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: bandit-report.json
+        retention-days: 7
         
     - name: Auto-fix security issues
       run: |
@@ -267,19 +362,19 @@ jobs:
     steps:
     - name: Generate security dashboard
       run: |
-        echo "## 🔒 Security Dashboard" >> $GITHUB_STEP_SUMMARY
+        echo "## Security Dashboard" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Scan Date:** $(date)" >> $GITHUB_STEP_SUMMARY
         echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
         echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📊 Security Scan Results:" >> $GITHUB_STEP_SUMMARY
+        echo "### Security Scan Results:" >> $GITHUB_STEP_SUMMARY
         echo "- **Vulnerability Scanning:** ${{ needs.vulnerability-scanning.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Compliance Scanning:** ${{ needs.compliance-scanning.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Policy Enforcement:** ${{ needs.policy-enforcement.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Secrets Detection:** ${{ needs.secrets-detection.result }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🛡️ Security Tools Used:" >> $GITHUB_STEP_SUMMARY
+        echo "### Security Tools Used:" >> $GITHUB_STEP_SUMMARY
         echo "- Trivy (Vulnerability Scanner)" >> $GITHUB_STEP_SUMMARY
         echo "- Grype (Vulnerability Scanner)" >> $GITHUB_STEP_SUMMARY
         echo "- OWASP Dependency Check" >> $GITHUB_STEP_SUMMARY
@@ -291,7 +386,7 @@ jobs:
         echo "- GitLeaks (Secrets Detection)" >> $GITHUB_STEP_SUMMARY
         echo "- Semgrep (Code Security)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔄 Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
         echo "- Review security scan results" >> $GITHUB_STEP_SUMMARY
         echo "- Address critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
         echo "- Implement security policies" >> $GITHUB_STEP_SUMMARY

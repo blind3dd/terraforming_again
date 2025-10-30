@@ -1,0 +1,297 @@
+---
+# =============================================================================
+# Vault Operator Deployment with SSM Integration
+# =============================================================================
+# This playbook deploys the Vault operator using Helm with AWS SSM integration
+# for secure secret management and Ansible Vault password injection.
+
+- name: Deploy Vault Operator with SSM Integration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # Dynamic inventory variables
+    k8s_cluster_name: "{{ cluster_name | default('database-ci-cluster') }}"
+    vault_operator_namespace: "{{ vault_operator_namespace | default('vault-operator') }}"
+    environment: "{{ env | default('dev') }}"
+    aws_region: "{{ aws_region | default('us-east-1') }}"
+
+    # Vault configuration
+    vault_address: "https://internal.coderedalarmtech.com/vault"
+    vault_namespace: "vault"
+
+    # Helm configuration
+    helm_release_name: "vault-operator"
+    helm_chart_path: "./helm-kustomize/vault-operator"
+
+    # SSM Parameter Store paths
+    ssm_parameter_paths:
+      vault_token: "/vault/operator/token"
+      vault_config: "/vault/operator/config"
+      ansible_vault_password: "/ansible/vault/password"
+      aws_credentials: "/vault/operator/aws-credentials"
+      environment: "/vault/operator/environment"
+
+  tasks:
+    # =============================================================================
+    # PREREQUISITES CHECK
+    # =============================================================================
+    - name: Check prerequisites
+      block:
+        - name: Check if kubectl is available
+          ansible.builtin.command: kubectl version --client
+          register: kubectl_check
+          failed_when: kubectl_check.rc != 0
+          changed_when: false
+
+        - name: Check if helm is available
+          ansible.builtin.command: helm version --short
+          register: helm_check
+          failed_when: helm_check.rc != 0
+          changed_when: false
+
+        - name: Check if AWS CLI is available
+          ansible.builtin.command: aws --version
+          register: aws_check
+          failed_when: aws_check.rc != 0
+          changed_when: false
+
+        - name: Verify Kubernetes cluster connectivity
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Node
+          register: k8s_connectivity
+          failed_when: k8s_connectivity.resources | length == 0
+          changed_when: false
+
+        - name: Display deployment information
+          ansible.builtin.debug:
+            msg:
+              - "Deploying Vault operator to cluster: {{ k8s_cluster_name }}"
+              - "Namespace: {{ vault_operator_namespace }}"
+              - "Environment: {{ environment }}"
+              - "Vault Address: {{ vault_address }}"
+              - "AWS Region: {{ aws_region }}"
+
+    # =============================================================================
+    # NAMESPACE CREATION
+    # =============================================================================
+    - name: Create Vault operator namespace
+      kubernetes.core.k8s:
+        name: "{{ vault_operator_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+        labels:
+        name: "{{ vault_operator_namespace }}"
+        environment: "{{ environment }}"
+          app.kubernetes.io/name: vault-operator
+          app.kubernetes.io/part-of: operators
+
+    # =============================================================================
+    # SSM PARAMETER VERIFICATION
+    # =============================================================================
+    - name: Verify SSM parameters exist
+      block:
+        - name: Check Vault token parameter
+          ansible.builtin.shell: |
+            aws ssm get-parameter \
+              --name "{{ ssm_parameter_paths.vault_token }}" \
+              --region "{{ aws_region }}" \
+              --with-decryption \
+              --query 'Parameter.Value' \
+              --output text
+          register: vault_token_check
+          failed_when: vault_token_check.rc != 0
+          changed_when: false
+
+        - name: Check Ansible Vault password parameter
+          ansible.builtin.shell: |
+            aws ssm get-parameter \
+              --name "{{ ssm_parameter_paths.ansible_vault_password }}" \
+              --region "{{ aws_region }}" \
+              --with-decryption \
+              --query 'Parameter.Value' \
+              --output text
+          register: ansible_vault_password_check
+          failed_when: ansible_vault_password_check.rc != 0
+          changed_when: false
+
+        - name: Display SSM parameter status
+          ansible.builtin.debug:
+            msg:
+              - "✅ Vault token parameter exists"
+              - "✅ Ansible Vault password parameter exists"
+              - "SSM parameters are ready for Vault operator"
+
+    # =============================================================================
+    # HELM CHART DEPLOYMENT
+    # =============================================================================
+    - name: Deploy Vault operator with Helm
+      block:
+        - name: Add Helm repository (if needed)
+          kubernetes.core.helm_repository:
+            name: hashicorp
+            repo_url: https://helm.releases.hashicorp.com
+            when: helm_repository_add | default(true)
+
+        - name: Deploy Vault operator Helm chart
+          kubernetes.core.helm:
+            name: "{{ helm_release_name }}"
+            chart_ref: "{{ helm_chart_path }}"
+            release_namespace: "{{ vault_operator_namespace }}"
+            create_namespace: false
+            values:
+            replicaCount: 1
+            image:
+            repository: hashicorp/vault-operator
+            tag: "1.15.0"
+            pullPolicy: IfNotPresent
+
+              serviceAccount:
+                create: true
+                annotations:
+                  eks.amazonaws.com/role-arn: "arn:aws:iam::{{ aws_account_id | default('123456789012') }}:role/VaultOperatorSSMRole"
+
+              vaultOperator:
+                vault:
+                  address: "{{ vault_address }}"
+                  namespace: "{{ vault_namespace }}"
+                  authMethod: "token"
+                  tokenPath: "{{ ssm_parameter_paths.vault_token }}"
+
+                ssm:
+                  enabled: true
+                  region: "{{ aws_region }}"
+                  parameterStore:
+                    vaultToken: "{{ ssm_parameter_paths.vault_token }}"
+                    vaultConfig: "{{ ssm_parameter_paths.vault_config }}"
+                    ansibleVaultPassword: "{{ ssm_parameter_paths.ansible_vault_password }}"
+                    awsCredentials: "{{ ssm_parameter_paths.aws_credentials }}"
+
+                aws:
+                  region: "{{ aws_region }}"
+                  credentials:
+                    secretName: "vault-operator-aws-credentials"
+                    secretKey: "credentials"
+
+                environment: "{{ environment }}"
+                logLevel: "info"
+
+              features:
+                secretRotation: true
+                secretSync: true
+                auditLogging: true
+                metrics: true
+
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+
+              nodeSelector: {}
+              tolerations: []
+              affinity: {}
+
+            wait: true
+            wait_condition:
+              type: Available
+              status: "True"
+            timeout: 300s
+
+        - name: Wait for Vault operator deployment to be ready
+          kubernetes.core.k8s_info:
+            api_version: apps/v1
+            kind: Deployment
+            namespace: "{{ vault_operator_namespace }}"
+            name: "{{ helm_release_name }}"
+          register: vault_operator_deployment
+          until: vault_operator_deployment.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+          retries: 30
+          delay: 10
+
+        - name: Display Vault operator deployment status
+          ansible.builtin.debug:
+            msg: "✅ Vault operator deployment is ready"
+
+    # =============================================================================
+    # ANSIBLE VAULT PASSWORD INJECTION
+    # =============================================================================
+    - name: Inject Ansible Vault password from SSM
+      block:
+        - name: Get Ansible Vault password from SSM
+          ansible.builtin.shell: |
+            aws ssm get-parameter \
+              --name "{{ ssm_parameter_paths.ansible_vault_password }}" \
+              --region "{{ aws_region }}" \
+              --with-decryption \
+              --query 'Parameter.Value' \
+              --output text
+          register: ansible_vault_password
+            no_log: true
+          changed_when: false
+
+        - name: Create Ansible Vault password file
+          ansible.builtin.copy:
+            content: "{{ ansible_vault_password.stdout }}"
+            dest: "~/.vault_password"
+            mode: '0600'
+            no_log: true
+            changed_when: false
+
+        - name: Display Ansible Vault password injection status
+          ansible.builtin.debug:
+            msg: "✅ Ansible Vault password injected from SSM Parameter Store"
+
+    # =============================================================================
+    # VERIFICATION AND TESTING
+    # =============================================================================
+    - name: Verify Vault operator functionality
+      block:
+        - name: Check Vault operator pod status
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Pod
+            namespace: "{{ vault_operator_namespace }}"
+            label_selectors:
+              - "app.kubernetes.io/name=vault-operator"
+          register: vault_operator_pods
+
+        - name: Display Vault operator pod status
+          ansible.builtin.debug:
+            msg:
+              - "Vault operator pods: {{ vault_operator_pods.resources | length }}"
+              - "Pod statuses: {{ vault_operator_pods.resources | map(attribute='status.phase') | list }}"
+
+        - name: Test Vault operator connectivity
+          ansible.builtin.shell: |
+            kubectl exec -n "{{ vault_operator_namespace }}" \
+              deployment/{{ helm_release_name }} \
+              -- curl -s -o /dev/null -w "%{http_code}" \
+              "{{ vault_address }}/v1/sys/health"
+          register: vault_connectivity_test
+          failed_when: vault_connectivity_test.rc != 0
+          changed_when: false
+
+        - name: Display Vault connectivity test results
+          ansible.builtin.debug:
+            msg: "Vault connectivity test HTTP status: {{ vault_connectivity_test.stdout }}"
+
+    # =============================================================================
+    # DEPLOYMENT SUMMARY
+    # =============================================================================
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "✅ Vault operator deployment completed with SSM integration"
+          - "Cluster: {{ k8s_cluster_name }}"
+          - "Namespace: {{ vault_operator_namespace }}"
+          - "Environment: {{ environment }}"
+          - "Vault Address: {{ vault_address }}"
+          - "SSM Integration: Enabled"
+          - "Ansible Vault Password: Injected from SSM"
+          - "Secret Rotation: Enabled"
+          - "Audit Logging: Enabled"

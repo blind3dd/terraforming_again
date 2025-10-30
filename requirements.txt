@@ -12,9 +12,8 @@ bandit==1.7.5
 safety==3.0.1
 
 # Infrastructure tools - Updated to fix CVEs
-ansible==9.0.0
-ansible-core==2.17.6  # Fixes CVE-2024-8775
-ansible-lint==24.0.0
+ansible==10.1.0
+ansible-lint==24.12.2
 
 # Additional utilities
 pre-commit==3.6.0

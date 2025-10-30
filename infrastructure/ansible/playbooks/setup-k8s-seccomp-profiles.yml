@@ -1,0 +1,147 @@
+---
+- name: Setup Kubernetes Seccomp Profiles
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    seccomp_dir: "/var/lib/kubelet/seccomp/profiles"
+    selinux_dir: "selinux"
+    seccomp_profiles:
+      - seccomp-profiles.json
+      - seccomp-kubelet-profile.json
+      - seccomp-kube-proxy-profile.json
+      - seccomp-k8s-webapp-profile.json
+      - seccomp-k8s-database-profile.json
+      - seccomp-k8s-system-profile.json
+      - seccomp-bastion-profile.json
+      - seccomp-root-profile.json
+      - seccomp-container-profile.json
+    seccomp_symlinks:
+      - { src: "seccomp-k8s-database-profile.json", dest: "database-profile.json" }
+      - { src: "seccomp-k8s-webapp-profile.json", dest: "webapp-profile.json" }
+      - { src: "seccomp-k8s-system-profile.json", dest: "system-profile.json" }
+
+  tasks:
+    - name: Check if running as root
+      ansible.builtin.fail:
+        msg: "This playbook must be run as root to copy files to system directories"
+      when: ansible_user_id != "root"
+
+    - name: Create seccomp profiles directory
+      ansible.builtin.file:
+        path: "{{ seccomp_dir }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Copy seccomp profiles
+      ansible.builtin.copy:
+        src: "{{ selinux_dir }}/{{ item }}"
+        dest: "{{ seccomp_dir }}/"
+        mode: '0644'
+        owner: root
+        group: root
+      loop: "{{ seccomp_profiles }}"
+      ignore_errors: true
+        register: copy_results
+
+    - name: Display copy results
+      ansible.builtin.debug:
+        msg: "Copied {{ item.item }}: {{ 'Success' if item.changed else 'Skipped (file not found)' }}"
+      loop: "{{ copy_results.results }}"
+
+    - name: Create symlinks for easier access
+      ansible.builtin.file:
+        src: "{{ seccomp_dir }}/{{ item.src }}"
+        dest: "{{ seccomp_dir }}/{{ item.dest }}"
+        state: link
+        owner: root
+        group: root
+      loop: "{{ seccomp_symlinks }}"
+      ignore_errors: true
+
+    - name: Verify installation
+      ansible.builtin.command: ls -la "{{ seccomp_dir }}"
+        register: ls_result
+        changed_when: false
+
+    - name: Display installed profiles
+      ansible.builtin.debug:
+        msg: "{{ ls_result.stdout_lines }}"
+
+    - name: Create ConfigMap with seccomp profiles
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: seccomp-profiles
+            namespace: kube-system
+          data:
+            seccomp-profiles.json: "{{ lookup('file', selinux_dir + '/seccomp-profiles.json') }}"
+            seccomp-k8s-database-profile.json: "{{ lookup('file', selinux_dir + '/seccomp-k8s-database-profile.json') }}"
+            seccomp-k8s-webapp-profile.json: "{{ lookup('file', selinux_dir + '/seccomp-k8s-webapp-profile.json') }}"
+            seccomp-k8s-system-profile.json: "{{ lookup('file', selinux_dir + '/seccomp-k8s-system-profile.json') }}"
+      ignore_errors: true
+
+    - name: Create test pod to verify seccomp profiles
+      ansible.builtin.copy:
+        content: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+        name: seccomp-test
+        namespace: default
+        spec:
+        securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        containers:
+              - name: test
+                image: nginx:1.21-alpine
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  runAsUser: 1000
+                  runAsGroup: 1000
+                  capabilities:
+                    drop:
+                      - ALL
+                  seccompProfile:
+                    type: Localhost
+                    localhostProfile: profiles/kubernetes/seccomp-k8s-database-profile.json
+                volumeMounts:
+                  - name: tmp
+                    mountPath: /tmp
+            volumes:
+              - name: tmp
+                emptyDir: {}
+            restartPolicy: Never
+        dest: /tmp/seccomp-test-pod.yaml
+        mode: '0644'
+
+    - name: Display available profiles
+      ansible.builtin.command: ls -1 "{{ seccomp_dir }}"/*.json | sed 's|.*/||' | sed 's|\.json$||' | sort
+        register: available_profiles
+        changed_when: false
+
+    - name: Show available seccomp profiles
+      ansible.builtin.debug:
+        msg: "{{ available_profiles.stdout_lines }}"
+
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          Seccomp profiles setup complete!
+          ========================================
+          Profiles are available at: {{ seccomp_dir }}
+          Use them in your pods with: localhostProfile: profiles/kubernetes/<profile-name>.json
+          ========================================
+          Test pod created at: /tmp/seccomp-test-pod.yaml
+          Test it with: kubectl apply -f /tmp/seccomp-test-pod.yaml
+          ========================================

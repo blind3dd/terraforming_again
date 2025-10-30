@@ -1,0 +1,161 @@
+---
+# Master Playbook for Database CI Infrastructure
+# This playbook orchestrates all the individual playbooks
+
+- name: Complete Infrastructure Setup
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # Global variables
+    environment: "sandbox"
+    region: "us-east-1"
+    cluster_name: "database-ci-cluster"
+
+    # Security settings
+    enable_selinux: true
+    enable_seccomp: true
+    enable_audit: true
+    enable_macos_k8s_security: true
+
+    # AWS settings
+    aws_account_id: "123456789012"
+    aws_region: "{{ region }}"
+
+    # Kubernetes settings
+    k8s_namespace: "secure-workloads"
+    enable_istio_ambient: true
+
+    # Database settings
+    rds_host: "rds-endpoint.example.com"
+    rds_username: "admin"
+    rds_password: "secure-password"
+    rds_database: "myapp"
+
+  tasks:
+    - name: Display playbook information
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          Database CI Infrastructure Setup
+          ========================================
+        Environment: {{ environment }}
+        Region: {{ region }}
+        Cluster: {{ cluster_name }}
+          ========================================
+          This playbook will set up:
+          - SELinux policies and audit logging
+          - Seccomp profiles for Kubernetes
+          - macOS Kubernetes security
+          - AWS IAM Authenticator
+          - Istio ambient mode RDS application
+          ========================================
+
+    - name: Check prerequisites
+      block:
+        - name: Check if running as root
+          ansible.builtin.fail:
+            msg: "This playbook must be run as root for system-level configurations"
+          when: ansible_user_id != "root"
+
+        - name: Check if kubectl is available
+          ansible.builtin.command: which kubectl
+            register: kubectl_check
+            failed_when: kubectl_check.rc != 0
+            changed_when: false
+
+        - name: Check if Kubernetes cluster is running
+          ansible.builtin.command: kubectl cluster-info
+            register: cluster_check
+            failed_when: cluster_check.rc != 0
+            changed_when: false
+
+    - name: Compile and install SELinux policies
+      ansible.builtin.include_tasks: compile-selinux-policies.yml
+        when: enable_selinux
+
+    - name: Setup Kubernetes seccomp profiles
+      ansible.builtin.include_tasks: setup-k8s-seccomp-profiles.yml
+        when: enable_seccomp
+
+    - name: Secure macOS Kubernetes setup
+      ansible.builtin.include_tasks: secure-macos-k8s.yml
+        when: enable_macos_k8s_security and ansible_os_family == "Darwin"
+
+    - name: Install AWS IAM Authenticator
+      ansible.builtin.include_tasks: install-aws-iam-authenticator.yml
+        vars:
+        aws_region: "{{ aws_region }}"
+        cluster_name: "{{ cluster_name }}"
+        aws_account_id: "{{ aws_account_id }}"
+
+    - name: Deploy Istio ambient mode RDS application
+      ansible.builtin.include_tasks: istio-ambient-rds-deployment.yml
+        when: enable_istio_ambient
+        vars:
+        namespace: "{{ k8s_namespace }}"
+        rds_host: "{{ rds_host }}"
+        rds_username: "{{ rds_username }}"
+        rds_password: "{{ rds_password }}"
+        rds_database: "{{ rds_database }}"
+
+    - name: Final verification
+      block:
+        - name: Check SELinux status
+          ansible.builtin.command: getenforce
+            register: selinux_status
+            changed_when: false
+            when: enable_selinux
+
+        - name: Check seccomp profiles
+          ansible.builtin.command: ls -la /var/lib/kubelet/seccomp/profiles/
+            register: seccomp_status
+            changed_when: false
+            when: enable_seccomp
+
+        - name: Check Kubernetes security
+          ansible.builtin.command: validate-k8s-security
+            register: k8s_security_status
+            changed_when: false
+            when: enable_macos_k8s_security and ansible_os_family == "Darwin"
+
+        - name: Check AWS IAM Authenticator
+          ansible.builtin.command: aws-iam-authenticator version
+            register: aws_auth_status
+            changed_when: false
+
+        - name: Check Istio ambient deployment
+          k8s_info:
+            api_version: apps/v1
+            kind: Deployment
+            name: rds-app
+            namespace: "{{ k8s_namespace }}"
+          register: istio_deployment_status
+          when: enable_istio_ambient
+
+    - name: Display final status
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          Infrastructure Setup Complete!
+          ========================================
+          {% if enable_selinux %}
+          SELinux Status: {{ selinux_status.stdout }}
+          {% endif %}
+          {% if enable_seccomp %}
+          Seccomp Profiles: {{ seccomp_status.stdout_lines | length }} profiles installed
+          {% endif %}
+          {% if enable_macos_k8s_security and ansible_os_family == "Darwin" %}
+          Kubernetes Security: {{ k8s_security_status.stdout }}
+          {% endif %}
+          AWS IAM Authenticator: {{ aws_auth_status.stdout }}
+          {% if enable_istio_ambient %}
+          Istio Ambient Deployment: {{ istio_deployment_status.resources[0].status.conditions[0].status if istio_deployment_status.resources else 'Not found' }}
+          {% endif %}
+          ========================================
+          Next steps:
+          1. Update RDS credentials in the secret
+          2. Configure your application to connect to RDS
+          3. Test the deployment
+          4. Monitor logs and metrics
+          ========================================

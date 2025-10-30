@@ -1,0 +1,221 @@
+{
+    "go.toolsManagement.checkForUpdates": "off",
+    "go.useLanguageServer": true,
+    "go.gocodeAutoBuild": false,
+    "go.formatTool": "gofmt",
+    "go.lintTool": "golangci-lint",
+    "go.vetOnSave": "package",
+    "go.formatOnSave": true,
+    "go.lintOnSave": "package",
+    "go.buildOnSave": "package",
+    "go.testOnSave": false,
+    "go.coverOnSave": false,
+    "go.coverOnSingleTest": false,
+    "go.alternateTools": {
+        "go": "${workspaceFolder}/.nix/bin/go",
+        "gopls": "${workspaceFolder}/.nix/bin/gopls",
+        "gofmt": "${workspaceFolder}/.nix/bin/go"
+    },
+    "go.goroot": "",
+    "go.gopath": "${workspaceFolder}",
+    "go.inferGopath": false,
+    "go.toolsGopath": "${workspaceFolder}",
+    "go.editorContextMenuCommands": {
+        "removeTags": true,
+        "generateTestForFile": true,
+        "testPackage": true,
+        "testFile": true,
+        "fillStruct": true,
+        "benchmarkAtCursor": true,
+        "generateTestForPackage": true
+    },
+    "go.inlayHints.assignVariableTypes": true,
+    "go.inlayHints.compositeLiteralFields": true,
+    "go.inlayHints.compositeLiteralTypes": true,
+    "go.inlayHints.constantValues": true,
+    "go.inlayHints.functionTypeParameters": true,
+    "go.inlayHints.ignoredError": true,
+    "go.inlayHints.parameterNames": true,
+    "go.inlayHints.rangeVariableTypes": true,
+    "gopls": {
+        "analyses": {
+            "unusedparams": true,
+            "shadow": true,
+            "fieldalignment": false,
+            "unusedresult": true,
+            "useany": true
+        },
+        "staticcheck": true,
+        "gofumpt": true,
+        "usePlaceholders": true,
+        "completionBudget": "100ms",
+        "semanticTokens": true,
+        "experimentalPostfixCompletions": true,
+        "local": "",
+        "verboseOutput": false,
+        "hints": {
+            "assignVariableTypes": true,
+            "compositeLiteralFields": true,
+            "compositeLiteralTypes": true,
+            "constantValues": true,
+            "functionTypeParameters": true,
+            "parameterNames": true,
+            "rangeVariableTypes": true
+        },
+        "env": {
+            "GOROOT": "/nix/store/nkhf1yv637cp91y79zap7jxmm98v8pvj-go-1.25.2/share/go",
+            "GOPATH": "/Users/usualsuspectx/Development/go",
+            "GO111MODULE": "on"
+        }
+    },
+    "terraform.languageServer": {
+        "enabled": true,
+        "args": [
+            "serve"
+        ],
+        "path": "terraform-ls"
+    },
+    "terraform.experimentalFeatures": {
+        "validateOnSave": true,
+        "prefillRequiredFields": true
+    },
+    "terraform.format": {
+        "enable": true,
+        "ignoreExtensionsOnSave": [
+            ".terraform.lock.hcl"
+        ]
+    },
+    "terraform.validation": {
+        "enable": true,
+        "lint": {
+            "enable": true,
+            "path": "tflint"
+        }
+    },
+    "ansible.ansible.path": "${workspaceFolder}/.nix/bin/ansible",
+    "ansible.ansibleLint.enabled": true,
+    "ansible.validation.enabled": true,
+    "ansible.validation.lint.enabled": true,
+    "yaml.schemas": {
+        "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+        "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json": "crossplane/compositions/infrastructure/ansible/**/*.{yml,yaml}"
+    },
+    "yaml.customTags": [
+        "!vault"
+    ],
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll": "explicit"
+    },
+    "editor.rulers": [
+        80,
+        120
+    ],
+    "files.associations": {
+        "*.tf": "terraform",
+        "*.tfvars": "terraform",
+        "*.hcl": "terraform",
+        "*.tf.json": "terraform",
+        "*.tfstate": "terraform",
+        "*.tfstate.backup": "terraform",
+        "*.yaml": "yaml",
+        "*.yml": "yaml",
+        "Dockerfile*": "dockerfile",
+        "*.sh": "shellscript",
+        ".envrc": "shellscript",
+        "terraform.rc": "terraform",
+        ".terraformrc": "terraform"
+    },
+    "files.exclude": {
+        "**/.terraform": true,
+        "**/.terragrunt-cache": true,
+        "**/.git": false,
+        "**/node_modules": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/demo-venv": true,
+        "**/*.pyc": true
+    },
+    "files.watcherExclude": {
+        "**/.terraform/**": true,
+        "**/.terragrunt-cache/**": true,
+        "**/node_modules/**": true,
+        "**/__pycache__/**": true,
+        "**/demo-venv/**": true
+    },
+    "search.exclude": {
+        "**/.terraform": true,
+        "**/.terragrunt-cache": true,
+        "**/node_modules": true,
+        "**/__pycache__": true,
+        "**/demo-venv": true,
+        "**/Pipfile.lock": true,
+        "**/flake.lock": true
+    },
+    "git.confirmSync": false,
+    "git.enableCommitSigning": true,
+    "git.path": "/nix/store/*-git-*/bin/git",
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    "terminal.integrated.shellIntegration.enabled": true,
+    "terminal.integrated.env.osx": {
+        "PATH": "${workspaceFolder}/.nix/bin:/nix/var/nix/profiles/default/bin:${env:PATH}",
+        "NIX_PROFILES": "/nix/var/nix/profiles/default ${workspaceFolder}/.nix",
+        "GOROOT": "",
+        "GOPATH": "${workspaceFolder}",
+        "TERRAFORM_LS": "terraform-ls"
+    },
+    "terminal.integrated.profiles.osx": {
+        "nix-zsh": {
+            "path": "zsh",
+            "args": [
+                "-l"
+            ]
+        }
+    },
+    "terminal.integrated.defaultProfile.osx": "nix-zsh",
+    "window.commandCenter": true,
+    "workbench.colorTheme": "Cursor Dark Midnight",
+    "cursor.composer.shouldAllowCustomModes": true,
+    "cursor.terminal.usePreviewBox": true,
+    "security.workspace.trust.enabled": true,
+    "[yaml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2
+    },
+    "[terraform]": {
+        "editor.defaultFormatter": "hashicorp.terraform",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false,
+        "editor.suggest.insertMode": "replace",
+        "editor.wordWrap": "off",
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": true
+    },
+    "[hcl]": {
+        "editor.defaultFormatter": "hashicorp.terraform",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+    },
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false
+    },
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        }
+    }
+}
