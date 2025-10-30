@@ -20,7 +20,7 @@ existing_vpc_id     = "vpc-0d3809169f49c513a"
 existing_subnet_ids = ["subnet-000bc8b855976960c", "subnet-0050057a15b4d9842", "subnet-04cb4552dbf592d86", "subnet-0339e68281f11b772", "subnet-0d0d7a12505354fec", "subnet-0fdc39554271a86fa"]
 
 # Instance Configuration (Optimized for Dev - save ~$22/month)
-instance_type               = "t3.micro"  # Changed from t3.medium - saves ~$22/month
+instance_type               = "t3.micro"              # Changed from t3.medium - saves ~$22/month
 instance_ami                = "ami-0c02fb55956c7d316" # Amazon Linux 2023 in us-east-1
 instance_os                 = "Amazon Linux 2023"
 associate_public_ip_address = true
@@ -50,4 +50,4 @@ ssh_public_key = "" # Set this in your environment or SSM
 
 # Enable NAT Gateway for private subnets (Disabled for Dev - save ~$32/month)
 # Use Tailscale exit nodes instead for outbound connectivity
-enable_nat_gateway = false  # Changed from true - saves ~$32/month
+enable_nat_gateway = false # Changed from true - saves ~$32/month
