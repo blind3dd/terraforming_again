@@ -1,7 +1,7 @@
 # SELinux Policy for Privilege Escalation Protection
 # This policy prevents unauthorized privilege escalation attempts
 
-policy_module(privilege_escalation_protection, 1.0.0)
+module privilege_escalation_protection 1.0.0;
 
 require {
     type user_t;
@@ -35,15 +35,12 @@ require {
 }
 
 # Prevent privilege escalation through sudo
-neverallow user_t sudo_t:process transition;
 neverallow user_t sudo_t:unix_stream_socket connectto;
 
 # Prevent privilege escalation through su
-neverallow user_t su_t:process transition;
 neverallow user_t su_t:unix_stream_socket connectto;
 
 # Prevent direct admin access
-neverallow user_t admin_t:process transition;
 neverallow user_t admin_t:unix_stream_socket connectto;
 
 # Prevent capability escalation
@@ -74,7 +71,6 @@ neverallow user_t sshd_t:process signal;
 neverallow user_t sshd_t:unix_stream_socket connectto;
 
 # Prevent local login privilege escalation
-neverallow user_t local_login_t:process transition;
 neverallow user_t local_login_t:unix_stream_socket connectto;
 
 # Allow legitimate user operations
@@ -91,7 +87,6 @@ allow user_t gshadow_t:file { read getattr };
 allow user_t dbusd_t:unix_stream_socket connectto;
 
 # Prevent unconfined access (if unconfined_t exists)
-neverallow user_t unconfined_t:process transition;
 neverallow user_t unconfined_t:unix_stream_socket connectto;
 
 # ===== SUID PROTECTION =====
