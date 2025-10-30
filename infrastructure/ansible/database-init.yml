@@ -8,7 +8,7 @@
   tasks:
     - name: Check if MySQL client is installed
       ansible.builtin.command: which mysql
-  register: mysql_check
+        register: mysql_check
       failed_when: false
       changed_when: false
 
@@ -22,7 +22,7 @@
       ansible.builtin.command: >-
         mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
         -e "SELECT 1;" {{ database.name }}
-  register: db_connection_test
+        register: db_connection_test
       failed_when: false
       changed_when: false
 
@@ -34,7 +34,7 @@
       ansible.builtin.command: >-
         mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
         -e "SHOW TABLES LIKE 'users';" {{ database.name }}
-  register: table_check
+        register: table_check
       failed_when: false
       changed_when: false
 
@@ -77,7 +77,7 @@
           ansible.builtin.command: >-
             mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
             {{ database.name }} < /tmp/init.sql
-  register: init_result
+            register: init_result
           changed_when: init_result.rc == 0
 
         - name: Display initialization result
@@ -89,13 +89,13 @@
             path: /tmp/init.sql
             state: absent
 
-      when: table_check.rc != 0 or table_check.stdout_lines | length <= 1
+          when: table_check.rc != 0 or table_check.stdout_lines | length <= 1
 
     - name: Verify database schema
       ansible.builtin.command: >-
         mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
         -e "SHOW TABLES;" {{ database.name }}
-  register: schema_verification
+        register: schema_verification
       changed_when: false
 
     - name: Display database tables
@@ -106,7 +106,7 @@
       ansible.builtin.command: >-
         mysql -h {{ database.host }} -u {{ database.username }} -p{{ database.password }}
         -e "SELECT COUNT(*) as user_count FROM users;" {{ database.name }}
-  register: user_count
+        register: user_count
       changed_when: false
 
     - name: Display user count

@@ -26,42 +26,43 @@
     - name: Load AWS credentials from SSM
       block:
         - name: Get AWS credentials from SSM Parameter Store
-    ansible.builtin.shell: |
+          ansible.builtin.shell: |
             aws ssm get-parameter \
               --name "{{ ssm_parameter_paths.aws_credentials }}" \
               --with-decryption \
               --region "{{ aws_region }}" \
               --query 'Parameter.Value' \
               --output text
-  register: aws_creds_json
-          no_log: true
-          changed_when: false
+            register: aws_creds_json
+            no_log: true
+            changed_when: false
 
         - name: Parse AWS credentials JSON
-    ansible.builtin.set_fact:
+          ansible.builtin.set_fact:
             aws_access_key_id: "{{ aws_creds_json.stdout | from_json | json_query('access_key_id') }}"
             aws_secret_access_key: "{{ aws_creds_json.stdout | from_json | json_query('secret_access_key') }}"
             aws_session_token: "{{ aws_creds_json.stdout | from_json | json_query('session_token') | default('') }}"
-          no_log: true
+            no_log: true
 
-        - name: Set AWS environment variables
-          environment:
+        - name: Set AWS environment variables (for following commands)
+          ansible.builtin.shell: ":"  # no-op; establishes env for this step
+            environment:
             AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
             AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
             AWS_SESSION_TOKEN: "{{ aws_session_token }}"
             AWS_DEFAULT_REGION: "{{ aws_region }}"
 
         - name: Verify AWS credentials
-    ansible.builtin.shell: |
+          ansible.builtin.shell: |
             aws sts get-caller-identity \
               --region "{{ aws_region }}" \
               --query 'Account' \
               --output text
-  register: aws_account_id
-          changed_when: false
+            register: aws_account_id
+            changed_when: false
 
         - name: Display AWS account information
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg:
               - "✅ AWS credentials loaded from SSM"
               - "Account ID: {{ aws_account_id.stdout }}"
@@ -74,27 +75,27 @@
     - name: Load Vault password from SSM
       block:
         - name: Get Vault password from SSM Parameter Store
-    ansible.builtin.shell: |
+          ansible.builtin.shell: |
             aws ssm get-parameter \
               --name "{{ ssm_parameter_paths.vault_password }}" \
               --with-decryption \
               --region "{{ aws_region }}" \
               --query 'Parameter.Value' \
               --output text
-  register: vault_password
-          no_log: true
-          changed_when: false
+            register: vault_password
+            no_log: true
+            changed_when: false
 
         - name: Create Vault password file
-    ansible.builtin.copy:
+          ansible.builtin.copy:
             content: "{{ vault_password.stdout }}"
             dest: "~/.vault_password"
             mode: '0600'
-          no_log: true
-          changed_when: false
+            no_log: true
+            changed_when: false
 
         - name: Display Vault password status
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "✅ Vault password loaded from SSM and saved to ~/.vault_password"
 
     # =============================================================================
@@ -103,24 +104,25 @@
     - name: Load Vault token from SSM
       block:
         - name: Get Vault token from SSM Parameter Store
-    ansible.builtin.shell: |
+          ansible.builtin.shell: |
             aws ssm get-parameter \
               --name "{{ ssm_parameter_paths.vault_token }}" \
               --with-decryption \
               --region "{{ aws_region }}" \
               --query 'Parameter.Value' \
               --output text
-  register: vault_token
-          no_log: true
-          changed_when: false
+            register: vault_token
+            no_log: true
+            changed_when: false
 
         - name: Set Vault token as environment variable
-          environment:
+          ansible.builtin.shell: ":"
+            environment:
             VAULT_TOKEN: "{{ vault_token.stdout }}"
             VAULT_ADDR: "https://internal.coderedalarmtech.com/vault"
 
         - name: Display Vault token status
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "✅ Vault token loaded from SSM"
 
     # =============================================================================
@@ -129,15 +131,15 @@
     - name: Deploy applications with SSM credentials
       block:
         - name: Deploy Vault operator with SSM integration
-    ansible.builtin.include_tasks: vault-operator-helm-ssm.yml
-          vars:
+          ansible.builtin.include_tasks: vault-operator-helm-ssm.yml
+            vars:
             aws_account_id: "{{ aws_account_id.stdout }}"
             aws_region: "{{ aws_region }}"
             environment: "{{ environment }}"
 
         - name: Deploy Go MySQL API with Kustomize
-    ansible.builtin.include_tasks: go-mysql-api-kustomize.yml
-          vars:
+          ansible.builtin.include_tasks: go-mysql-api-kustomize.yml
+            vars:
             aws_account_id: "{{ aws_account_id.stdout }}"
             aws_region: "{{ aws_region }}"
             environment: "{{ environment }}"
@@ -146,7 +148,7 @@
     # DEPLOYMENT SUMMARY
     # =============================================================================
     - name: Display deployment summary
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg:
           - "✅ Deployment completed with SSM credentials"
           - "AWS Account: {{ aws_account_id.stdout }}"

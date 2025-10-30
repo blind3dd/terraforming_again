@@ -39,9 +39,9 @@
           ========================================
           Database CI Infrastructure Setup
           ========================================
-          Environment: {{ environment }}
-          Region: {{ region }}
-          Cluster: {{ cluster_name }}
+        Environment: {{ environment }}
+        Region: {{ region }}
+        Cluster: {{ cluster_name }}
           ========================================
           This playbook will set up:
           - SELinux policies and audit logging
@@ -60,39 +60,39 @@
 
         - name: Check if kubectl is available
           ansible.builtin.command: which kubectl
-  register: kubectl_check
-          failed_when: kubectl_check.rc != 0
-          changed_when: false
+            register: kubectl_check
+            failed_when: kubectl_check.rc != 0
+            changed_when: false
 
         - name: Check if Kubernetes cluster is running
           ansible.builtin.command: kubectl cluster-info
-  register: cluster_check
-          failed_when: cluster_check.rc != 0
-          changed_when: false
+            register: cluster_check
+            failed_when: cluster_check.rc != 0
+            changed_when: false
 
     - name: Compile and install SELinux policies
       ansible.builtin.include_tasks: compile-selinux-policies.yml
-      when: enable_selinux
+        when: enable_selinux
 
     - name: Setup Kubernetes seccomp profiles
       ansible.builtin.include_tasks: setup-k8s-seccomp-profiles.yml
-      when: enable_seccomp
+        when: enable_seccomp
 
     - name: Secure macOS Kubernetes setup
       ansible.builtin.include_tasks: secure-macos-k8s.yml
-      when: enable_macos_k8s_security and ansible_os_family == "Darwin"
+        when: enable_macos_k8s_security and ansible_os_family == "Darwin"
 
     - name: Install AWS IAM Authenticator
       ansible.builtin.include_tasks: install-aws-iam-authenticator.yml
-      vars:
+        vars:
         aws_region: "{{ aws_region }}"
         cluster_name: "{{ cluster_name }}"
         aws_account_id: "{{ aws_account_id }}"
 
     - name: Deploy Istio ambient mode RDS application
       ansible.builtin.include_tasks: istio-ambient-rds-deployment.yml
-      when: enable_istio_ambient
-      vars:
+        when: enable_istio_ambient
+        vars:
         namespace: "{{ k8s_namespace }}"
         rds_host: "{{ rds_host }}"
         rds_username: "{{ rds_username }}"
@@ -103,26 +103,26 @@
       block:
         - name: Check SELinux status
           ansible.builtin.command: getenforce
-  register: selinux_status
-          changed_when: false
-          when: enable_selinux
+            register: selinux_status
+            changed_when: false
+            when: enable_selinux
 
         - name: Check seccomp profiles
           ansible.builtin.command: ls -la /var/lib/kubelet/seccomp/profiles/
-  register: seccomp_status
-          changed_when: false
-          when: enable_seccomp
+            register: seccomp_status
+            changed_when: false
+            when: enable_seccomp
 
         - name: Check Kubernetes security
           ansible.builtin.command: validate-k8s-security
-  register: k8s_security_status
-          changed_when: false
-          when: enable_macos_k8s_security and ansible_os_family == "Darwin"
+            register: k8s_security_status
+            changed_when: false
+            when: enable_macos_k8s_security and ansible_os_family == "Darwin"
 
         - name: Check AWS IAM Authenticator
           ansible.builtin.command: aws-iam-authenticator version
-  register: aws_auth_status
-          changed_when: false
+            register: aws_auth_status
+            changed_when: false
 
         - name: Check Istio ambient deployment
           k8s_info:
@@ -130,7 +130,7 @@
             kind: Deployment
             name: rds-app
             namespace: "{{ k8s_namespace }}"
-  register: istio_deployment_status
+          register: istio_deployment_status
           when: enable_istio_ambient
 
     - name: Display final status

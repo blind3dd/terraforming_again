@@ -2,7 +2,7 @@
 # Handlers for Kubernetes Operators role
 
 - name: restart terraform operator
-    kubernetes.core.k8s:
+  kubernetes.core.k8s:
     api_version: apps/v1
     kind: Deployment
     name: terraform-operator
@@ -10,12 +10,12 @@
     state: present
     wait: true
     wait_condition:
-      type: Available
-      status: "True"
-  when: install_terraform_operator | default(true)
+    type: Available
+    status: "True"
+    when: install_terraform_operator | default(true)
 
 - name: restart vault operator
-    kubernetes.core.k8s:
+  kubernetes.core.k8s:
     api_version: apps/v1
     kind: Deployment
     name: vault-operator
@@ -23,12 +23,12 @@
     state: present
     wait: true
     wait_condition:
-      type: Available
-      status: "True"
-  when: install_vault_operator | default(true)
+    type: Available
+    status: "True"
+    when: install_vault_operator | default(true)
 
 - name: restart ansible operator
-    kubernetes.core.k8s:
+  kubernetes.core.k8s:
     api_version: apps/v1
     kind: Deployment
     name: ansible-operator
@@ -36,14 +36,14 @@
     state: present
     wait: true
     wait_condition:
-      type: Available
-      status: "True"
-  when: install_ansible_operator | default(true)
+    type: Available
+    status: "True"
+    when: install_ansible_operator | default(true)
 
 - name: reload helm repositories
-    kubernetes.core.helm_repository:
+  kubernetes.core.helm_repository:
     name: "{{ item.name }}"
     repo_url: "{{ item.url }}"
     update: true
-  loop: "{{ helm_repositories }}"
-  listen: "reload helm repositories"
+    loop: "{{ helm_repositories }}"
+    listen: "reload helm repositories"

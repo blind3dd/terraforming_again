@@ -20,7 +20,7 @@
 
   tasks:
     - name: Display namespace strategy
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg:
           - "Namespace Strategy:"
           - "  Environment: {{ environment }}"
@@ -36,10 +36,10 @@
         kind: Namespace
         state: present
         labels:
-          name: "{{ namespace }}"
-          environment: "{{ environment }}"
-          app.kubernetes.io/name: "{{ app_name }}"
-          app.kubernetes.io/part-of: "{{ app_name }}"
+        name: "{{ namespace }}"
+        environment: "{{ environment }}"
+          "app.kubernetes.io/name": "{{ app_name }}"
+          "app.kubernetes.io/part-of": "{{ app_name }}"
 
     - name: Deploy with Helm (base)
       kubernetes.core.helm:
@@ -48,18 +48,18 @@
         release_namespace: "{{ namespace }}"
         create_namespace: false
         values:
-          namespace: "{{ namespace }}"
-          environment: "{{ environment }}"
+        namespace: "{{ namespace }}"
+        environment: "{{ environment }}"
         wait: true
 
     - name: Apply Kustomize patches (environment-specific)
-    ansible.builtin.shell: |
+      ansible.builtin.shell: |
         kustomize build "{{ kustomize_path }}" | kubectl apply -f -
-  register: kustomize_apply
+      register: kustomize_apply
       changed_when: kustomize_apply.rc == 0
 
     - name: Display deployment summary
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg:
           - "✅ Deployment completed with namespace strategy"
           - "Namespace: {{ namespace }}"

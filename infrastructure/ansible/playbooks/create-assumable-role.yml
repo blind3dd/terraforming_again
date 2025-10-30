@@ -26,34 +26,34 @@
 
   tasks:
     - name: Check if trusted principal is provided
-    ansible.builtin.fail:
+      ansible.builtin.fail:
         msg: "trusted_principal is required. Use: ansible-playbook create-assumable-role.yml -e 'trusted_principal=arn:aws:iam::123456789012:user/YourUser'"
       when: trusted_principal == ""
 
     - name: Check if AWS CLI is available
-    ansible.builtin.command: aws --version
-  register: aws_cli_check
-      changed_when: false
-      failed_when: false
+      ansible.builtin.command: aws --version
+        register: aws_cli_check
+        changed_when: false
+        failed_when: false
 
     - name: Fail if AWS CLI not available
-    ansible.builtin.fail:
+      ansible.builtin.fail:
         msg: "AWS CLI is not installed or not in PATH"
       when: aws_cli_check.rc != 0
 
     - name: Check current AWS identity
-    ansible.builtin.command: aws sts get-caller-identity
-  register: current_identity
-      changed_when: false
-      failed_when: false
+      ansible.builtin.command: aws sts get-caller-identity
+        register: current_identity
+        changed_when: false
+        failed_when: false
 
     - name: Display current AWS identity
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: "Current AWS identity: {{ current_identity.stdout }}"
       when: current_identity.rc == 0
 
     - name: Create trust policy document
-    ansible.builtin.set_fact:
+      ansible.builtin.set_fact:
         trust_policy: |
           {
             "Version": "2012-10-17",
@@ -82,7 +82,7 @@
           }
 
     - name: Create custom policy document
-    ansible.builtin.set_fact:
+      ansible.builtin.set_fact:
         custom_policy: |
           {
             "Version": "2012-10-17",
@@ -120,39 +120,39 @@
       when: create_custom_policy | bool
 
     - name: Create custom IAM policy
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam create-policy \
           --policy-name "{{ custom_policy_name }}" \
           --policy-document '{{ custom_policy }}' \
           --description "Custom policy for {{ role_name }}" \
           --region "{{ aws_region }}" \
           --profile "{{ aws_profile }}"
-  register: create_policy_result
-      failed_when: create_policy_result.rc != 0
-      when: create_custom_policy | bool
+        register: create_policy_result
+        failed_when: create_policy_result.rc != 0
+        when: create_custom_policy | bool
 
     - name: Get custom policy ARN
-    ansible.builtin.set_fact:
+      ansible.builtin.set_fact:
         custom_policy_arn: "{{ create_policy_result.stdout | from_json | json_query('Policy.Arn') }}"
       when: create_custom_policy | bool and create_policy_result.rc == 0
 
     - name: Create IAM role
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam create-role \
           --role-name "{{ role_name }}" \
           --assume-role-policy-document '{{ trust_policy }}' \
           --description "{{ role_description }}" \
           --region "{{ aws_region }}" \
           --profile "{{ aws_profile }}"
-  register: create_role_result
-      failed_when: create_role_result.rc != 0
+        register: create_role_result
+        failed_when: create_role_result.rc != 0
 
     - name: Get role ARN
-    ansible.builtin.set_fact:
+      ansible.builtin.set_fact:
         role_arn: "{{ create_role_result.stdout | from_json | json_query('Role.Arn') }}"
 
     - name: Attach custom policy to role
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam attach-role-policy \
           --role-name "{{ role_name }}" \
           --policy-arn "{{ custom_policy_arn }}" \
@@ -161,7 +161,7 @@
       when: create_custom_policy | bool and custom_policy_arn is defined
 
     - name: Attach managed policies to role
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam attach-role-policy \
           --role-name "{{ role_name }}" \
           --policy-arn "{{ item }}" \
@@ -171,36 +171,36 @@
       when: attach_managed_policies | length > 0
 
     - name: Wait for role to be available
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam get-role \
           --role-name "{{ role_name }}" \
           --region "{{ aws_region }}" \
           --profile "{{ aws_profile }}"
-  register: role_check
-      until: role_check.rc == 0
-      retries: 10
-      delay: 5
+        register: role_check
+        until: role_check.rc == 0
+        retries: 10
+        delay: 5
 
     - name: Get role details
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam get-role \
           --role-name "{{ role_name }}" \
           --region "{{ aws_region }}" \
           --profile "{{ aws_profile }}"
-  register: role_details
-      changed_when: false
+        register: role_details
+        changed_when: false
 
     - name: Get attached policies
-    ansible.builtin.command: |
+      ansible.builtin.command: |
         aws iam list-attached-role-policies \
           --role-name "{{ role_name }}" \
           --region "{{ aws_region }}" \
           --profile "{{ aws_profile }}"
-  register: attached_policies
-      changed_when: false
+        register: attached_policies
+        changed_when: false
 
     - name: Save role information to file
-    ansible.builtin.copy:
+      ansible.builtin.copy:
         content: |
           {
             "RoleName": "{{ role_name }}",
@@ -222,7 +222,7 @@
       when: save_role_info | bool
 
     - name: Create assume role script for this specific role
-    ansible.builtin.copy:
+      ansible.builtin.copy:
         content: |
           #!/bin/bash
           # Assume Role Script for {{ role_name }}
@@ -311,7 +311,7 @@
         mode: '0755'
 
     - name: Display completion message
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: |
           ✅ IAM Role '{{ role_name }}' created successfully!
 

@@ -26,21 +26,21 @@
 
   tasks:
     - name: Check if running on macOS
-    ansible.builtin.fail:
+      ansible.builtin.fail:
         msg: "This playbook is designed for macOS only"
       when: ansible_os_family != "Darwin"
 
     - name: Check if kubectl is installed
-    ansible.builtin.command: which kubectl
-  register: kubectl_check
-      failed_when: kubectl_check.rc != 0
-      changed_when: false
+      ansible.builtin.command: which kubectl
+        register: kubectl_check
+        failed_when: kubectl_check.rc != 0
+        changed_when: false
 
     - name: Check if Kubernetes cluster is running
-    ansible.builtin.command: kubectl cluster-info
-  register: cluster_check
-      failed_when: cluster_check.rc != 0
-      changed_when: false
+      ansible.builtin.command: kubectl cluster-info
+        register: cluster_check
+        failed_when: cluster_check.rc != 0
+        changed_when: false
 
     - name: Create security namespace
       k8s:
@@ -146,7 +146,7 @@
                   resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
 
     - name: Create validation script
-    ansible.builtin.copy:
+      ansible.builtin.copy:
         content: |
           #!/bin/bash
           echo "=== Kubernetes Security Check ==="
@@ -185,7 +185,7 @@
       become: true
 
     - name: Create security monitoring script
-    ansible.builtin.copy:
+      ansible.builtin.copy:
         content: |
           #!/bin/bash
           # Simple security monitor
@@ -208,34 +208,34 @@
     - name: Configure macOS security settings
       block:
         - name: Check FileVault status
-    ansible.builtin.command: fdesetup status
-  register: filevault_status
-          changed_when: false
-          ignore_errors: true
+          ansible.builtin.command: fdesetup status
+            register: filevault_status
+            changed_when: false
+            ignore_errors: true
 
         - name: Display FileVault status
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "✓ FileVault is enabled"
           when: "'FileVault is On' in filevault_status.stdout"
 
         - name: Warn about FileVault
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "WARNING: FileVault is not enabled. Consider enabling it."
           when: "'FileVault is On' not in filevault_status.stdout"
 
         - name: Check firewall status
-    ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
-  register: firewall_status
-          changed_when: false
-          ignore_errors: true
+          ansible.builtin.command: /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+            register: firewall_status
+            changed_when: false
+            ignore_errors: true
 
         - name: Display firewall status
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "✓ Firewall is enabled"
           when: "'enabled' in firewall_status.stdout"
 
         - name: Warn about firewall
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "WARNING: Firewall is not enabled. Consider enabling it."
           when: "'enabled' not in firewall_status.stdout"
 
@@ -247,14 +247,14 @@
             kind: ConfigMap
             name: impersonation-filter-config
             namespace: kube-system
-  register: impersonation_filter_check
+          register: impersonation_filter_check
 
         - name: Check Pod Security Standards
           k8s_info:
             api_version: v1
             kind: Namespace
             name: "{{ namespace }}"
-  register: namespace_check
+          register: namespace_check
 
         - name: Check Network Policies
           k8s_info:
@@ -262,17 +262,17 @@
             kind: NetworkPolicy
             name: default-deny-all
             namespace: default
-  register: network_policy_check
+          register: network_policy_check
 
         - name: Check RBAC
           k8s_info:
             api_version: rbac.authorization.k8s.io/v1
             kind: ClusterRole
             name: macos-restricted-user
-  register: rbac_check
+          register: rbac_check
 
     - name: Display completion message
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           macOS Kubernetes security configuration complete!

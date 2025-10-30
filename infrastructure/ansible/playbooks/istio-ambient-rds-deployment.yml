@@ -28,40 +28,40 @@
 
   tasks:
     - name: Check if kubectl is available
-    ansible.builtin.command: which kubectl
-  register: kubectl_check
-      failed_when: kubectl_check.rc != 0
-      changed_when: false
+      ansible.builtin.command: which kubectl
+        register: kubectl_check
+        failed_when: kubectl_check.rc != 0
+        changed_when: false
 
     - name: Check if Kubernetes cluster is running
-    ansible.builtin.command: kubectl cluster-info
-  register: cluster_check
-      failed_when: cluster_check.rc != 0
-      changed_when: false
+      ansible.builtin.command: kubectl cluster-info
+        register: cluster_check
+        failed_when: cluster_check.rc != 0
+        changed_when: false
 
     - name: Check if Istio is installed
-    ansible.builtin.command: kubectl get namespace istio-system
-  register: istio_check
-      failed_when: istio_check.rc != 0
-      changed_when: false
+      ansible.builtin.command: kubectl get namespace istio-system
+        register: istio_check
+        failed_when: istio_check.rc != 0
+        changed_when: false
 
     - name: Create seccomp profiles directory
-    ansible.builtin.file:
+      ansible.builtin.file:
         path: /var/lib/kubelet/seccomp/profiles
         state: directory
         mode: '0755'
         owner: root
         group: root
-      become: true
+        become: true
 
     - name: Copy seccomp profiles to Kubernetes directory
-    ansible.builtin.copy:
+      ansible.builtin.copy:
         src: "{{ item }}"
         dest: "/var/lib/kubelet/seccomp/profiles/"
         mode: '0644'
         owner: root
         group: root
-      become: true
+        become: true
       loop:
         - "selinux/seccomp-profiles.json"
         - "selinux/seccomp-kubelet-profile.json"
@@ -75,13 +75,13 @@
       ignore_errors: true
 
     - name: Create symlinks for easier access
-    ansible.builtin.file:
+      ansible.builtin.file:
         src: "/var/lib/kubelet/seccomp/profiles/{{ item.src }}"
         dest: "/var/lib/kubelet/seccomp/profiles/{{ item.dest }}"
         state: link
         owner: root
         group: root
-      become: true
+        become: true
       loop:
         - { src: "seccomp-k8s-database-profile.json", dest: "database-profile.json" }
         - { src: "seccomp-k8s-webapp-profile.json", dest: "webapp-profile.json" }
@@ -167,121 +167,121 @@
               matchLabels:
                 app: "{{ app_name }}"
                 version: "{{ app_version }}"
-  ansible.builtin.template:
-              metadata:
-                labels:
-                  app: "{{ app_name }}"
-                  version: "{{ app_version }}"
+      ansible.builtin.template:
+        metadata:
+        labels:
+        app: "{{ app_name }}"
+        version: "{{ app_version }}"
                   sidecar.istio.io/inject: "false"
-              spec:
-                serviceAccountName: "{{ app_name }}-sa"
-                securityContext:
-                  runAsNonRoot: true
-                  runAsUser: "{{ run_as_user }}"
-                  runAsGroup: "{{ run_as_group }}"
-                  fsGroup: "{{ fs_group }}"
-                containers:
-                - name: app
-                  image: nginx:1.21-alpine
-                  securityContext:
-                    allowPrivilegeEscalation: false
-                    readOnlyRootFilesystem: true
-                    runAsNonRoot: true
-                    runAsUser: {{ run_as_user }}
-                    runAsGroup: {{ run_as_group }}
-                    capabilities:
-                      drop:
-                      - ALL
-                    seccompProfile:
-                      type: Localhost
-                      localhostProfile: "{{ seccomp_profile }}"
-                  ports:
-                  - containerPort: {{ app_port }}
-                    name: http
-                    protocol: TCP
-                  env:
-                  - name: DB_HOST
-                    valueFrom:
-                      secretKeyRef:
-                        name: rds-credentials
-                        key: host
-                  - name: DB_PORT
-                    valueFrom:
-                      secretKeyRef:
-                        name: rds-credentials
-                        key: port
-                  - name: DB_USERNAME
-                    valueFrom:
-                      secretKeyRef:
-                        name: rds-credentials
-                        key: username
-                  - name: DB_PASSWORD
-                    valueFrom:
-                      secretKeyRef:
-                        name: rds-credentials
-                        key: password
-                  - name: DB_NAME
-                    value: "{{ rds_database }}"
-                  - name: APP_PORT
-                    value: "{{ app_port }}"
-                  volumeMounts:
-                  - name: config
-                    mountPath: /etc/app
-                    readOnly: true
-                  - name: tmp
-                    mountPath: /tmp
-                  - name: var-cache
-                    mountPath: /var/cache/nginx
-                  - name: var-run
-                    mountPath: /var/run
-                  - name: seccomp-profiles
-                    mountPath: /var/lib/kubelet/seccomp/profiles
-                    readOnly: true
-                  livenessProbe:
-                    httpGet:
-                      path: /health
-                      port: "{{ app_port }}"
-                    initialDelaySeconds: 30
-                    periodSeconds: 10
-                  readinessProbe:
-                    httpGet:
-                      path: /ready
-                      port: {{ app_port }}
-                    initialDelaySeconds: 5
-                    periodSeconds: 5
-                  resources:
-                    requests:
-                      memory: "{{ memory_request }}"
-                      cpu: "{{ cpu_request }}"
-                    limits:
-                      memory: "{{ memory_limit }}"
-                      cpu: "{{ cpu_limit }}"
+        spec:
+        serviceAccountName: "{{ app_name }}-sa"
+        securityContext:
+        runAsNonRoot: true
+        runAsUser: "{{ run_as_user }}"
+        runAsGroup: "{{ run_as_group }}"
+        fsGroup: "{{ fs_group }}"
+        containers:
+                  - name: app
+                    image: nginx:1.21-alpine
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                      runAsUser: "{{ run_as_user }}"
+                      runAsGroup: "{{ run_as_group }}"
+                      capabilities:
+                        drop:
+                          - ALL
+                      seccompProfile:
+                        type: Localhost
+                        localhostProfile: "{{ seccomp_profile }}"
+                    ports:
+                      - containerPort: "{{ app_port }}"
+                        name: http
+                        protocol: TCP
+                    env:
+                      - name: DB_HOST
+                        valueFrom:
+                          secretKeyRef:
+                            name: rds-credentials
+                            key: host
+                      - name: DB_PORT
+                        valueFrom:
+                          secretKeyRef:
+                            name: rds-credentials
+                            key: port
+                      - name: DB_USERNAME
+                        valueFrom:
+                          secretKeyRef:
+                            name: rds-credentials
+                            key: username
+                      - name: DB_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: rds-credentials
+                            key: password
+                      - name: DB_NAME
+                        value: "{{ rds_database }}"
+                      - name: APP_PORT
+                        value: "{{ app_port }}"
+                    volumeMounts:
+                      - name: config
+                        mountPath: /etc/app
+                        readOnly: true
+                      - name: tmp
+                        mountPath: /tmp
+                      - name: var-cache
+                        mountPath: /var/cache/nginx
+                      - name: var-run
+                        mountPath: /var/run
+                      - name: seccomp-profiles
+                        mountPath: /var/lib/kubelet/seccomp/profiles
+                        readOnly: true
+                    livenessProbe:
+                      httpGet:
+                        path: /health
+                        port: "{{ app_port }}"
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                    readinessProbe:
+                      httpGet:
+                        path: /ready
+                        port: "{{ app_port }}"
+                      initialDelaySeconds: 5
+                      periodSeconds: 5
+                    resources:
+                      requests:
+                        memory: "{{ memory_request }}"
+                        cpu: "{{ cpu_request }}"
+                      limits:
+                        memory: "{{ memory_limit }}"
+                        cpu: "{{ cpu_limit }}"
                 volumes:
-                - name: config
-                  configMap:
-                    name: app-config
-                - name: tmp
-                  emptyDir: {}
-                - name: var-cache
-                  emptyDir: {}
-                - name: var-run
-                  emptyDir: {}
-                - name: seccomp-profiles
-                  hostPath:
-                    path: /var/lib/kubelet/seccomp/profiles
-                    type: DirectoryOrCreate
+                  - name: config
+                    configMap:
+                      name: app-config
+                  - name: tmp
+                    emptyDir: {}
+                  - name: var-cache
+                    emptyDir: {}
+                  - name: var-run
+                    emptyDir: {}
+                  - name: seccomp-profiles
+                    hostPath:
+                      path: /var/lib/kubelet/seccomp/profiles
+                      type: DirectoryOrCreate
                 affinity:
                   podAntiAffinity:
                     preferredDuringSchedulingIgnoredDuringExecution:
-                    - weight: 100
-                      podAffinityTerm:
-                        labelSelector:
-                          matchExpressions:
-                          - key: app
-                            operator: In
-                            values:
-                            - "{{ app_name }}"
-                        topologyKey: kubernetes.io/hostname
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchExpressions:
+                              - key: app
+                                operator: In
+                                values:
+                                  - "{{ app_name }}"
+                          topologyKey: kubernetes.io/hostname
 
     - name: Create ClusterIP service
       k8s:
@@ -298,7 +298,7 @@
             type: ClusterIP
             ports:
             - port: "{{ app_port }}"
-              targetPort: {{ app_port }}
+              targetPort: "{{ app_port }}"
               protocol: TCP
               name: http
             selector:
@@ -348,7 +348,7 @@
                   port:
               number: "{{ app_port }}"
               timeout: 30s
-              retries:
+      retries:
                 attempts: 3
                 perTryTimeout: 10s
 
@@ -418,7 +418,7 @@
             - to: []
               ports:
               - protocol: TCP
-                port: {{ db_port }}
+                port: "{{ db_port }}"
               - protocol: TCP
                 port: 5432
               - protocol: TCP
@@ -487,10 +487,10 @@
         kind: Deployment
         name: "{{ app_name }}"
         namespace: "{{ namespace }}"
-  register: deployment_info
+      register: deployment_info
 
     - name: Display deployment status
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: "Deployment {{ app_name }} is {{ deployment_info.resources[0].status.conditions[0].status }}"
 
     - name: Get pod information
@@ -500,10 +500,10 @@
         namespace: "{{ namespace }}"
         label_selectors:
           - "app={{ app_name }}"
-  register: pod_info
+      register: pod_info
 
     - name: Display pod information
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: "Pods: {{ pod_info.resources | map(attribute='metadata.name') | list }}"
 
     - name: Check seccomp profile in pod
@@ -513,10 +513,10 @@
         namespace: "{{ namespace }}"
         label_selectors:
           - "app={{ app_name }}"
-  register: pod_seccomp_info
+      register: pod_seccomp_info
 
     - name: Display seccomp profile information
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: "Seccomp profile: {{ pod_seccomp_info.resources[0].spec.containers[0].securityContext.seccompProfile.localhostProfile }}"
 
     - name: Create ConfigMap with seccomp profiles for reference
@@ -536,17 +536,17 @@
       ignore_errors: true
 
     - name: Display deployment summary
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           Istio Ambient Mode RDS Application Deployed Successfully!
           ========================================
-          Namespace: {{ namespace }}
-          Application: {{ app_name }}
-          Replicas: {{ replicas }}
-          Seccomp Profile: {{ seccomp_profile }}
-          RDS Host: {{ rds_host }}
-          Domain: {{ domain }}
+        Namespace: {{ namespace }}
+        Application: {{ app_name }}
+        Replicas: {{ replicas }}
+          Seccomp Profile: "{{ seccomp_profile }}"
+          RDS Host: "{{ rds_host }}"
+        Domain: {{ domain }}
           ========================================
           Access your application:
           kubectl port-forward -n {{ namespace }} service/{{ app_name }}-service {{ app_port }}:{{ app_port }}

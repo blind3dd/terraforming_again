@@ -20,7 +20,7 @@
     - name: Check if running as root
       ansible.builtin.fail:
         msg: "This playbook must be run as root to install system binaries"
-      when: ansible_user_id != "root"
+        when: ansible_user_id != "root"
 
     - name: Detect OS family
       ansible.builtin.set_fact:
@@ -42,14 +42,14 @@
 
     - name: Check if aws-iam-authenticator is already installed
       ansible.builtin.command: aws-iam-authenticator version
-  register: existing_install
+      register: existing_install
       ignore_errors: true
       changed_when: false
 
     - name: Display existing version
       ansible.builtin.debug:
         msg: "AWS IAM Authenticator is already installed: {{ existing_install.stdout }}"
-      when: existing_install.rc == 0
+        when: existing_install.rc == 0
 
     - name: Download AWS IAM Authenticator
       ansible.builtin.get_url:
@@ -57,7 +57,7 @@
         dest: "/tmp/aws-iam-authenticator"
         mode: '0755'
         timeout: 30
-      when: existing_install.rc != 0
+        when: existing_install.rc != 0
 
     - name: Install AWS IAM Authenticator
       ansible.builtin.copy:
@@ -67,11 +67,11 @@
         owner: root
         group: root
         remote_src: true
-      when: existing_install.rc != 0
+        when: existing_install.rc != 0
 
     - name: Verify installation
       ansible.builtin.command: aws-iam-authenticator version
-  register: install_verification
+      register: install_verification
       changed_when: false
 
     - name: Display installed version
@@ -117,36 +117,36 @@
     - name: Create kubeconfig for AWS IAM Authenticator
       ansible.builtin.copy:
         content: |
-          apiVersion: v1
-          clusters:
-          - cluster:
-              certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...
-              server: https://{{ cluster_name }}.gr7.{{ aws_region }}.eks.amazonaws.com
-            name: {{ cluster_name }}
-          contexts:
-          - context:
-              cluster: {{ cluster_name }}
-              user: {{ cluster_name }}-admin
-            name: {{ cluster_name }}-admin
+        apiVersion: v1
+        clusters:
+            - cluster:
+                certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...
+        server: https://{{ cluster_name }}.gr7.{{ aws_region }}.eks.amazonaws.com
+        name: {{ cluster_name }}
+        contexts:
+            - context:
+        cluster: {{ cluster_name }}
+        user: {{ cluster_name }}-admin
+        name: {{ cluster_name }}-admin
           current-context: {{ cluster_name }}-admin
-          kind: Config
-          preferences: {}
-          users:
-          - name: {{ cluster_name }}-admin
-            user:
-              exec:
-                apiVersion: client.authentication.k8s.io/v1beta1
-  ansible.builtin.command: aws-iam-authenticator
+        kind: Config
+        preferences: {}
+        users:
+            - name: {{ cluster_name }}-admin
+              user:
+                exec:
+                  apiVersion: client.authentication.k8s.io/v1beta1
+              ansible.builtin.command: aws-iam-authenticator
                 args:
-                  - "token"
-                  - "-i"
-                  - "{{ cluster_name }}"
-                  - "--region"
-                  - "{{ aws_region }}"
-        dest: "{{ config_dir }}/kubeconfig"
-        mode: '0644'
-        owner: root
-        group: root
+                    - token
+                    - -i
+                    - "{{ cluster_name }}"
+                    - --region
+                    - "{{ aws_region }}"
+                dest: "{{ config_dir }}/kubeconfig"
+                mode: '0644'
+                owner: root
+                group: root
 
     - name: Create OIDC identity provider configuration
       ansible.builtin.copy:
@@ -300,13 +300,13 @@
             selector:
               matchLabels:
                 app: aws-iam-authenticator
-  ansible.builtin.template:
-              metadata:
-                labels:
-                  app: aws-iam-authenticator
-              spec:
-                serviceAccountName: aws-iam-authenticator
-                containers:
+      ansible.builtin.template:
+        metadata:
+        labels:
+        app: aws-iam-authenticator
+        spec:
+        serviceAccountName: aws-iam-authenticator
+        containers:
                 - name: aws-iam-authenticator
                   image: 602401143452.dkr.ecr.us-west-2.amazonaws.com/amazon/aws-iam-authenticator:v{{ aws_iam_authenticator_version }}
                   args:
@@ -315,15 +315,15 @@
                     - --state-dir=/var/aws-iam-authenticator
                     - --kubeconfig=/etc/aws-iam-authenticator/kubeconfig
                   ports:
-                  - containerPort: 21362
-                    name: https
-                    protocol: TCP
+                    - containerPort: 21362
+                      name: https
+                      protocol: TCP
                   volumeMounts:
-                  - name: config
-                    mountPath: /etc/aws-iam-authenticator
-                    readOnly: true
-                  - name: state
-                    mountPath: /var/aws-iam-authenticator
+                    - name: config
+                      mountPath: /etc/aws-iam-authenticator
+                      readOnly: true
+                    - name: state
+                      mountPath: /var/aws-iam-authenticator
                   livenessProbe:
                     httpGet:
                       path: /healthz
@@ -345,15 +345,15 @@
                     limits:
                       cpu: 100m
                       memory: 128Mi
-                volumes:
+              volumes:
                 - name: config
                   configMap:
                     name: aws-iam-authenticator-config
                 - name: state
                   emptyDir: {}
-                nodeSelector:
-                  kubernetes.io/os: linux
-                tolerations:
+              nodeSelector:
+                kubernetes.io/os: linux
+              tolerations:
                 - effect: NoSchedule
                   key: node-role.kubernetes.io/master
                 - effect: NoSchedule

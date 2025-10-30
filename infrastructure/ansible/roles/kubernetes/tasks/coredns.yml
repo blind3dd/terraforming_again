@@ -10,15 +10,10 @@
         kind: Deployment
         namespace: kube-system
         name: coredns
-  register: coredns_deployment
-      until: >-
-        coredns_deployment.resources |
-        selectattr('status.conditions') |
-        selectattr('type', 'equalto', 'Available') |
-        map(attribute='status') |
-        first == 'True'
-      retries: 30
-      delay: 10
+        register: coredns_deployment
+        until: coredns_deployment.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+        retries: 30
+        delay: 10
 
     - name: Create CoreDNS ConfigMap
       kubernetes.core.k8s:
@@ -54,8 +49,8 @@
         state: present
         wait: true
         wait_condition:
-          type: Available
-          status: "True"
+        type: Available
+        status: "True"
 
     - name: Wait for CoreDNS to be ready after restart
       kubernetes.core.k8s_info:
@@ -63,15 +58,10 @@
         kind: Deployment
         namespace: kube-system
         name: coredns
-  register: coredns_restart
-      until: >-
-        coredns_restart.resources |
-        selectattr('status.conditions') |
-        selectattr('type', 'equalto', 'Available') |
-        map(attribute='status') |
-        first == 'True'
-      retries: 30
-      delay: 10
+        register: coredns_restart
+        until: coredns_restart.resources | selectattr('status.conditions') | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first == 'True'
+        retries: 30
+        delay: 10
 
     - name: Verify CoreDNS pods
       kubernetes.core.k8s_info:
@@ -80,7 +70,7 @@
         namespace: kube-system
         label_selectors:
           - k8s-app=kube-dns
-  register: coredns_pods
+        register: coredns_pods
 
     - name: Display CoreDNS status
       ansible.builtin.debug:
@@ -90,9 +80,9 @@
     - name: Test CoreDNS functionality
       ansible.builtin.shell: |
         kubectl run test-dns --image=busybox --rm -i --restart=Never -- nslookup kubernetes.default.svc.cluster.local
-  register: dns_test
-      failed_when: dns_test.rc != 0
-      changed_when: false
+        register: dns_test
+        failed_when: dns_test.rc != 0
+        changed_when: false
 
     - name: Display DNS test results
       ansible.builtin.debug:
@@ -114,5 +104,3 @@
         src: "{{ playbook_dir }}/../templates/coredns-forward-zones.yml.j2"
       when: kubernetes_forward_zones | default([]) | length > 0
 
-  when: kubernetes_configure_custom_domains | default(false)
-  tags: [coredns, custom-domains]

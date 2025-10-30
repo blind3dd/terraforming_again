@@ -14,25 +14,25 @@
 
   tasks:
     - name: Check if running as root
-    ansible.builtin.fail:
+      ansible.builtin.fail:
         msg: "This playbook must be run as root"
       when: ansible_user_id != "root"
 
     - name: Check if SELinux is enabled
-    ansible.builtin.command: getenforce
-  register: selinux_status
-      changed_when: false
-      failed_when: selinux_status.stdout not in ["Enforcing", "Permissive"]
+      ansible.builtin.command: getenforce
+        register: selinux_status
+        changed_when: false
+        failed_when: selinux_status.stdout not in ["Enforcing", "Permissive"]
 
     - name: Install SELinux development tools
-    ansible.builtin.package:
+      ansible.builtin.package:
         name:
           - selinux-policy-devel
           - policycoreutils-devel
         state: present
 
     - name: Create policies directory
-    ansible.builtin.file:
+      ansible.builtin.file:
         path: "{{ policies_install_dir }}"
         state: directory
         mode: '0755'
@@ -43,144 +43,144 @@
           find:
             paths: "{{ selinux_policies_dir }}"
             patterns: "*.te"
-  register: te_files
+          register: te_files
 
         - name: Compile each SELinux policy
           block:
             - name: Validate policy syntax with checkmodule
-    ansible.builtin.command: checkmodule -M -m -o "{{ item.stem }}.mod" "{{ item.path }}"
-              args:
+              ansible.builtin.command: checkmodule -M -m -o "{{ item.stem }}.mod" "{{ item.path }}"
+                args:
                 chdir: "{{ selinux_policies_dir }}"
-  register: checkmodule_result
-              failed_when: checkmodule_result.rc != 0
+                register: checkmodule_result
+                failed_when: checkmodule_result.rc != 0
 
             - name: Package module with semodule_package
-    ansible.builtin.command: semodule_package -o "{{ item.stem }}.pp" -m "{{ item.stem }}.mod"
-              args:
+              ansible.builtin.command: semodule_package -o "{{ item.stem }}.pp" -m "{{ item.stem }}.mod"
+                args:
                 chdir: "{{ selinux_policies_dir }}"
-  register: semodule_package_result
-              failed_when: semodule_package_result.rc != 0
+                register: semodule_package_result
+                failed_when: semodule_package_result.rc != 0
 
             - name: Install the policy
-    ansible.builtin.command: semodule -i "{{ item.stem }}.pp"
-              args:
+              ansible.builtin.command: semodule -i "{{ item.stem }}.pp"
+                args:
                 chdir: "{{ selinux_policies_dir }}"
-  register: semodule_install_result
-              failed_when: semodule_install_result.rc != 0
+                register: semodule_install_result
+                failed_when: semodule_install_result.rc != 0
 
             - name: Verify policy installation
-    ansible.builtin.command: semodule -l
-  register: semodule_list
-              changed_when: false
+              ansible.builtin.command: semodule -l
+                register: semodule_list
+                changed_when: false
 
             - name: Check if policy is active
-    ansible.builtin.fail:
+              ansible.builtin.fail:
                 msg: "Policy {{ item.stem }} may not be active"
               when: item.stem not in semodule_list.stdout
 
             - name: Clean up intermediate files
-    ansible.builtin.file:
+              ansible.builtin.file:
                 path: "{{ selinux_policies_dir }}/{{ item.stem }}.mod"
                 state: absent
-          loop: "{{ te_files.files }}"
-          rescue:
+                loop: "{{ te_files.files }}"
+                rescue:
             - name: Clean up on failure
-    ansible.builtin.file:
+              ansible.builtin.file:
                 path: "{{ selinux_policies_dir }}/{{ item.stem }}.mod"
                 state: absent
 
     - name: Set file contexts
       block:
         - name: Set audit log file context
-    ansible.builtin.command: semanage fcontext -a -t auditd_log_t "/var/log/audit(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t auditd_log_t "/var/log/audit(/.*)?"
+            ignore_errors: true
 
         - name: Set audit config file context
-    ansible.builtin.command: semanage fcontext -a -t auditd_config_t "/etc/audit(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t auditd_config_t "/etc/audit(/.*)?"
+            ignore_errors: true
 
         - name: Set polkit log file context
-    ansible.builtin.command: semanage fcontext -a -t polkitd_log_t "/var/log/polkit(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t polkitd_log_t "/var/log/polkit(/.*)?"
+            ignore_errors: true
 
         - name: Set polkit config file context
-    ansible.builtin.command: semanage fcontext -a -t polkitd_config_t "/etc/polkit-1(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t polkitd_config_t "/etc/polkit-1(/.*)?"
+            ignore_errors: true
 
         - name: Set seccomp config file context
-    ansible.builtin.command: semanage fcontext -a -t seccomp_config_t "/etc/seccomp(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t seccomp_config_t "/etc/seccomp(/.*)?"
+            ignore_errors: true
 
         - name: Set seccomp log file context
-    ansible.builtin.command: semanage fcontext -a -t seccomp_log_t "/var/log/seccomp(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t seccomp_log_t "/var/log/seccomp(/.*)?"
+            ignore_errors: true
 
         - name: Set seccomp profiles file context
-    ansible.builtin.command: semanage fcontext -a -t seccomp_config_t "/usr/share/seccomp(/.*)?"
-          ignore_errors: true
+          ansible.builtin.command: semanage fcontext -a -t seccomp_config_t "/usr/share/seccomp(/.*)?"
+            ignore_errors: true
 
     - name: Apply file contexts
       block:
         - name: Restore audit log context
-    ansible.builtin.command: restorecon -R /var/log/audit
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /var/log/audit
+            ignore_errors: true
 
         - name: Restore audit config context
-    ansible.builtin.command: restorecon -R /etc/audit
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /etc/audit
+            ignore_errors: true
 
         - name: Restore polkit log context
-    ansible.builtin.command: restorecon -R /var/log/polkit
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /var/log/polkit
+            ignore_errors: true
 
         - name: Restore polkit config context
-    ansible.builtin.command: restorecon -R /etc/polkit-1
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /etc/polkit-1
+            ignore_errors: true
 
         - name: Restore seccomp config context
-    ansible.builtin.command: restorecon -R /etc/seccomp
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /etc/seccomp
+            ignore_errors: true
 
         - name: Restore seccomp log context
-    ansible.builtin.command: restorecon -R /var/log/seccomp
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /var/log/seccomp
+            ignore_errors: true
 
         - name: Restore seccomp profiles context
-    ansible.builtin.command: restorecon -R /usr/share/seccomp
-          ignore_errors: true
+          ansible.builtin.command: restorecon -R /usr/share/seccomp
+            ignore_errors: true
 
     - name: Install audit rules
       block:
         - name: Install authentication audit rules
-    ansible.builtin.copy:
+          ansible.builtin.copy:
             src: "{{ selinux_policies_dir }}/audit-rules.conf"
             dest: "{{ audit_rules_dir }}/99-auth-audit.rules"
             mode: '0644'
           when: lookup('file', selinux_policies_dir + '/audit-rules.conf', errors='ignore') != ''
 
         - name: Install privilege escalation audit rules
-    ansible.builtin.copy:
+          ansible.builtin.copy:
             src: "{{ selinux_policies_dir }}/privilege-escalation-audit.conf"
             dest: "{{ audit_rules_dir }}/98-privilege-escalation-audit.rules"
             mode: '0644'
           when: lookup('file', selinux_policies_dir + '/privilege-escalation-audit.conf', errors='ignore') != ''
 
         - name: Install seccomp audit rules
-    ansible.builtin.copy:
+          ansible.builtin.copy:
             src: "{{ selinux_policies_dir }}/seccomp-audit.conf"
             dest: "{{ audit_rules_dir }}/96-seccomp-audit.rules"
             mode: '0644'
           when: lookup('file', selinux_policies_dir + '/seccomp-audit.conf', errors='ignore') != ''
 
         - name: Install polkit audit rules
-    ansible.builtin.copy:
+          ansible.builtin.copy:
             src: "{{ selinux_policies_dir }}/polkit-audit.conf"
             dest: "{{ audit_rules_dir }}/97-polkit-audit.rules"
             mode: '0644'
           when: lookup('file', selinux_policies_dir + '/polkit-audit.conf', errors='ignore') != ''
 
     - name: Configure audit daemon
-    ansible.builtin.copy:
+      ansible.builtin.copy:
         content: |
           # Audit daemon configuration
           log_file = {{ audit_log_file }}
@@ -210,13 +210,13 @@
     - name: Ensure audit log files exist with proper permissions
       block:
         - name: Create audit log directory
-    ansible.builtin.file:
+          ansible.builtin.file:
             path: /var/log
             state: directory
             mode: '0755'
 
         - name: Create audit log file
-    ansible.builtin.file:
+          ansible.builtin.file:
             path: "{{ audit_log_file }}"
             state: touch
             mode: '0600'
@@ -224,7 +224,7 @@
             group: root
 
         - name: Create secure log file
-    ansible.builtin.file:
+          ansible.builtin.file:
             path: "{{ secure_log_file }}"
             state: touch
             mode: '0640'
@@ -234,13 +234,13 @@
     - name: Install Kubernetes seccomp profiles
       block:
         - name: Create seccomp profiles directory
-    ansible.builtin.file:
+          ansible.builtin.file:
             path: "{{ seccomp_profiles_dir }}"
             state: directory
             mode: '0755'
 
         - name: Copy seccomp profiles
-    ansible.builtin.copy:
+          ansible.builtin.copy:
             src: "{{ item }}"
             dest: "{{ seccomp_profiles_dir }}/"
             mode: '0644'
@@ -255,8 +255,8 @@
     - name: Load and restart audit system
       block:
         - name: Load audit rules
-    ansible.builtin.command: augenrules --load
-          when: lookup('file', audit_rules_dir + '/99-auth-audit.rules', errors='ignore') != '' or lookup('file', audit_rules_dir + '/98-privilege-escalation-audit.rules', errors='ignore') != ''
+          ansible.builtin.command: augenrules --load
+            when: lookup('file', audit_rules_dir + '/99-auth-audit.rules', errors='ignore') != '' or lookup('file', audit_rules_dir + '/98-privilege-escalation-audit.rules', errors='ignore') != ''
 
         - name: Restart auditd service
           systemd:
@@ -266,95 +266,95 @@
     - name: Verify policies are active
       block:
         - name: Check audit_security policy
-    ansible.builtin.command: semodule -l
-  register: active_policies
-          changed_when: false
+          ansible.builtin.command: semodule -l
+            register: active_policies
+            changed_when: false
 
         - name: Verify audit_security policy is active
-    ansible.builtin.fail:
+          ansible.builtin.fail:
             msg: "audit_security policy may not be active"
           when: "'audit_security' not in active_policies.stdout"
 
         - name: Verify privilege_escalation_protection policy is active
-    ansible.builtin.fail:
+          ansible.builtin.fail:
             msg: "privilege_escalation_protection policy may not be active"
           when: "'privilege_escalation_protection' not in active_policies.stdout"
 
         - name: Verify seccomp_security policy is active
-    ansible.builtin.fail:
+          ansible.builtin.fail:
             msg: "seccomp_security policy may not be active"
           when: "'seccomp_security' not in active_policies.stdout"
 
         - name: Verify polkit_security policy is active
-    ansible.builtin.fail:
+          ansible.builtin.fail:
             msg: "polkit_security policy may not be active"
           when: "'polkit_security' not in active_policies.stdout"
 
     - name: Test SELinux enforcement
-    ansible.builtin.command: getenforce
-  register: selinux_enforce
-      changed_when: false
-      failed_when: selinux_enforce.stdout != "Enforcing"
+      ansible.builtin.command: getenforce
+        register: selinux_enforce
+        changed_when: false
+        failed_when: selinux_enforce.stdout != "Enforcing"
 
     - name: Verify audit logging
       block:
         - name: Check audit log file exists
-    ansible.builtin.stat:
+          ansible.builtin.stat:
             path: "{{ audit_log_file }}"
-  register: audit_log_stat
+            register: audit_log_stat
 
         - name: Fail if audit log doesn't exist
-    ansible.builtin.fail:
+          ansible.builtin.fail:
             msg: "Audit log file not found: {{ audit_log_file }}"
           when: not audit_log_stat.stat.exists
 
         - name: Check secure log file exists
-    ansible.builtin.stat:
+          ansible.builtin.stat:
             path: "{{ secure_log_file }}"
-  register: secure_log_stat
+            register: secure_log_stat
 
         - name: Fail if secure log doesn't exist
-    ansible.builtin.fail:
+          ansible.builtin.fail:
             msg: "Secure log file not found: {{ secure_log_file }}"
           when: not secure_log_stat.stat.exists
 
     - name: Test audit logging
       block:
         - name: Add test audit rule
-    ansible.builtin.command: auditctl -w /tmp/test_audit_file -p wa -k test_audit
-          ignore_errors: true
+          ansible.builtin.command: auditctl -w /tmp/test_audit_file -p wa -k test_audit
+            ignore_errors: true
 
         - name: Generate test audit event
-    ansible.builtin.shell: echo "test" > /tmp/test_audit_file
-          ignore_errors: true
+          ansible.builtin.shell: echo "test" > /tmp/test_audit_file
+            ignore_errors: true
 
         - name: Wait for audit event
           pause:
             seconds: 2
 
         - name: Check for test audit event
-    ansible.builtin.shell: grep -q "test_audit" {{ audit_log_file }}
-  register: audit_test_result
-          ignore_errors: true
+          ansible.builtin.shell: grep -q "test_audit" {{ audit_log_file }}
+            register: audit_test_result
+            ignore_errors: true
 
         - name: Clean up test files
           block:
             - name: Remove test file
-    ansible.builtin.file:
+              ansible.builtin.file:
                 path: /tmp/test_audit_file
                 state: absent
 
             - name: Remove test audit rule
-    ansible.builtin.command: auditctl -D
-              ignore_errors: true
+              ansible.builtin.command: auditctl -D
+                ignore_errors: true
 
         - name: Warn if audit logging test failed
-    ansible.builtin.debug:
+          ansible.builtin.debug:
             msg: "Audit logging may not be working - check auditd status"
           when: audit_test_result.rc != 0
 
     - name: Display completion message
-    ansible.builtin.debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           SELinux policies compiled and installed successfully!
