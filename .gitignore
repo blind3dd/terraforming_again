@@ -39,3 +39,5 @@ shell.nix.bak
 .vscode/extensions.json
 .ansible/
 .ansible-lint
+.ansible/
+.ansible-lint
