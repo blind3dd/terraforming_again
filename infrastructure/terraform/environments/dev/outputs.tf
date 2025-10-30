@@ -84,12 +84,12 @@ resource "local_file" "ansible_inventory" {
     timestamp           = timestamp()
     aws_region          = var.aws_region
     vpc_id              = module.networking.vpc_id
-    vpc_cidr_block      = module.networking.vpc_cidr_block
+    vpc_cidr            = module.networking.vpc_cidr_block
     public_subnet_ids   = module.networking.public_subnet_ids
     private_subnet_ids  = module.networking.private_subnet_ids
     rds_endpoint        = module.database.endpoint
     rds_port            = module.database.port
-    rds_database_name   = var.db_name
+    rds_database        = var.db_name
     rds_username        = var.db_username
     ec2_instance_ids    = module.compute.instance_ids
     ec2_private_ips     = module.compute.private_ips
