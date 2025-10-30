@@ -58,7 +58,7 @@ output "rds_username" {
 # Tailscale Outputs
 output "tailscale_router_ip" {
   description = "Tailscale subnet router IP"
-  value       = var.enable_tailscale ? module.tailscale[0].router_ip : null
+  value       = try(module.tailscale[0].router_private_ip, null)
 }
 
 # Security Group Outputs
@@ -93,7 +93,7 @@ resource "local_file" "ansible_inventory" {
     rds_username        = var.db_username
     ec2_instance_ids    = module.compute.instance_ids
     ec2_private_ips     = module.compute.private_ips
-    tailscale_router_ip = var.enable_tailscale ? module.tailscale[0].router_ip : "none"
+    tailscale_router_ip = try(module.tailscale[0].router_private_ip, "none")
     web_sg_id           = module.networking.web_security_group_id
     db_sg_id            = module.networking.database_security_group_id
   })
