@@ -19,14 +19,14 @@ permissions:
   contents: read
 
 jobs:
-  deploy-dev:
-    if: contains(github.event.head_commit.modified, 'environments/dev')
-    environment: dev  # GitHub environment with secrets
+  # deploy-dev:
+  #   if: contains(github.event.head_commit.modified, 'environments/dev')
+  #   environment: dev  # GitHub environment with secrets
     
-  deploy-test:
-    if: contains(github.event.head_commit.modified, 'environments/test')
-    environment: test
-    needs: [deploy-dev]  # Only after dev succeeds
+  # deploy-test:
+  #   if: contains(github.event.head_commit.modified, 'environments/test')
+  #   environment: test
+  #   needs: [deploy-dev]  # Only after dev succeeds
 
   # Security: Code Quality and Linting
   security-scan:
