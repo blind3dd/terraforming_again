@@ -13,6 +13,7 @@ require {
     type staff_t;
     class seccomp { read write };
     class process signal;
+    class file { read write getattr append create };
 }
 
 # Seccomp security types
