@@ -12,7 +12,7 @@ bandit==1.7.5
 safety==3.0.1
 
 # Infrastructure tools - Updated to fix CVEs
-ansible==10.1.0
+ansible==12.2.0
 ansible-lint==24.12.2
 
 # Additional utilities
