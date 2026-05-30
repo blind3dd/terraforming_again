@@ -36,32 +36,10 @@ fi
 
 echo "✅ Signing key found: $SIGNING_KEY"
 
-# Setup gpg-agent.conf
-GPG_CONF_DIR="$HOME/.gnupg"
-mkdir -p "$GPG_CONF_DIR"
-chmod 700 "$GPG_CONF_DIR"
-
-if [ ! -f "$GPG_CONF_DIR/gpg-agent.conf" ]; then
-    echo "📝 Creating gpg-agent.conf..."
-    cat > "$GPG_CONF_DIR/gpg-agent.conf" << 'EOF'
-# Use pinentry-mac for GUI prompts
-pinentry-program /opt/homebrew/bin/pinentry-mac
-
-# Enable SSH support
-enable-ssh-support
-
-# Cache settings
-default-cache-ttl 600
-max-cache-ttl 7200
-
-# Allow preset passphrase
-allow-preset-passphrase
-EOF
-    chmod 600 "$GPG_CONF_DIR/gpg-agent.conf"
-    echo "✅ gpg-agent.conf created"
-else
-    echo "✅ gpg-agent.conf already exists"
-fi
+# Setup gpg wrappers (signing key: ~/.config/git/yubikey-signing.env)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"${SCRIPT_DIR}/install-gpg-wrappers.sh"
+echo "For full YubiKey reset: ${SCRIPT_DIR}/reset-yubikey-openpgp.sh"
 
 # Restart gpg-agent to pick up config
 echo "🔄 Restarting gpg-agent..."

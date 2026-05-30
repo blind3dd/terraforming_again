@@ -59,7 +59,7 @@ write_files:
       [Install]
       WantedBy=multi-user.target
     permissions: '0644'
-
+---
 # Enable the service
 runcmd:
   - systemctl daemon-reload
@@ -75,6 +75,7 @@ write_files:
       & stop
     permissions: '0644'
 
+---
 # Restart rsyslog to apply new config
 runcmd:
   - systemctl restart rsyslog
@@ -112,10 +113,12 @@ write_files:
       fi
     permissions: '0755'
 
+---
 # Set up monitoring cron job
 runcmd:
   - echo "*/5 * * * * /usr/local/bin/tailscale-monitor.sh" >> /etc/crontab
 
+---
 # Final status check
 runcmd:
   - echo "Tailscale subnet router setup complete" > /var/log/tailscale-setup.log

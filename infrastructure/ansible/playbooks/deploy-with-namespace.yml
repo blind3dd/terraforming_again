@@ -35,11 +35,11 @@
         api_version: v1
         kind: Namespace
         state: present
-        labels:
-        name: "{{ namespace }}"
+        labels: |
+          name: "{{ namespace }}"
+          app.kubernetes.io/name: "{{ app_name }}"
+          app.kubernetes.io/part-of: "{{ app_name }}"
         environment: "{{ environment }}"
-          "app.kubernetes.io/name": "{{ app_name }}"
-          "app.kubernetes.io/part-of": "{{ app_name }}"
 
     - name: Deploy with Helm (base)
       kubernetes.core.helm:
@@ -61,7 +61,7 @@
     - name: Display deployment summary
       ansible.builtin.debug:
         msg:
-          - "✅ Deployment completed with namespace strategy"
+          - "Deployment completed with namespace strategy"
           - "Namespace: {{ namespace }}"
           - "Environment: {{ environment }}"
           - "App: {{ app_name }}"

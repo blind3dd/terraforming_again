@@ -37,3 +37,7 @@ shell.nix.bak
 # Generated VSCode settings (created from .nix/dotfiles)
 .vscode/settings.json
 .vscode/extensions.json
+.ansible/
+.ansible-lint
+.ansible/
+.ansible-lint

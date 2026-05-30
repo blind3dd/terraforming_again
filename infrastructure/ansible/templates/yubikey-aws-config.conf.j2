@@ -18,11 +18,12 @@ TOKEN_CACHE_DURATION={{ token_cache_duration }}
 
 # Role Mappings (role_name:role_arn)
 declare -A ROLE_MAPPINGS=(
+# jinja2 template
 {% for role_name, role_arn in role_mappings.items() %}
     ["{{ role_name }}"]="{{ role_arn }}"
 {% endfor %}
 )
-
+# endof jinja2 template
 # MFA Configuration
 MFA_SERIAL="{{ mfa_serial }}"
 MFA_REQUIRED={{ mfa_required | lower }}
