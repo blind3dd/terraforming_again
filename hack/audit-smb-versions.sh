@@ -43,7 +43,7 @@ explain_smb_risks() {
     echo "  • Still has some vulnerabilities but much safer"
     echo
     
-    echo "🎯 WHY SMB IS DANGEROUS:"
+    echo "🎯 WHY SMB IS DANGEROUS AND Y0U SHOULD CONSIDER NFS INSTEAD:"
     echo "  • Network file sharing = attack surface"
     echo "  • Often enabled by default on many systems"
     echo "  • Can be used for lateral movement in networks"

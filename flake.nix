@@ -56,7 +56,7 @@
           talosctl
         ];
 
-        # Ansible tools
+        # Ansible tools (ansible-vault is included in the ansible package)
         ansibleTools = with pkgs; [
           ansible
           ansible-lint
@@ -76,7 +76,7 @@
           pinentry_mac
           yubikey-manager
           yubikey-personalization
-          pcsctools
+          pcsc-tools
           openssl
           opensc
           krb5
@@ -136,13 +136,27 @@
             ++ cloudTools ++ securityTools ++ containerTools ++ pythonTools ++ devTools;
 
           shellHook = ''
-            echo "🚀 Entering Terraforming Again development environment"
+            # Fix TERM for proper vim syntax highlighting
+            # Only override if TERM is unset or set to 'dumb' (which disables colors)
+            if [ -z "$TERM" ] || [ "$TERM" = "dumb" ]; then
+              # Detect terminal type - prefer xterm-256color for color support
+              if [ -n "$ITERM_SESSION_ID" ] || [ -n "$VSCODE_INJECTION" ]; then
+                export TERM=xterm-256color
+              elif [ -n "$TMUX" ]; then
+                export TERM=screen-256color
+              else
+                # Default to xterm-256color for modern terminals
+                export TERM=xterm-256color
+              fi
+            fi
+
+            echo "Entering Terraforming Again development environment"
             echo ""
-            echo "📦 Tool Versions:"
+            echo "Tool Versions:"
             echo "  Go:         $(go version | awk '{print $3}')"
             echo "  OpenTofu:   $(tofu version 2>/dev/null | head -1 | awk '{print $2}' || echo 'not available')"
             echo "  kubectl:    $(kubectl version --client --short 2>/dev/null | awk '{print $3}' || echo 'not available')"
-            echo "  Ansible:    $(ansible --version 2>/dev/null | head -1 | awk '{print $3}' || echo 'not available')"
+            echo "  Ansible:    $(ansible --version 2>/dev/null | head -n1 | awk '{print $3}' | cut -d "]" -f 1 || echo 'not available')"
             echo "  AWS CLI:    $(aws --version 2>/dev/null | awk '{print $1}' | cut -d'/' -f2 || echo 'not available')"
             echo "  Azure CLI:  $(az version 2>/dev/null | jq -r '."azure-cli"' || echo 'not available')"
             echo ""
@@ -156,71 +170,11 @@
               echo "✅ VSCode configuration installed"
             fi
 
-            # Setup git configuration for this project
-            echo "📝 Configuring Git for this repository..."
+            # Git identity + YubiKey signing from ~/.config/git/yubikey-signing.env
             git config --local user.name "usualsuspectx" 2>/dev/null || true
             git config --local user.email "blind3dd@gmail.com" 2>/dev/null || true
-            # Use the actual YubiKey signing key
-            git config --local user.signingkey "1DEA2A6DFB339158" 2>/dev/null || true
-            git config --local commit.gpgsign true 2>/dev/null || true
-            git config --local tag.gpgsign true 2>/dev/null || true
-            git config --local gpg.program "$(which gpg)" 2>/dev/null || true
-            echo "✅ Git signing enabled for this repository"
-            
-            # Setup GPG for YubiKey signing
-            export GPG_TTY=$(tty)
-            export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-            
-            # Copy project gpg-agent.conf template to ~/.gnupg if missing
-            if [ ! -f "$HOME/.gnupg/gpg-agent.conf" ] && [ -f ".nix/dotfiles/gpg/gpg-agent.conf" ]; then
-              echo "📝 Installing gpg-agent.conf template to ~/.gnupg/..."
-              mkdir -p "$HOME/.gnupg"
-              cp .nix/dotfiles/gpg/gpg-agent.conf "$HOME/.gnupg/gpg-agent.conf"
-              chmod 600 "$HOME/.gnupg/gpg-agent.conf"
-              echo "✅ gpg-agent.conf installed (restart gpg-agent to apply)"
-            fi
-            
-            # Ensure gpg-agent is running with proper pinentry
-            if ! pgrep -x gpg-agent >/dev/null; then
-              gpgconf --kill gpg-agent 2>/dev/null || true
-              gpg-agent --daemon --enable-ssh-support >/dev/null 2>&1 || true
-            fi
-            
-            # Test GPG/YubiKey
-            if gpg --card-status >/dev/null 2>&1; then
-              echo "✅ YubiKey detected and accessible"
-              echo "   Signing key: $(gpg --card-status 2>/dev/null | grep 'Signature key' | awk '{print $NF}' | tr -d ':')"
-            else
-              echo "⚠️  YubiKey not detected - plug in and try: gpg --card-status"
-              echo "   Or run: ./hack/setup-yubikey-gpg.sh"
-            fi
-            
-            # Setup GPG for YubiKey signing
-            export GPG_TTY=$(tty)
-            export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-            
-            # Copy project gpg-agent.conf template to ~/.gnupg if missing
-            if [ ! -f "$HOME/.gnupg/gpg-agent.conf" ] && [ -f ".nix/dotfiles/gpg/gpg-agent.conf" ]; then
-              echo "📝 Installing gpg-agent.conf template to ~/.gnupg/..."
-              mkdir -p "$HOME/.gnupg"
-              cp .nix/dotfiles/gpg/gpg-agent.conf "$HOME/.gnupg/gpg-agent.conf"
-              chmod 600 "$HOME/.gnupg/gpg-agent.conf"
-              echo "✅ gpg-agent.conf installed (restart gpg-agent to apply)"
-            fi
-            
-            # Ensure gpg-agent is running with proper pinentry
-            if ! pgrep -x gpg-agent >/dev/null; then
-              gpgconf --kill gpg-agent 2>/dev/null || true
-              gpg-agent --daemon --enable-ssh-support >/dev/null 2>&1 || true
-            fi
-            
-            # Test GPG/YubiKey
-            if gpg --card-status >/dev/null 2>&1; then
-              echo "✅ YubiKey detected and accessible"
-              echo "   Signing key: $(gpg --card-status 2>/dev/null | grep 'Signature key' | awk '{print $NF}' | tr -d ':')"
-            else
-              echo "⚠️  YubiKey not detected - plug in and try: gpg --card-status"
-              echo "   Or run: ./hack/setup-yubikey-gpg.sh"
+            if [[ -f ./.nix/dotfiles/gpg/yubikey-shell-hook.sh ]]; then
+              source ./.nix/dotfiles/gpg/yubikey-shell-hook.sh
             fi
 
             # Ensure tools are available in PATH

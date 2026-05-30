@@ -12,6 +12,42 @@ import argparse
 from botocore.exceptions import ClientError, NoCredentialsError
 
 
+class EC2InventoryConfig:
+    def __init__(self, region: str, tags: dict):
+        self.region = region
+        self.tags = tags
+        self.ec2_client = boto3.client("ec2", region_name=self.region)
+
+    def get_instances(self):
+        """Get all EC2 instances with their tags"""
+        try:
+            response = self.ec2_client.describe_instances(
+                Filters=[
+                    {"Name": "instance-state-name", "Values": ["running", "pending"]}
+                ]
+            )
+
+            for reservation in response["Reservations"]:
+                for instance in reservation["Instances"]:
+                    if self.matches_tags(instance):
+                        self.instances.append(instance)
+
+        except ClientError as e:
+            print(f"ERROR: Failed to describe instances: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def matches_tags(self, instance: dict) -> bool:
+        """Check if instance matches the configured tags"""
+        tags = instance.get("Tags", [])
+        for tag in tags:
+            key = tag.get("Key", "").lower().replace("-", "_")
+            value = tag.get("Value")
+            if key and value:
+                if key not in self.tags or self.tags[key] != value:
+                    return False
+        return True
+        
+
 class EC2Inventory:
     def __init__(self):
         self.region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
@@ -145,20 +181,20 @@ class EC2Inventory:
             inventory["_meta"]["hostvars"][instance_id] = vars_dict
 
         # Add group variables
-        if "webservers" in inventory:
-            inventory["webservers"]["vars"] = {
-                "ansible_user": "ec2-user",
-                "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null",
-                "ansible_python_interpreter": "/usr/bin/python3",
-                "ansible_become": True,
-                "ansible_become_method": "sudo",
-            }
+        # if "webservers" in inventory:
+        #     inventory["webservers"]["vars"] = {
+        #         "ansible_user": "ec2-user",
+        #         "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null",
+        #         "ansible_python_interpreter": "/usr/bin/python3",
+        #         "ansible_become": True,
+        #         "ansible_become_method": "sudo",
+        #     }
 
-        if "go_mysql_api_instances" in inventory:
-            inventory["go_mysql_api_instances"]["vars"] = {
-                "app_name": "go-mysql-api",
-                "app_port": 8080,
-            }
+        # if "go_mysql_api_instances" in inventory:
+        #     inventory["go_mysql_api_instances"]["vars"] = {
+        #         "app_name": "go-mysql-api",
+        #         "app_port": 8080,
+        #     }
 
         return inventory
 

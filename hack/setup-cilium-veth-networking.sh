@@ -16,6 +16,7 @@ PROVIDER_NETWORKS=(
     "gcp:10.2.0.0/16:10.2.1.1:br-gcp:etcd-3,talos-control-plane-3,karpenter-worker-3"
     "ibm:10.3.0.0/16:10.3.1.1:br-ibm:talos-control-plane-4,karpenter-worker-4"
     "digitalocean:10.4.0.0/16:10.4.1.1:br-do:talos-control-plane-5,karpenter-worker-5"
+    "equinix:10.5.0.0/16:10.5.1.1:br-do:talos-control-plane-6,karpenter-worker-6"
 )
 
 # Logging function
@@ -225,6 +226,23 @@ spec:
   egress:
   - toCIDR:
     - "10.4.0.0/16"  # DigitalOcean provider network
+  - toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+      - port: "80"
+        protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-do-provider-communication
+  namespace: default
+spec:
+  endpointSelector: {}
+  egress:
+  - toCIDR:
+    - "10.5.0.0/16"  # Equinix provider network
   - toPorts:
     - ports:
       - port: "443"

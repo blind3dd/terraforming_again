@@ -7,7 +7,7 @@
     kind: Namespace
     state: present
     labels:
-    name: "{{ k8s_namespace }}"
+      name: "{{ k8s_namespace }}"
       app.kubernetes.io/part-of: "kubernetes-resources"
       app.kubernetes.io/managed-by: "ansible"
 

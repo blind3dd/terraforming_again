@@ -29,6 +29,7 @@ create_container_runtime_config() {
                 # Create containerd configuration
                 mkdir -p "$mount_point/etc/containerd"
                 tee "$mount_point/etc/containerd/config.toml" > /dev/null <<EOF
+# unpadcked star
 # Containerd configuration for $node_name
 version = 2
 
